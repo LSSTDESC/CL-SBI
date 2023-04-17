@@ -12,3 +12,5 @@ def test_generate_concentration_for_sample() :
     assert_array_less(min_concentrations, concentrations)
     assert_array_less(concentrations, max_concentrations)
     
+def test_generate_richness_for_sample() :
+    pass
