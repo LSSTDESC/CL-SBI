@@ -6,6 +6,7 @@ Notes::
     [profile format] weaklensingclustersbi currently supports radial profiles
 '''
 
+from colossus.halo import profile_nfw
  
 def simulate_nfw(log10mass, concentration, z=0.0, mdef = 'vir') :
   '''                                                                             
