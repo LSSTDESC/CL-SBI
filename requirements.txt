@@ -1,0 +1,6 @@
+nose
+sphinx
+colossus
+numpy
+matplotlib
+emcee
