@@ -8,8 +8,8 @@ Notes::
 Copyright 2022-2023, LSST-DESC
 """
 
-# Define a mass sample with some noise, and concentration sample that scatters
-# about the theoretical prediction
+def generate_concentration_mass_pairs() :
+    '''Define a mass sample with some noise, and concentration sample that scatters about the theoretical prediction '''
 
 log10mass_sample = np.random.uniform(13,15,size=10000)
 non_noisy_concentration_sample = get_concentration(log10mass_sample)
