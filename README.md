@@ -5,7 +5,9 @@ This repository contains tools for experiments for Weak Lensing Galaxy Clusters 
 
 ---------------
 
-If you want to learn more about ...
+If you want to learn more about SBI, I suggest checking out the package and tutorials from [mackelab](https://www.mackelab.org/sbi/) to start.
+
+If you want a quick primer on how we are using SBI to infer the mass of galaxy clusters from their weak lensing signature, you are welcome to check out (and work through) a [colab tutorial](https://colab.research.google.com/drive/11J7u1grfjBEpd32I1HigVcuJd0Nrh5Js?usp=sharing#scrollTo=oDyZ3kD2Peht) put together for an AI in Science 2022 summer school. 
 
 
 Installation
