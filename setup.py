@@ -13,16 +13,16 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'mypackage'
-DESCRIPTION = 'My short description for my project.'
-URL = 'https://github.com/me/myproject'
-EMAIL = 'me@example.com'
-AUTHOR = 'Awesome Soul'
+NAME = 'weaklensclustersbi'
+DESCRIPTION = 'Analytic simulations and tools for SBI experiments to infer weak lensing cluster masses'
+URL = 'https://github.com/LSSTDESC/CL-SBI'
+EMAIL = 'cavestru@umich.edu'
+AUTHOR = 'Camille Avestruz, others...'
 REQUIRES_PYTHON = '>=3.6.0'
 VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
-REQUIRED = [
+REQUIRED = ['colossus', 'emcee'
     # 'requests', 'maya', 'records',
 ]
 
