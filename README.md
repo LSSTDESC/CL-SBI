@@ -42,6 +42,9 @@ More Resources
 License
 -------
 
+Recommendations
+---------------
+Below are some resources we used to put this package together.
 
   [an example setup.py]: https://github.com/navdeep-G/setup.py/blob/master/setup.py
   [PyPi]: https://docs.python.org/3/distutils/packageindex.html
