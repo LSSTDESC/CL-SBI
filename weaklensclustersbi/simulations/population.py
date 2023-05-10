@@ -9,9 +9,11 @@ Copyright 2022-2023, LSST-DESC
 """
 import numpy as np
 
-def generate_concentration_for_sample(log10masses, z=0.0,
+
+def generate_concentration_for_sample(log10masses,
+                                      z=0.0,
                                       mcrelation='child18',
-                                      scatter_concentration_scale=0.2) :
+                                      scatter_concentration_scale=0.2):
     '''From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
     define the corresponding concentrations of this population assuming a mean concentration-mass relation 
     based on theoretical prediction) with some scatter in concentration at fixed mass. 
@@ -27,17 +29,22 @@ def generate_concentration_for_sample(log10masses, z=0.0,
     '''
 
     from .populationutils import get_concentration
-    
-    non_noisy_concentrations =  get_concentration(log10masses, z=z, model=mcrelation)
+
+    non_noisy_concentrations = get_concentration(log10masses,
+                                                 z=z,
+                                                 model=mcrelation)
     # Note: May want to later generalize the distribution of concentration about the mean relation that is not random normal
-    concentrations =  np.random.normal(non_noisy_concentrations,scatter_concentration_scale,np.shape(log10masses))
-    
+    concentrations = np.random.normal(non_noisy_concentrations,
+                                      scatter_concentration_scale,
+                                      np.shape(log10masses))
+
     return concentrations
 
 
-def generate_richness_for_sample(log10masses, z=0.0,
-                                 rmrelation='murata18',
-                                 scatter_richness_scale=1.0) :
+def generate_richness_for_sample(log10masses,
+                                 z=0.0,
+                                 rmrelation='murata17',
+                                 scatter_richness_scale=1.0):
     '''From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
     define the corresponding richness of this population assuming a mean richness-mass relation 
     based on theoretical prediction) with some scatter in richness at fixed mass. 
@@ -45,13 +52,48 @@ def generate_richness_for_sample(log10masses, z=0.0,
     Args:
         log10masses: a numpy array of masses, e.g. np.random.uniform(13,15,size=10000)
         z : redshift, default: 0.0
-        rmrelation : string that is a key to the model name of the M-c relation from colossus, default: child18
+        rmrelation : string that is a key to the model name of the richness-mass relation from colossus, default: murata17
 
     Returns:
-        concentrations : a numpy array of concentration values
+        richnesses : a numpy array of richness values
 
     '''
+    from .populationutils import get_richness
+
+    non_noisy_richnesses = np.array([
+        get_richness(log10mass, z=z, model=rmrelation)
+        for log10mass in log10masses
+    ])
+    richnesses = np.random.normal(non_noisy_richnesses, scatter_richness_scale,
+                                  np.shape(log10masses))
+
+    return richnesses
 
 
-    pass
+def draw_masses_in_richness_bin(lambda_min,
+                                lambda_max,
+                                rmrelation='murata17',
+                                num_clusters=10,
+                                noise_dex=0):
+    '''
+    From a given richness bin (defined by the minimum and maximum lambda values), randomly draw a given number of masses and then
+    apply some noise dex.
 
+    Args:
+        lambda_min: minimum richness (should be at least 20 if using murata17)
+        lambda_max: maximum richness (should be at most 100 if using murata 17)
+        rmrelation : string that is a key to the model name of the richness-mass relation from colossus, default: murata17
+        num_clusters: number of masses to be drawn. this will determine the size of the output
+        noise_dex: how much noise to be applied
+
+    Returns:
+        log10masses: a numpy array of size num_clusters of log10mass values
+    '''
+
+    from .populationutils import get_log10mass_from_richness, calculate_noise
+
+    lambdas = np.random.rand(num_clusters) * (lambda_max -
+                                              lambda_min) + lambda_min
+    log10masses = np.array(
+        [get_log10mass_from_richness(lambda_) for lambda_ in lambdas])
+    return calculate_noise(log10masses, noise_dex)

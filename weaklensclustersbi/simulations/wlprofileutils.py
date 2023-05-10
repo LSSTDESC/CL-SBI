@@ -6,7 +6,8 @@ Copyright 2022-2023, LSST-DESC
 
 from matplotlib import pyplot as plt
 
-def plot_profile(radii, profile, **plotkws) :
+
+def plot_profile(radii, profile, **plotkws):
     '''
     Quick plot for model profile
     '''
@@ -16,7 +17,5 @@ def plot_profile(radii, profile, **plotkws) :
     plt.xlabel('radius [kpc/h]', fontsize='xx-large')
     plt.ylabel('Density profile [$\\rho/\\rho_m$]', fontsize='xx-large')
     plt.plot(radius, profile, **plotkws)
-    
-    
+
     plt.legend(fontsize='xx-large')
-    
