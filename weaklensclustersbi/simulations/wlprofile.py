@@ -17,8 +17,8 @@ def simulate_nfw(log10mass,
                  mdef='vir',
                  kind='density'):
     '''                                                                             
-  Simulate an NFW profile with mass and concentration  defined with respect to a given mass definition.
-  '''
+    Simulate an NFW profile with mass and concentration  defined with respect to a given mass definition.
+    '''
     nfw = profile_nfw.NFWProfile(M=10**log10mass,
                                  c=concentration,
                                  z=z,

@@ -1,3 +1,5 @@
 
 .DS_Store
-simulated_nfw_profiles.npy
+*.npy
+*.png
+sbi-logs/

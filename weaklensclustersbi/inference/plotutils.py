@@ -31,8 +31,7 @@ def plot_chainconsumer(sampler, truth_values=()):
     for ax in ax_list:
         ax.grid(False)
 
-    plt.show()
-    print('hi')
+    plt.savefig('mcmc_chainconsumer.png')
 
 
 def plot_walkers(sampler):
@@ -60,6 +59,7 @@ def plot_walkers(sampler):
     axes[-1].set_xlabel('# of steps')
 
     fig.set_size_inches(10, 6 * npar / 3)
+    plt.savefig('mcmc_walkers.png')
 
 
 def combine_chains_pygtc(join_then_fit_chain, chains, truth=()):
@@ -82,6 +82,7 @@ def combine_chains_pygtc(join_then_fit_chain, chains, truth=()):
         customLegendFont=posterFont,
         nContourLevels=3,
     )
+    GTC.savefig('mcmc_pygtc.png')
 
 
 def combine_chains_chainconsumer(join_then_fit_chain, chains, truths=[]):
@@ -108,4 +109,4 @@ def combine_chains_chainconsumer(join_then_fit_chain, chains, truths=[]):
     for ax in ax_list:
         ax.grid(False)
 
-    plt.show()
+    plt.savefig('mcmc_cc.png')

@@ -27,11 +27,12 @@ def test_generate_richness_for_sample():
 
 
 def test_draw_masses_in_richness_bin():
-    num_clusters = 14
-    log10masses = population.draw_masses_in_richness_bin(
-        30, 40, num_clusters=num_clusters)
-    min_log10masses = np.ones(num_clusters) * 14.5
-    max_log10masses = np.ones(num_clusters) * 14.8
+    num_drawn = 14
+    log10masses = population.draw_masses_in_richness_bin(30,
+                                                         40,
+                                                         num_drawn=num_drawn)
+    min_log10masses = np.ones(num_drawn) * 14.5
+    max_log10masses = np.ones(num_drawn) * 14.8
     assert_array_less(min_log10masses, log10masses)
     assert_array_less(log10masses, max_log10masses)
 

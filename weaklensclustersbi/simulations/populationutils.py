@@ -57,6 +57,7 @@ def _get_murata2017_parameters():
     return a, b, mass_pivot
 
 
+# TODO: dupe. If we need it here too, we should extract this to a diff file
 def calculate_noise(sample, dex=0.0):
     random_noise = np.random.normal(1, dex, np.shape(sample))
     return 10**(random_noise * np.log10(sample))

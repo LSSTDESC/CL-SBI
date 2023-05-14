@@ -10,4 +10,4 @@ sys.path.insert(0,
 
 import weaklensclustersbi
 from weaklensclustersbi.simulations import population, wlprofile
-from weaklensclustersbi.inference import mcmc, plotutils
+from weaklensclustersbi.inference import mcmc, plotutils, sbi_
