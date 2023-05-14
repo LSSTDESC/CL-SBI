@@ -14,16 +14,14 @@ def sbi_config():
 
 
 def run_sbi(simulated_nfw_profiles,
-            log10mass_sample,
-            concentration_sample,
+            sample_mc_pairs,
             drawn_nfw_profiles,
-            drawn_log10masses,
-            drawn_concentrations,
+            drawn_mc_pairs,
             noise_dex=0.0):
     from .sbiutils import calculate_noise, create_fit_join_observation_nfw, create_join_fit_observation_nfw
 
     # Define our data in terms of parameters, theta, and data
-    theta_np = np.array([log10mass_sample, concentration_sample]).T
+    theta_np = np.array(sample_mc_pairs.T).T
     x_np = calculate_noise(simulated_nfw_profiles, noise_dex)
 
     # Uniform prior from -20 to 20 (which encompasses possible log10 masses and concentration values)
@@ -62,12 +60,11 @@ def run_sbi(simulated_nfw_profiles,
     # Build posterior using trained density estimator and posterior sampling settings
     posterior = inferer.build_posterior(density_estimator)
 
-    mc_pairs = list(zip(drawn_log10masses, drawn_concentrations))
-
     # Create an observation
     theta_o_fj, x_o_fj = create_fit_join_observation_nfw(
-        mc_pairs, drawn_nfw_profiles, noise_dex)
-    theta_o_jf, x_o_jf = create_join_fit_observation_nfw(mc_pairs, noise_dex)
+        drawn_mc_pairs, drawn_nfw_profiles, noise_dex)
+    theta_o_jf, x_o_jf = create_join_fit_observation_nfw(
+        drawn_mc_pairs, noise_dex)
 
     # Obtain samples of the posterior given the observation
     samples_fj = posterior.sample((10000, ), x=x_o_fj)
@@ -75,7 +72,7 @@ def run_sbi(simulated_nfw_profiles,
 
     # Redefine priors and truths
     priors2d = ((-20, 20), (20, 20))
-    truths2d = (np.mean(log10mass_sample), np.mean(concentration_sample))
+    truths2d = (np.mean(sample_mc_pairs.T[0]), np.mean(sample_mc_pairs.T[1]))
 
     wide_param_ranges = ((13, 15.5), (3, 7.5))
     narrow_param_ranges = ((14.2, 15.2), (4.2, 6.2))

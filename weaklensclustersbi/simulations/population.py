@@ -19,7 +19,7 @@ def random_mass_conc(min_log10mass, max_log10mass, num_samples, noise=0.2):
     non_noisy_concentration_sample = get_concentration(log10mass_sample)
     concentration_sample = np.random.normal(non_noisy_concentration_sample,
                                             noise, num_samples)
-    return log10mass_sample, concentration_sample
+    return list(zip(log10mass_sample, concentration_sample))
 
 
 def generate_concentration_for_sample(log10masses,
