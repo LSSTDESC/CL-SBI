@@ -6,7 +6,6 @@ from sbi.inference import prepare_for_sbi, simulate_for_sbi, SNPE, SNLE, SNRE
 from sbi.analysis import pairplot
 import torch
 from torch import zeros, ones
-import pygtc
 
 
 def sbi_config():
@@ -70,44 +69,4 @@ def run_sbi(simulated_nfw_profiles,
     samples_fj = posterior.sample((10000, ), x=x_o_fj)
     samples_jf = posterior.sample((10000, ), x=x_o_jf)
 
-    # Redefine priors and truths
-    priors2d = ((-20, 20), (20, 20))
-    truths2d = (np.mean(sample_mc_pairs.T[0]), np.mean(sample_mc_pairs.T[1]))
-
-    wide_param_ranges = ((13, 15.5), (3, 7.5))
-    narrow_param_ranges = ((14.2, 15.2), (4.2, 6.2))
-    # param_ranges = ((14.5, 14.75), (5, 5.5))
-    param_labels = ['log10mass', 'concentration']
-    chain_labels = ['join_then_fit', 'fit_then_join']
-
-    # TODO: split plotting into separate functions and probs a separate file
-    # The 2d panel and the 1d histograms
-    GTC = pygtc.plotGTC(
-        chains=[samples_fj.numpy(), samples_jf.numpy()],
-        chainLabels=chain_labels,
-        paramNames=param_labels,
-        truths=truths2d,
-        priors=priors2d,
-        # paramRanges=wide_param_ranges,
-        #figureSize='MNRAS_column',
-        figureSize=8.,
-        nContourLevels=3,
-    )
-    #figureSize='MNRAS_column')
-    GTC.savefig('sbi_with_histogram.png')
-
-    GTC = pygtc.plotGTC(
-        chains=[samples_fj.numpy(), samples_jf.numpy()],
-        chainLabels=chain_labels,
-        paramNames=param_labels,
-        truths=truths2d,
-        priors=priors2d,
-        # paramRanges=narrow_param_ranges,
-        #figureSize='MNRAS_column',
-        figureSize=8.,
-        do1dPlots=False,
-        customTickFont={
-            'family': 'Arial',
-            'size': 12
-        })
-    GTC.savefig('sbi_no_histogram.png')
+    return [samples_fj.numpy(), np.vstack(samples_jf.numpy())]

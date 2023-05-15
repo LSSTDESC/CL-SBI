@@ -1,5 +1,4 @@
 import emcee
-import pygtc
 import numpy as np
 
 
