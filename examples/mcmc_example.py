@@ -14,8 +14,5 @@ truths2d = (np.mean(sample_mc_pairs.T[0]), np.mean(sample_mc_pairs.T[1]))
 join_then_fit_chain = mcmc.join_then_fit(drawn_nfw_profiles)
 fit_then_join_chain = mcmc.fit_then_join(drawn_nfw_profiles)
 
-# TODO: add a wrapper function so we have a single interface with 'pygtc' or 'cc' as a param
-plotutils.plot_pygtc([join_then_fit_chain, fit_then_join_chain], 'mcmc_pygtc',
-                     truths2d)
-plotutils.plot_chainconsumer([join_then_fit_chain, fit_then_join_chains],
-                             'mcmc_cc', list(truths2d))
+np.save('jtf_chain.npy', join_then_fit_chain)
+np.save('ftj_chain.npy', fit_then_join_chain)

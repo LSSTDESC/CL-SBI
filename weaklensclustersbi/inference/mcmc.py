@@ -51,7 +51,7 @@ def fit_then_join(profiles):
     for profile in profiles:
         sampler = run_mcmc(profile)
         chains.append(sampler.flatchain)
-    return chains
+    return np.vstack(chains)
 
 
 def join_then_fit(profiles):

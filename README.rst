@@ -16,3 +16,4 @@ Running instructions:
 python examples/simulate_wl_profile.py
 python examples/mcmc_example.py
 python examples/sbi_example.py
+python examples/plot_example.py

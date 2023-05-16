@@ -19,5 +19,6 @@ truths2d = (np.mean(sample_mc_pairs.T[0]), np.mean(sample_mc_pairs.T[1]))
 
 chains = sbi_.run_sbi(simulated_nfw_profiles, sample_mc_pairs,
                       drawn_nfw_profiles, drawn_mc_pairs, noise_dex)
-plotutils.plot_pygtc(chains, 'sbi_pygtc', truths2d)
-plotutils.plot_chainconsumer(chains, 'sbi_cc', list(truths2d))
+
+np.save('sbi_chains.npy', chains)
+np.save('truths2d.npy', truths2d)

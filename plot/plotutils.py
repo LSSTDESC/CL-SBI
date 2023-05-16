@@ -67,15 +67,15 @@ def plot_pygtc(chains, output_filename, truths2d=()):
 
 def plot_chainconsumer(chains, output_filename, truths2d=[]):
     cc = ChainConsumer()
+    cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
+    cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
     cc.configure(statistics='max',
                  summary=True,
                  label_font_size=20,
                  tick_font_size=16,
                  usetex=False,
                  serif=False,
-                 sigmas=[1, 2])
-    cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
-    cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
+                 sigmas=[0, 1, 2])
     fig = cc.plotter.plot(truth=truths2d,
                           parameters=param_labels,
                           extents=list(wide_param_ranges),
