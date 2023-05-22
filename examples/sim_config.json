@@ -1,0 +1,1 @@
+{"rm_relation": "murata17", "mc_relation": "child18", "num_samples": 10000, "sample_noise_dex": 0, "min_richness": 30, "max_richness": 40, "num_drawn": 10, "drawn_noise_dex": 0.2, "num_radial_bins": 30, "sim_output_dir": "examples"}
