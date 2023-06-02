@@ -31,13 +31,3 @@ sim_config = {
 
 with open(f"{sim_config['sim_output_dir']}/sim_config.json", "w") as outfile:
     json.dump(sim_config, outfile)
-
-infer_config = {
-    'sim_output_dir': 'sim_output',
-    'inference_type': 'sbi',
-    'profile_noise_dex': 0.3,
-}
-
-plot_config = {
-    'plot_type': 'cc',  # chainconsumer
-}
