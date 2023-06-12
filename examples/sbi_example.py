@@ -3,7 +3,7 @@ Example script to use SBI to recover log10mass and concentration from NFW profil
 This is using two approaches - join&fit, fit&join and plotting both together.
 """
 
-from context import sbi_, plotutils
+from context import sbi_, plotutils, inferutils
 import numpy as np
 import json
 import argparse
@@ -30,13 +30,14 @@ sim_path = os.path.join(script_dir, sim_rel_path)
 simulated_nfw_profiles = np.load(
     os.path.join(sim_path, 'simulated_nfw_profiles.npy'))
 sample_mc_pairs = np.load(os.path.join(sim_path, 'sample_mc_pairs.npy'))
+filtered_mc_pairs = inferutils.filter_mc_pairs(sample_mc_pairs, 'all')
 drawn_nfw_profiles = np.load(os.path.join(sim_path, 'drawn_nfw_profiles.npy'))
 drawn_mc_pairs = np.load(os.path.join(sim_path, 'drawn_mc_pairs.npy'))
 
-true_param_mean = (np.mean(sample_mc_pairs.T[0]),
-                   np.mean(sample_mc_pairs.T[1]))
+true_param_mean = (np.mean(filtered_mc_pairs.T[0]),
+                   np.mean(filtered_mc_pairs.T[1]))
 
-chains = sbi_.run_sbi(simulated_nfw_profiles, sample_mc_pairs,
+chains = sbi_.run_sbi(simulated_nfw_profiles, filtered_mc_pairs,
                       drawn_nfw_profiles, drawn_mc_pairs,
                       infer_config['profile_noise_dex'])
 

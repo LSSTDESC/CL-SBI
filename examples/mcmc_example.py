@@ -3,7 +3,7 @@ Example script to use MCMC to recover log10mass and concentration from NFW profi
 This is using two approaches - join&fit, fit&join and plotting both together.
 """
 
-from context import mcmc, plotutils
+from context import mcmc, plotutils, inferutils
 import numpy as np
 import os
 import argparse
@@ -28,9 +28,10 @@ with open(config_filename, 'r') as f:
 sim_rel_path = '../simulations/' + args.sim_dir
 sim_path = os.path.join(script_dir, sim_rel_path)
 sample_mc_pairs = np.load(os.path.join(sim_path, 'sample_mc_pairs.npy'))
+filtered_mc_pairs = inferutils.filter_mc_pairs(sample_mc_pairs, 'all')
 drawn_nfw_profiles = np.load(os.path.join(sim_path, 'drawn_nfw_profiles.npy'))
-true_param_mean = (np.mean(sample_mc_pairs.T[0]),
-                   np.mean(sample_mc_pairs.T[1]))
+true_param_mean = (np.mean(filtered_mc_pairs.T[0]),
+                   np.mean(filtered_mc_pairs.T[1]))
 
 join_then_fit_chain = mcmc.join_then_fit(drawn_nfw_profiles, infer_config)
 fit_then_join_chain = mcmc.fit_then_join(drawn_nfw_profiles, infer_config)
