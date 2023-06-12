@@ -33,7 +33,8 @@ sample_mc_pairs = np.load(os.path.join(sim_path, 'sample_mc_pairs.npy'))
 drawn_nfw_profiles = np.load(os.path.join(sim_path, 'drawn_nfw_profiles.npy'))
 drawn_mc_pairs = np.load(os.path.join(sim_path, 'drawn_mc_pairs.npy'))
 
-truths2d = (np.mean(sample_mc_pairs.T[0]), np.mean(sample_mc_pairs.T[1]))
+true_param_mean = (np.mean(sample_mc_pairs.T[0]),
+                   np.mean(sample_mc_pairs.T[1]))
 
 chains = sbi_.run_sbi(simulated_nfw_profiles, sample_mc_pairs,
                       drawn_nfw_profiles, drawn_mc_pairs,
@@ -41,4 +42,4 @@ chains = sbi_.run_sbi(simulated_nfw_profiles, sample_mc_pairs,
 
 # Output these intermediate files back to the config_dir from which we read the infer_config
 np.save(os.path.join(config_path, 'sbi_chains.npy'), chains)
-np.save(os.path.join(config_path, 'truths2d.npy'), truths2d)
+np.save(os.path.join(config_path, 'true_param_mean.npy'), true_param_mean)

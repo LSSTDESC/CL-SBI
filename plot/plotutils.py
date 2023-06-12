@@ -46,7 +46,7 @@ def plot_walkers(sampler):
     plt.savefig(f'mcmc_walkers.png')
 
 
-def plot_pygtc(chains, output_filename, truths2d=()):
+def plot_pygtc(chains, output_filename, true_param_mean=()):
     # posterFont = {'family': 'Arial', 'size': 18}
     GTC = pygtc.plotGTC(
         chains=chains,
@@ -56,7 +56,7 @@ def plot_pygtc(chains, output_filename, truths2d=()):
         paramRanges=wide_param_ranges,
         sigmaContourLevels=True,
         plotDensity=True,
-        truths=truths2d,
+        truths=true_param_mean,
         # customLabelFont=posterFont,
         # customTickFont=posterFont,
         # customLegendFont=posterFont,
@@ -65,7 +65,7 @@ def plot_pygtc(chains, output_filename, truths2d=()):
     GTC.savefig(f'images/{output_filename}_{timestamp()}.png')
 
 
-def plot_chainconsumer(chains, output_filename, truths2d=[]):
+def plot_chainconsumer(chains, output_filename, true_param_mean=[]):
     cc = ChainConsumer()
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
     cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
@@ -76,7 +76,7 @@ def plot_chainconsumer(chains, output_filename, truths2d=[]):
                  usetex=False,
                  serif=False,
                  sigmas=[0, 1, 2])
-    fig = cc.plotter.plot(truth=truths2d,
+    fig = cc.plotter.plot(truth=true_param_mean,
                           parameters=param_labels,
                           extents=list(wide_param_ranges),
                           figsize=(8, 8))

@@ -29,10 +29,12 @@ sim_rel_path = '../simulations/' + args.sim_dir
 sim_path = os.path.join(script_dir, sim_rel_path)
 sample_mc_pairs = np.load(os.path.join(sim_path, 'sample_mc_pairs.npy'))
 drawn_nfw_profiles = np.load(os.path.join(sim_path, 'drawn_nfw_profiles.npy'))
-truths2d = (np.mean(sample_mc_pairs.T[0]), np.mean(sample_mc_pairs.T[1]))
+true_param_mean = (np.mean(sample_mc_pairs.T[0]),
+                   np.mean(sample_mc_pairs.T[1]))
 
 join_then_fit_chain = mcmc.join_then_fit(drawn_nfw_profiles, infer_config)
 fit_then_join_chain = mcmc.fit_then_join(drawn_nfw_profiles, infer_config)
 
 np.save(os.path.join(config_path, 'jtf_chain.npy'), join_then_fit_chain)
 np.save(os.path.join(config_path, 'ftj_chain.npy'), fit_then_join_chain)
+np.save(os.path.join(config_path, 'true_param_mean.npy'), true_param_mean)
