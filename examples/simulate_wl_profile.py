@@ -54,6 +54,9 @@ drawn_nfw_profiles = np.array([
     for log10mass, concentration in drawn_mc_pairs
 ])
 
+measured_params = population.generate_richness_for_sample(
+    [mc_pair[0] for mc_pair in sample_mc_pairs])  # log10masses
+
 # Output to intermediate files in sim_dir to be read by inference example script
 np.save(os.path.join(config_path, 'drawn_nfw_profiles.npy'),
         drawn_nfw_profiles)
@@ -61,3 +64,4 @@ np.save(os.path.join(config_path, 'drawn_mc_pairs.npy'), drawn_mc_pairs)
 np.save(os.path.join(config_path, 'simulated_nfw_profiles.npy'),
         simulated_nfw_profiles)
 np.save(os.path.join(config_path, 'sample_mc_pairs.npy'), sample_mc_pairs)
+np.save(os.path.join(config_path, 'measured_params.npy'), measured_params)
