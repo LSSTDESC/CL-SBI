@@ -5,20 +5,33 @@ This is using two approaches - join&fit, fit&join and plotting both together.
 
 from context import sbi_, plotutils
 import numpy as np
-from pathlib import Path
 import json
+import argparse
+import os
 
-# Open the copy of infer_config in the same directory as this script
-# TODO: pass along the path to the infer config. Maybe as a command line arg?
-p = Path(__file__).with_name('infer_config.json')
-with p.open('r') as f:
+# Read command line arguments for the directory with the infer_config
+parser = argparse.ArgumentParser()
+parser.add_argument('--config_dir')
+parser.add_argument('--sim_dir')
+args = parser.parse_args()
+
+# Open the copy of infer_config in the config_dir specified in the command line
+script_dir = os.path.dirname(__file__)
+config_rel_path = '../configs/' + args.config_dir
+config_path = os.path.join(script_dir, config_rel_path)
+config_filename = os.path.join(config_path, 'infer_config.json')
+
+with open(config_filename, 'r') as f:
     infer_config = json.load(f)
 
-# Read the output of the simulate_wl_profile.py
-simulated_nfw_profiles = np.load('simulated_nfw_profiles.npy')
-sample_mc_pairs = np.load('sample_mc_pairs.npy')
-drawn_nfw_profiles = np.load('drawn_nfw_profiles.npy')
-drawn_mc_pairs = np.load('drawn_mc_pairs.npy')
+# Read in the simulations in the sim_dir specified in the command line
+sim_rel_path = '../simulations/' + args.sim_dir
+sim_path = os.path.join(script_dir, sim_rel_path)
+simulated_nfw_profiles = np.load(
+    os.path.join(sim_path, 'simulated_nfw_profiles.npy'))
+sample_mc_pairs = np.load(os.path.join(sim_path, 'sample_mc_pairs.npy'))
+drawn_nfw_profiles = np.load(os.path.join(sim_path, 'drawn_nfw_profiles.npy'))
+drawn_mc_pairs = np.load(os.path.join(sim_path, 'drawn_mc_pairs.npy'))
 
 truths2d = (np.mean(sample_mc_pairs.T[0]), np.mean(sample_mc_pairs.T[1]))
 
@@ -26,6 +39,6 @@ chains = sbi_.run_sbi(simulated_nfw_profiles, sample_mc_pairs,
                       drawn_nfw_profiles, drawn_mc_pairs,
                       infer_config['profile_noise_dex'])
 
-# TODO: write to the same directory as the infer_config
-np.save('sbi_chains.npy', chains)
-np.save('truths2d.npy', truths2d)
+# Output these intermediate files back to the config_dir from which we read the infer_config
+np.save(os.path.join(config_path, 'sbi_chains.npy'), chains)
+np.save(os.path.join(config_path, 'truths2d.npy'), truths2d)

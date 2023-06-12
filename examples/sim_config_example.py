@@ -10,6 +10,7 @@ Experiment:
 
 '''
 import json
+import os
 
 sim_config = {
     'rm_relation': 'murata17',
@@ -26,8 +27,17 @@ sim_config = {
     # TODO: how do we want to add other noise "profiles" other than dex
     'drawn_noise_dex': 0.2,
     'num_radial_bins': 30,
-    'sim_output_dir': 'examples'
+    # TODO: should this be passed in from command line for consistency?
+    'sim_output_dir': 'example'
 }
 
-with open(f"{sim_config['sim_output_dir']}/sim_config.json", "w") as outfile:
+# Figuring out directory of where to output the sim_config
+script_dir = os.path.dirname(__file__)
+sim_rel_path = '../simulations/' + sim_config['sim_output_dir']
+sim_dir = os.path.join(script_dir, sim_rel_path)
+if not os.path.exists(sim_dir):
+    os.makedirs(sim_dir)
+sim_filename = os.path.join(sim_dir, 'sim_config.json')
+
+with open(sim_filename, "w") as outfile:
     json.dump(sim_config, outfile)

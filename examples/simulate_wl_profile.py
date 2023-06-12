@@ -5,15 +5,26 @@ Example script to simulate a weak lensing profile using modules
 from context import population, wlprofile
 import numpy as np
 import json
-from pathlib import Path
+import os
+import argparse
 
 # Define a richness band from which we draw masses with some noise, and the
 # concentration that scatters about that theoretical prediction
 
-# Open the copy of sim_config in the same directory as this script
-# TODO: have the input directory passed in as well
-p = Path(__file__).with_name('sim_config.json')
-with p.open('r') as f:
+# Read command line arguments for the directory with the infer_config
+parser = argparse.ArgumentParser()
+# parser.add_argument('--config_dir')
+parser.add_argument('--sim_dir')
+args = parser.parse_args()
+
+# Open the copy of infer_config in the config_dir specified in the command line
+script_dir = os.path.dirname(__file__)
+config_rel_path = '../simulations/' + args.sim_dir
+config_path = os.path.join(script_dir, config_rel_path)
+config_filename = os.path.join(config_path, 'sim_config.json')
+
+# Open the copy of sim_config in sim_dir
+with open(config_filename, 'r') as f:
     sim_config = json.load(f)
 '''
 * simulated_nfw_profiles: needs to be 10k from randomly sampled log10masses in 
@@ -43,11 +54,10 @@ drawn_nfw_profiles = np.array([
     for log10mass, concentration in drawn_mc_pairs
 ])
 
-sim_output_dir = sim_config['sim_output_dir']
-
-# Output to an intermediate file to be read by inference example script
-np.save(f'{sim_output_dir}/drawn_nfw_profiles.npy', drawn_nfw_profiles)
-np.save(f'{sim_output_dir}/drawn_mc_pairs.npy', drawn_mc_pairs)
-
-np.save(f'{sim_output_dir}/simulated_nfw_profiles.npy', simulated_nfw_profiles)
-np.save(f'{sim_output_dir}/sample_mc_pairs.npy', sample_mc_pairs)
+# Output to intermediate files in sim_dir to be read by inference example script
+np.save(os.path.join(config_path, 'drawn_nfw_profiles.npy'),
+        drawn_nfw_profiles)
+np.save(os.path.join(config_path, 'drawn_mc_pairs.npy'), drawn_mc_pairs)
+np.save(os.path.join(config_path, 'simulated_nfw_profiles.npy'),
+        simulated_nfw_profiles)
+np.save(os.path.join(config_path, 'sample_mc_pairs.npy'), sample_mc_pairs)
