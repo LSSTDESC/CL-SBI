@@ -28,7 +28,8 @@ with open(config_filename, 'r') as f:
 sim_rel_path = '../simulations/' + args.sim_dir
 sim_path = os.path.join(script_dir, sim_rel_path)
 sample_mc_pairs = np.load(os.path.join(sim_path, 'sample_mc_pairs.npy'))
-filtered_mc_pairs = inferutils.filter_mc_pairs(sample_mc_pairs, 'all')
+filtered_mc_pairs = inferutils.filter_mc_pairs(
+    sample_mc_pairs, infer_config['mc_pair_subselect'])
 drawn_nfw_profiles = np.load(os.path.join(sim_path, 'drawn_nfw_profiles.npy'))
 true_param_mean = (np.mean(filtered_mc_pairs.T[0]),
                    np.mean(filtered_mc_pairs.T[1]))

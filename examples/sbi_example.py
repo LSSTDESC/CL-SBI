@@ -30,7 +30,8 @@ sim_path = os.path.join(script_dir, sim_rel_path)
 simulated_nfw_profiles = np.load(
     os.path.join(sim_path, 'simulated_nfw_profiles.npy'))
 sample_mc_pairs = np.load(os.path.join(sim_path, 'sample_mc_pairs.npy'))
-filtered_mc_pairs = inferutils.filter_mc_pairs(sample_mc_pairs, 'all')
+filtered_mc_pairs = inferutils.filter_mc_pairs(
+    sample_mc_pairs, infer_config['mc_pair_subselect'])
 drawn_nfw_profiles = np.load(os.path.join(sim_path, 'drawn_nfw_profiles.npy'))
 drawn_mc_pairs = np.load(os.path.join(sim_path, 'drawn_mc_pairs.npy'))
 

@@ -16,6 +16,7 @@ infer_config = {
     'inference_type': 'sbi',
     'profile_noise_dex': 0.3,
     'config_dir': 'example',
+    'mc_pair_subselect': 'all',
 
     # MCMC config params
     'nwalkers': 100,

@@ -2,6 +2,7 @@
     "inference_type": "sbi",
     "profile_noise_dex": 0.3,
     "config_dir": "example",
+    "mc_pair_subselect": "all",
     "nwalkers": 100,
     "npar": 2,
     "starts":
