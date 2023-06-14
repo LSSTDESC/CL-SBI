@@ -25,7 +25,7 @@ sim_config = {
     'max_richness': 40,
     'num_sims': 10,
     # TODO: how do we want to add other noise "profiles" other than dex
-    'drawn_noise_dex': 0.2,
+    'drawn_noise_dex': 0,
     'num_radial_bins': 30,
     # TODO: should this be passed in from command line for consistency?
     'sim_output_dir': 'example'

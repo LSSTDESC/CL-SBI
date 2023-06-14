@@ -35,7 +35,8 @@ with open(config_filename, 'r') as f:
 # ~10k randomly sampled log10masses and their corresponding concentrations.
 # These are the "simulations" that we'll use for SBI
 sample_mc_pairs = population.random_mass_conc(
-    13, 15, sim_config['num_parameter_samples'])
+    13, 15, sim_config['num_parameter_samples'],
+    sim_config['sample_noise_dex'])
 rbins = 10**np.arange(0, sim_config['num_radial_bins'] / 10, 0.1)
 simulated_nfw_profiles = np.array([
     wlprofile.simulate_nfw(log10mass, concentration, rbins)
@@ -47,7 +48,7 @@ drawn_mc_pairs = population.gen_mc_pairs_in_richness_bin(
     sim_config['min_richness'],
     sim_config['max_richness'],
     num_sims=sim_config['num_sims'],
-    noise_dex=sim_config['sample_noise_dex'])
+    noise_dex=sim_config['drawn_noise_dex'])
 
 drawn_nfw_profiles = np.array([
     wlprofile.simulate_nfw(log10mass, concentration, rbins)
