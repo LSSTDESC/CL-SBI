@@ -5,7 +5,6 @@ import emcee
 np.random.seed(2807)
 
 
-# TODO: use this if MCMC params not passed in?
 def default_config():
     return {
         'nwalkers': 100,
@@ -16,9 +15,10 @@ def default_config():
     }
 
 
-def run_mcmc(truth_val, config):
+def run_mcmc(truth_val):
     from .mcmcutils import logprob
     # set up the sampler
+    config = default_config()
     sampler = emcee.EnsembleSampler(config['nwalkers'],
                                     config['npar'],
                                     logprob,
@@ -44,17 +44,17 @@ def run_mcmc(truth_val, config):
     return sampler
 
 
-def fit_then_join(profiles, config):
+def fit_then_join(profiles):
     from .mcmcutils import logprob
     chains = []
     for profile in profiles:
-        sampler = run_mcmc(profile, config)
+        sampler = run_mcmc(profile)
         chains.append(sampler.flatchain)
     return np.vstack(chains)
 
 
-def join_then_fit(profiles, config):
+def join_then_fit(profiles):
     from .mcmcutils import logprob
     mean_profile = np.mean(profiles, keepdims=True, axis=0)
-    sampler = run_mcmc(mean_profile, config)
+    sampler = run_mcmc(mean_profile)
     return sampler.flatchain

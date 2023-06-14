@@ -17,13 +17,6 @@ infer_config = {
     'profile_noise_dex': 0.3,
     'config_dir': 'example',
     'mc_pair_subselect': 'all',
-
-    # MCMC config params
-    'nwalkers': 100,
-    'npar': 2,
-    'starts': [10, 10],
-    'nsteps_burn': 500,
-    'nsteps_per_chain': 2000,
 }
 
 # Figuring out directory of where to output the infer_config

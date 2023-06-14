@@ -17,13 +17,13 @@ sim_config = {
     'mc_relation': 'child18',
 
     # number of simulations
-    'num_samples': 10000,
+    'num_parameter_samples': 10000,
     'sample_noise_dex': 0,
 
     # richness band and number of masses drawn from it
     'min_richness': 30,
     'max_richness': 40,
-    'num_drawn': 10,
+    'num_sims': 10,
     # TODO: how do we want to add other noise "profiles" other than dex
     'drawn_noise_dex': 0.2,
     'num_radial_bins': 30,
