@@ -25,4 +25,4 @@ Then, use this sim_config to run the numerical experiment in the folder.
 python examples/simulate_wl_profile.py --sim_dir example
 python examples/mcmc_example.py --config_dir example --sim_dir example 
 python examples/sbi_example.py --config_dir example --sim_dir example
-python examples/plot_example.py
+python examples/plot_example.py --config_dir example

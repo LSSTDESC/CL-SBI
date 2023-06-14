@@ -2,6 +2,7 @@ import pygtc
 import numpy as np
 import matplotlib.pyplot as plt
 from chainconsumer import ChainConsumer
+import os
 
 param_labels = ['log10mass', 'concentration']
 chain_labels = ['join_then_fit', 'fit_then_join']
@@ -46,7 +47,7 @@ def plot_walkers(sampler):
     plt.savefig(f'mcmc_walkers.png')
 
 
-def plot_pygtc(chains, output_filename, true_param_mean=()):
+def plot_pygtc(chains, output_dir, infer_type, true_param_mean=()):
     # posterFont = {'family': 'Arial', 'size': 18}
     GTC = pygtc.plotGTC(
         chains=chains,
@@ -62,10 +63,12 @@ def plot_pygtc(chains, output_filename, true_param_mean=()):
         # customLegendFont=posterFont,
         nContourLevels=2,
     )
-    GTC.savefig(f'images/{output_filename}_{timestamp()}.png')
+
+    GTC.savefig(
+        os.path.join(output_dir, f'plot_{infer_type}_gtc_{timestamp()}.png'))
 
 
-def plot_chainconsumer(chains, output_filename, true_param_mean=[]):
+def plot_chainconsumer(chains, output_dir, infer_type, true_param_mean=[]):
     cc = ChainConsumer()
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
     cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
@@ -84,4 +87,5 @@ def plot_chainconsumer(chains, output_filename, true_param_mean=[]):
     for ax in ax_list:
         ax.grid(False)
 
-    plt.savefig(f'images/{output_filename}_{timestamp()}.png')
+    plt.savefig(
+        os.path.join(output_dir, f'plot_{infer_type}_cc_{timestamp()}.png'))
