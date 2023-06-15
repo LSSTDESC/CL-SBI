@@ -28,15 +28,15 @@ with open(config_filename, 'r') as f:
     sim_config = json.load(f)
 '''
 * simulated_nfw_profiles: needs to be 10k from randomly sampled log10masses in 
-    range 13-15 and their corresponding concentrations
+    range specified in sim_config and their corresponding concentrations
 * drawn masses: should be a much smaller number ~10
 '''
 
 # ~10k randomly sampled log10masses and their corresponding concentrations.
 # These are the "simulations" that we'll use for SBI
 sample_mc_pairs = population.random_mass_conc(
-    13, 15, sim_config['num_parameter_samples'],
-    sim_config['sample_noise_dex'])
+    sim_config['min_log10mass'], sim_config['max_log10mass'],
+    sim_config['num_parameter_samples'], sim_config['sample_noise_dex'])
 rbins = 10**np.arange(0, sim_config['num_radial_bins'] / 10, 0.1)
 simulated_nfw_profiles = np.array([
     wlprofile.simulate_nfw(log10mass, concentration, rbins)

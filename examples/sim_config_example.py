@@ -19,6 +19,8 @@ sim_config = {
     # number of simulations
     'num_parameter_samples': 10000,
     'sample_noise_dex': 0,
+    'min_log10mass': 13,
+    'max_log10mass': 15,
 
     # richness band and number of masses drawn from it
     'min_richness': 30,

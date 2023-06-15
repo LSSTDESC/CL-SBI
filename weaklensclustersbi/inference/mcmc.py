@@ -45,6 +45,10 @@ def run_mcmc(truth_val):
 
 
 def fit_then_join(profiles):
+    '''
+    For a given set of profiles, we run MCMC on each of them (fit). To reduce noise, at the end, we stack
+    all of the chains into a single one (join).
+    '''
     from .mcmcutils import logprob
     chains = []
     for profile in profiles:
@@ -54,6 +58,10 @@ def fit_then_join(profiles):
 
 
 def join_then_fit(profiles):
+    '''
+    For a given set of profiles, we first find the average profile (join) to reduce noise and then 
+    run MCMC on that (fit).
+    '''
     from .mcmcutils import logprob
     mean_profile = np.mean(profiles, keepdims=True, axis=0)
     sampler = run_mcmc(mean_profile)

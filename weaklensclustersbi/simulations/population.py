@@ -14,6 +14,19 @@ def random_mass_conc(min_log10mass,
                      max_log10mass,
                      num_parameter_samples,
                      noise=0.2):
+    '''
+    In the provided log10mass range, randomly sample num_parameter_samples log10masses and find their
+    corresponding concentrations, with some added random normal noise added.
+
+    Args:
+        min_log10mass: lower bound of log10masses in our sample before we add noise
+        max_log10mass: upper bound of log10masses in our sample before we add noise
+        num_parameter_samples : number of mc_pairs we want in our result
+        noise : amount of random normal noise to add to our mc_pairs
+
+    Returns:
+        mc_pairs : a numpy array of (log10mass, concentration) tuples of size num_parameter_samples
+    '''
     from .populationutils import get_concentration
 
     log10mass_sample = np.random.uniform(min_log10mass,
@@ -29,7 +42,8 @@ def generate_concentration_for_sample(log10masses,
                                       z=0.0,
                                       mcrelation='child18',
                                       scatter_concentration_scale=0.2):
-    '''From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
+    '''
+    From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
     define the corresponding concentrations of this population assuming a mean concentration-mass relation 
     based on theoretical prediction) with some scatter in concentration at fixed mass. 
 
@@ -60,7 +74,8 @@ def generate_richness_for_sample(log10masses,
                                  z=0.0,
                                  rmrelation='murata17',
                                  scatter_richness_scale=1.0):
-    '''From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
+    '''
+    From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
     define the corresponding richness of this population assuming a mean richness-mass relation 
     based on theoretical prediction) with some scatter in richness at fixed mass. 
 
