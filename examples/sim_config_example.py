@@ -30,7 +30,7 @@ sim_config = {
     'drawn_noise_dex': 0,
     'num_radial_bins': 30,
     # TODO: should this be passed in from command line for consistency?
-    'sim_output_dir': 'example'
+    'sim_output_dir': 'no_noise'
 }
 
 # Figuring out directory of where to output the sim_config

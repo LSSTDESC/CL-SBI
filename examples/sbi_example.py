@@ -8,6 +8,7 @@ import numpy as np
 import json
 import argparse
 import os
+import shutil
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
@@ -35,8 +36,8 @@ filtered_mc_pairs = inferutils.filter_mc_pairs(
 drawn_nfw_profiles = np.load(os.path.join(sim_path, 'drawn_nfw_profiles.npy'))
 drawn_mc_pairs = np.load(os.path.join(sim_path, 'drawn_mc_pairs.npy'))
 
-true_param_mean = (np.mean(filtered_mc_pairs.T[0]),
-                   np.mean(filtered_mc_pairs.T[1]))
+# TODO: confirm this is an acceptable mean to be using
+true_param_mean = (np.mean(drawn_mc_pairs.T[0]), np.mean(drawn_mc_pairs.T[1]))
 
 chains = sbi_.run_sbi(simulated_nfw_profiles, filtered_mc_pairs,
                       drawn_nfw_profiles, drawn_mc_pairs,
@@ -45,3 +46,7 @@ chains = sbi_.run_sbi(simulated_nfw_profiles, filtered_mc_pairs,
 # Output these intermediate files back to the config_dir from which we read the infer_config
 np.save(os.path.join(config_path, 'sbi_chains.npy'), chains)
 np.save(os.path.join(config_path, 'true_param_mean.npy'), true_param_mean)
+
+# Let's also copy the sim_config to our output directory for cleaner provenance
+shutil.copyfile(os.path.join(sim_path, 'sim_config.json'),
+                os.path.join(config_path, 'sim_config.json'))

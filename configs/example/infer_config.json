@@ -1,6 +1,1 @@
-{
-    "inference_type": "sbi",
-    "profile_noise_dex": 0,
-    "config_dir": "example",
-    "mc_pair_subselect": "all"
-}
+{"inference_type": "sbi", "profile_noise_dex": 0.3, "config_dir": "example", "mc_pair_subselect": "all"}

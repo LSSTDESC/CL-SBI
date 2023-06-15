@@ -14,8 +14,8 @@ import os
 
 infer_config = {
     'inference_type': 'sbi',
-    'profile_noise_dex': 0,
-    'config_dir': 'example',
+    'profile_noise_dex': 0.2,
+    'config_dir': '0.2',
     'mc_pair_subselect': 'all',
 }
 
