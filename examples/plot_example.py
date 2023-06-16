@@ -5,12 +5,12 @@ import os
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
-parser.add_argument('--config_dir')
+parser.add_argument('--infer_dir')
 args = parser.parse_args()
 
-# Open the config_dir specified in the command line
+# Open the infer_dir specified in the command line
 script_dir = os.path.dirname(__file__)
-config_rel_path = '../configs/' + args.config_dir
+config_rel_path = '../configs/inference/' + args.infer_dir
 config_path = os.path.join(script_dir, config_rel_path)
 
 mcmc_jtf = np.load(os.path.join(config_path, 'jtf_chain.npy'))

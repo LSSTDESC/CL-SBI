@@ -21,16 +21,17 @@ def get_richness(log10mass, z=0.0, model='murata17', strict=False):
     '''
     Return the optical richness for a halo of a given mass assuming the model of murata17. Note that this relation only holds if the lambda is between 20 and 100.
     '''
+    if model == 'murata17':
+        a, b, mass_pivot = _get_murata2017_parameters()
+        lambda_ = np.exp(a + b * np.log((10**log10mass) / mass_pivot))
 
-    a, b, mass_pivot = _get_murata2017_parameters()
-    lambda_ = np.exp(a + b * np.log((10**log10mass) / mass_pivot))
+        if strict and (lambda_ < 20 or lambda_ > 100):
+            warnings.warn(
+                f'calculated lambda value ({lambda_}) from the given log10mass ({log10mass}) is outside the range supported by the murata17 relation (20-100)'
+            )
 
-    if strict and (lambda_ < 20 or lambda_ > 100):
-        warnings.warn(
-            f'calculated lambda value ({lambda_}) from the given log10mass ({log10mass}) is outside the range supported by the murata17 relation (20-100)'
-        )
-
-    return lambda_
+        return lambda_
+    return 0
 
 
 def get_log10mass_from_richness(lambda_,
@@ -40,13 +41,15 @@ def get_log10mass_from_richness(lambda_,
     '''
     Return the mass for a halo of a given optical richness assuming the model of murata17. Note that this relation only holds if the lambda is between 20 and 100.
     '''
-    if strict and (lambda_ < 20 or lambda_ > 100):
-        warnings.warn(
-            f'provided lambda value ({lambda_}) is outside the range supported by the murata17 relation (20-100)'
-        )
+    if model == 'murata17':
+        if strict and (lambda_ < 20 or lambda_ > 100):
+            warnings.warn(
+                f'provided lambda value ({lambda_}) is outside the range supported by the murata17 relation (20-100)'
+            )
 
-    a, b, mass_pivot = _get_murata2017_parameters()
-    return np.log10(np.exp((np.log(lambda_) - a) / b) * mass_pivot)
+        a, b, mass_pivot = _get_murata2017_parameters()
+        return np.log10(np.exp((np.log(lambda_) - a) / b) * mass_pivot)
+    return 0
 
 
 def _get_murata2017_parameters():

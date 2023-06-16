@@ -14,14 +14,13 @@ import os
 
 infer_config = {
     'inference_type': 'sbi',
-    'profile_noise_dex': 0.1,
     'config_dir': 'example',
-    'mc_pair_subselect': 'all',
+    # TODO: priors
 }
 
 # Figuring out directory of where to output the infer_config
 script_dir = os.path.dirname(__file__)
-config_rel_path = '../configs/' + infer_config['config_dir']
+config_rel_path = '../configs/inference/' + infer_config['config_dir']
 config_dir = os.path.join(script_dir, config_rel_path)
 if not os.path.exists(config_dir):
     os.makedirs(config_dir)

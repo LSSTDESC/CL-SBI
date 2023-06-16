@@ -13,33 +13,24 @@ import json
 import os
 
 sim_config = {
-    'rm_relation': 'murata17',
     'mc_relation': 'child18',
-
-    # number of simulations
-    'num_parameter_samples': 10000,
+    'num_sims': 10000,
     'sample_noise_dex': 0,
     'min_log10mass': 13,
     'max_log10mass': 15,
-
-    # richness band and number of masses drawn from it
-    'min_richness': 30,
-    'max_richness': 40,
-    'num_sims': 10,
-    # TODO: how do we want to add other noise "profiles" other than dex
-    'drawn_noise_dex': 0,
     'num_radial_bins': 30,
-    # TODO: should this be passed in from command line for consistency?
-    'sim_output_dir': 'example'
+    'mc_pair_subselect': 'all',
+    'output_dir': 'example',
 }
 
 # Figuring out directory of where to output the sim_config
 script_dir = os.path.dirname(__file__)
-sim_rel_path = '../simulations/' + sim_config['sim_output_dir']
+sim_rel_path = '../configs/simulations/' + sim_config['output_dir']
 sim_dir = os.path.join(script_dir, sim_rel_path)
 if not os.path.exists(sim_dir):
     os.makedirs(sim_dir)
 sim_filename = os.path.join(sim_dir, 'sim_config.json')
 
+# Write the sim_config to the appropriate directory
 with open(sim_filename, "w") as outfile:
     json.dump(sim_config, outfile)

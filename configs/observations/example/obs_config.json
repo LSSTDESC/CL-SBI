@@ -1,0 +1,11 @@
+{
+	"rm_relation": "murata17",
+	"mc_relation": "child18",
+	"min_richness": 30,
+	"max_richness": 40,
+	"num_obs": 10,
+	"drawn_noise_dex": 0,
+	"profile_noise_dex": 0.1,
+	"num_radial_bins": 30,
+	"output_dir": "example"
+}

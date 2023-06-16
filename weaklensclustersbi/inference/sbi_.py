@@ -12,20 +12,16 @@ def sbi_config():
     pass
 
 
-def run_sbi(simulated_nfw_profiles,
-            sample_mc_pairs,
-            drawn_nfw_profiles,
-            drawn_mc_pairs,
-            noise_dex=0.0):
-    from .sbiutils import calculate_noise, create_fit_join_observation_nfw, create_join_fit_observation_nfw
+def run_sbi(simulated_nfw_profiles, sample_mc_pairs, drawn_nfw_profiles,
+            drawn_mc_pairs):
+    from .sbiutils import create_fit_join_observation_nfw, create_join_fit_observation_nfw
 
     # Define our data in terms of parameters, theta, and data
     theta_np = np.array(sample_mc_pairs.T).T
-    x_np = calculate_noise(simulated_nfw_profiles, noise_dex)
+    x_np = simulated_nfw_profiles
 
     # Uniform prior from -20 to 20 (which encompasses possible log10 masses and concentration values)
     num_priors = np.shape(theta_np)[1]
-    # TODO: these priors are arbitrary - can we tighten these?
     prior = BoxUniform(-ones(num_priors) * 20, ones(num_priors) * 20)
 
     # turn into tensors
@@ -61,9 +57,9 @@ def run_sbi(simulated_nfw_profiles,
 
     # Create an observation
     theta_o_fj, x_o_fj = create_fit_join_observation_nfw(
-        drawn_mc_pairs, drawn_nfw_profiles, noise_dex)
+        drawn_mc_pairs, drawn_nfw_profiles)
     theta_o_jf, x_o_jf = create_join_fit_observation_nfw(
-        drawn_mc_pairs, noise_dex)
+        drawn_mc_pairs, drawn_nfw_profiles)
 
     # Obtain samples of the posterior given the observation
     samples_fj = posterior.sample((10000, ), x=x_o_fj)
