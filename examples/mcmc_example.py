@@ -8,6 +8,7 @@ import numpy as np
 import os
 import argparse
 import json
+import shutil
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
