@@ -2,7 +2,7 @@
 Example script to simulate a weak lensing profile using modules
 """
 
-from context import population, wlprofile
+from context import population, wlprofile, populationutils
 import numpy as np
 import json
 import os
