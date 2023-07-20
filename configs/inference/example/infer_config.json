@@ -1,0 +1,10 @@
+{
+	"inference_type": "sbi",
+	"config_dir": "example",
+	"priors": {
+		"min_log10mass": 0,
+		"max_log10mass": 20,
+		"min_concentration": 0,
+		"max_concentration": 20
+	}
+}
