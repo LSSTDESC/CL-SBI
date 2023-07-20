@@ -2,7 +2,7 @@
 Example script to simulate a weak lensing profile using modules
 """
 
-from context import population, wlprofile
+from context import population, wlprofile, populationutils
 import numpy as np
 import json
 import os
@@ -42,6 +42,8 @@ sample_mc_pairs = population.random_mass_conc(
     sim_config['max_log10mass'],
     int(args.num_sims),
     sim_config['sample_noise_dex'],
+    mc_relation=sim_config['mc_relation'],
+    mc_scatter=sim_config['mc_scatter'],
     mc_relation=sim_config['mc_relation'],
     z=sim_config['z'],
 )
