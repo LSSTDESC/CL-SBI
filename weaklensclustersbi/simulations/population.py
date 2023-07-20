@@ -10,11 +10,14 @@ Copyright 2022-2023, LSST-DESC
 import numpy as np
 
 
-def random_mass_conc(min_log10mass,
-                     max_log10mass,
-                     num_sims,
-                     mc_scatter=0,
-                     mc_relation='murata17'):
+def random_mass_conc(
+    min_log10mass,
+    max_log10mass,
+    num_sims,
+    noise=0.2,
+    mc_relation='murata17',
+    z=0,
+):
     '''
     In the provided log10mass range, randomly sample num_sims log10masses and find their
     corresponding concentrations, with some added random normal noise added.
@@ -33,8 +36,11 @@ def random_mass_conc(min_log10mass,
     log10mass_sample = np.random.uniform(min_log10mass,
                                          max_log10mass,
                                          size=num_sims)
-    non_noisy_concentration_sample = get_concentration(log10mass_sample,
-                                                       model=mc_relation)
+    non_noisy_concentration_sample = get_concentration(
+        log10mass_sample,
+        model=mc_relation,
+        z=z,
+    )
     concentration_sample = np.random.normal(non_noisy_concentration_sample,
                                             mc_scatter, num_sims)
     return list(zip(log10mass_sample, concentration_sample))
@@ -143,6 +149,7 @@ def gen_mc_pairs_in_richness_bin(
     num_obs=10,
     mc_scatter=0,
     rm_scatter=0,
+    z=0,
 ):
     '''
     For a given richness bin, generate {num_obs} mass-concentration samples with some user-specified noise
@@ -170,6 +177,7 @@ def gen_mc_pairs_in_richness_bin(
         log10mass_sample,
         mc_scatter=mc_scatter,
         mc_relation=mc_relation,
+        z=z,
     )
     mc_pairs = list(zip(log10mass_sample, concentration_sample))
     return mc_pairs

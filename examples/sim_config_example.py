@@ -21,6 +21,7 @@ sim_config = {
     'num_radial_bins': 30,
     'mc_pair_subselect': 'all',
     'output_dir': 'example',
+    'z': 0,
 }
 
 # Figuring out directory of where to output the sim_config
