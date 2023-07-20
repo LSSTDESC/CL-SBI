@@ -15,14 +15,14 @@ def default_config():
     }
 
 
-def run_mcmc(truth_val):
+def run_mcmc(truth_val, priors):
     from .mcmcutils import logprob
     # set up the sampler
     config = default_config()
     sampler = emcee.EnsembleSampler(config['nwalkers'],
                                     config['npar'],
                                     logprob,
-                                    args=[truth_val])
+                                    args=[priors, truth_val])
 
     # Add some noise to starting positions for walkers
     starts = config['starts'] + 0.1 * np.random.randn(config['nwalkers'],
@@ -44,25 +44,23 @@ def run_mcmc(truth_val):
     return sampler
 
 
-def fit_then_join(profiles):
+def fit_then_join(profiles, priors):
     '''
     For a given set of profiles, we run MCMC on each of them (fit). To reduce noise, at the end, we stack
     all of the chains into a single one (join).
     '''
-    from .mcmcutils import logprob
     chains = []
     for profile in profiles:
-        sampler = run_mcmc(profile)
+        sampler = run_mcmc(profile, priors)
         chains.append(sampler.flatchain)
     return np.vstack(chains)
 
 
-def join_then_fit(profiles):
+def join_then_fit(profiles, priors):
     '''
     For a given set of profiles, we first find the average profile (join) to reduce noise and then 
     run MCMC on that (fit).
     '''
-    from .mcmcutils import logprob
     mean_profile = np.mean(profiles, keepdims=True, axis=0)
-    sampler = run_mcmc(mean_profile)
+    sampler = run_mcmc(mean_profile, priors)
     return sampler.flatchain
