@@ -161,7 +161,7 @@ def gen_mc_pairs_in_richness_bin(
         num_obs: number of masses to be drawn. this will determine the size of the output
         mc_scatter: how much scatter to be applied to the mc relation
         rm_scatter: how much scatter to be applied to the rm relation
-
+        z: redshift
     Returns:
         mc_pairs: a numpy array of size num_obs of tupes of (log10mass, concentration)
     '''
