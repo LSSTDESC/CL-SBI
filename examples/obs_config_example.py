@@ -8,10 +8,12 @@ obs_config = {
     'max_richness': 40,
     'num_obs': 10,
     # TODO: how do we want to add other noise "profiles" other than dex
-    'drawn_noise_dex': 0,
-    'profile_noise_dex': 0.1,
+    'rm_scatter': 0,
+    'mc_scatter': 0,
+    'profile_noise_dex': 0,
     'num_radial_bins': 30,
     'output_dir': 'example',
+    'z': 0,
 }
 
 # Figuring out directory of where to output the obs_config
