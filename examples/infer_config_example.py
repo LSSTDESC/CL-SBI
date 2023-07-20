@@ -15,7 +15,12 @@ import os
 infer_config = {
     'inference_type': 'sbi',
     'config_dir': 'example',
-    # TODO: priors
+    'priors': {
+        'min_log10mass': 0,
+        'max_log10mass': 20,
+        'min_concentration': 0,
+        'max_concentration': 20,
+    }
 }
 
 # Figuring out directory of where to output the infer_config
@@ -28,7 +33,3 @@ infer_filename = os.path.join(config_dir, 'infer_config.json')
 
 with open(infer_filename, "w") as outfile:
     json.dump(infer_config, outfile)
-
-# plot_config = {
-#     'plot_type': 'cc',  # chainconsumer
-# }

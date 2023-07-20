@@ -38,8 +38,10 @@ drawn_mc_pairs = np.load(os.path.join(obs_path, 'drawn_mc_pairs.npy'))
 drawn_nfw_profiles = np.load(os.path.join(obs_path, 'drawn_nfw_profiles.npy'))
 true_param_mean = (np.mean(drawn_mc_pairs.T[0]), np.mean(drawn_mc_pairs.T[1]))
 
-join_then_fit_chain = mcmc.join_then_fit(drawn_nfw_profiles)
-fit_then_join_chain = mcmc.fit_then_join(drawn_nfw_profiles)
+join_then_fit_chain = mcmc.join_then_fit(drawn_nfw_profiles,
+                                         infer_config['priors'])
+fit_then_join_chain = mcmc.fit_then_join(drawn_nfw_profiles,
+                                         infer_config['priors'])
 
 np.save(os.path.join(infer_path, 'jtf_chain.npy'), join_then_fit_chain)
 np.save(os.path.join(infer_path, 'ftj_chain.npy'), fit_then_join_chain)
