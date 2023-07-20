@@ -32,7 +32,9 @@ drawn_mc_pairs = population.gen_mc_pairs_in_richness_bin(
     rm_relation=obs_config['rm_relation'],
     mc_relation=obs_config['mc_relation'],
     num_obs=obs_config['num_obs'],
-    noise_dex=obs_config['drawn_noise_dex'])
+    noise_dex=obs_config['drawn_noise_dex'],
+    z=obs_config['z'],
+)
 
 drawn_nfw_profiles = np.array([
     wlprofile.simulate_nfw(log10mass, concentration, rbins)

@@ -12,6 +12,7 @@ obs_config = {
     'profile_noise_dex': 0.1,
     'num_radial_bins': 30,
     'output_dir': 'example',
+    'z': 0,
 }
 
 # Figuring out directory of where to output the obs_config
