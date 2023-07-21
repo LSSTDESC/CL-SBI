@@ -43,7 +43,8 @@ drawn_mc_pairs = np.load(os.path.join(obs_path, 'drawn_mc_pairs.npy'))
 true_param_mean = (np.mean(drawn_mc_pairs.T[0]), np.mean(drawn_mc_pairs.T[1]))
 
 chains = sbi_.run_sbi(simulated_nfw_profiles, sample_mc_pairs,
-                      drawn_nfw_profiles, drawn_mc_pairs)
+                      drawn_nfw_profiles, drawn_mc_pairs,
+                      infer_config['priors'])
 
 # Output these intermediate files back to the infer_dir from which we read the infer_config
 np.save(os.path.join(infer_path, 'sbi_chains.npy'), chains)
