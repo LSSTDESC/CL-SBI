@@ -13,16 +13,20 @@ def sbi_config():
 
 
 def run_sbi(simulated_nfw_profiles, sample_mc_pairs, drawn_nfw_profiles,
-            drawn_mc_pairs):
+            drawn_mc_pairs, priors):
     from .sbiutils import create_fit_join_observation_nfw, create_join_fit_observation_nfw
 
     # Define our data in terms of parameters, theta, and data
     theta_np = np.array(sample_mc_pairs.T).T
     x_np = simulated_nfw_profiles
 
-    # Uniform prior from -20 to 20 (which encompasses possible log10 masses and concentration values)
+    # Reading in priors from infer_config
     num_priors = np.shape(theta_np)[1]
-    prior = BoxUniform(-ones(num_priors) * 20, ones(num_priors) * 20)
+    prior = BoxUniform(
+        torch.as_tensor([priors['min_log10mass'],
+                         priors['min_concentration']]),
+        torch.as_tensor([priors['max_log10mass'],
+                         priors['max_concentration']]))
 
     # turn into tensors
     theta = torch.as_tensor(theta_np, dtype=torch.float32)
