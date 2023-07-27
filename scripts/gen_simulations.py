@@ -57,6 +57,7 @@ sample_mc_pairs = population.random_mass_conc(
     sim_config['min_log10mass'],
     sim_config['max_log10mass'],
     int(args.num_sims),
+    mc_scatter=sim_config['mc_scatter'],
     mc_relation=sim_config['mc_relation'],
     mc_scatter=sim_config['mc_scatter'],
     z=sim_config['z'],
