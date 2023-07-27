@@ -7,3 +7,4 @@ sbi-logs/
 examples/.ipynb_checkpoints/
 sbi_single_cluster_constraint-checkpoint copy.ipynb
 SBIGalaxyClusterMass.ipynb
+*.pickle

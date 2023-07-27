@@ -5,7 +5,5 @@
 	"min_log10mass": 13,
 	"max_log10mass": 15,
 	"num_radial_bins": 30,
-	"mc_pair_subselect": "all",
-	"output_dir": "example",
-	"z": 0
+	"mc_pair_subselect": "all"
 }
