@@ -44,7 +44,7 @@ sample_mc_pairs = population.random_mass_conc(
     mc_scatter=sim_config['mc_scatter'],
     mc_relation=sim_config['mc_relation'],
     z=sim_config['z'],
-)
+    mc_relation=sim_config['mc_relation'])
 
 # Apply filtering criteria to subselect mc_pairs
 filtered_mc_pairs = population.filter_mc_pairs(sample_mc_pairs,
