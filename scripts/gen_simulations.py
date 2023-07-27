@@ -13,17 +13,21 @@ import argparse
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
-parser.add_argument('--sim_dir')
+parser.add_argument('--sim_id')
+parser.add_argument('--num_sims')
 args = parser.parse_args()
 
-# Open the copy of sim_config in the sim_dir specified in the command line
+# Open the copy of sim_config with the specified sim_id
 script_dir = os.path.dirname(__file__)
-config_rel_path = '../configs/simulations/' + args.sim_dir
-config_path = os.path.join(script_dir, config_rel_path)
-config_filename = os.path.join(config_path, 'sim_config.json')
+sim_config_rel_path = '../configs/simulations/'
+sim_config_path = os.path.join(script_dir, sim_config_rel_path)
+sim_config_filename = os.path.join(sim_config_path, f'{args.sim_id}.json')
+
+out_rel_path = f'../outputs/simulations/{args.sim_id}.{args.num_sims}'
+out_path = os.path.join(script_dir, out_rel_path)
 
 # Open the copy of sim_config in sim_dir
-with open(config_filename, 'r') as f:
+with open(sim_config_filename, 'r') as f:
     sim_config = json.load(f)
 '''
 * simulated_nfw_profiles: needs to be 10k from randomly sampled log10masses in 
@@ -36,7 +40,7 @@ with open(config_filename, 'r') as f:
 sample_mc_pairs = population.random_mass_conc(
     sim_config['min_log10mass'],
     sim_config['max_log10mass'],
-    sim_config['num_sims'],
+    int(args.num_sims),
     mc_scatter=sim_config['mc_scatter'],
     mc_relation=sim_config['mc_relation'],
     z=sim_config['z'],
@@ -54,6 +58,8 @@ simulated_nfw_profiles = np.array([
 ])
 
 # Output to intermediate files in sim_dir to be read by inference example script
-np.save(os.path.join(config_path, 'simulated_nfw_profiles.npy'),
+if not os.path.exists(out_path):
+    os.makedirs(out_path)
+np.save(os.path.join(out_path, 'simulated_nfw_profiles.npy'),
         simulated_nfw_profiles)
-np.save(os.path.join(config_path, 'sample_mc_pairs.npy'), filtered_mc_pairs)
+np.save(os.path.join(out_path, 'sample_mc_pairs.npy'), filtered_mc_pairs)
