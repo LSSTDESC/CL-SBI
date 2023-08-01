@@ -21,6 +21,14 @@ posterior_filename = os.path.join(posterior_path, 'posterior.pickle')
 with open(posterior_filename, 'rb') as handle:
     posterior = pickle.load(handle)
 
+# Load infer config
+infer_config_rel_path = '../configs/inference/'
+infer_config_path = os.path.join(script_dir, infer_config_rel_path)
+infer_config_filename = os.path.join(infer_config_path,
+                                     f'{args.infer_id}.json')
+with open(infer_config_filename, 'r') as f:
+    infer_config = json.load(f)
+
 # Load observations
 obs_rel_path = f'../outputs/observations/{args.obs_id}.{args.num_obs}'
 obs_path = os.path.join(script_dir, obs_rel_path)
@@ -44,8 +52,8 @@ with open(os.path.join(out_path, 'sbi_chains.pickle'), 'wb') as handle:
     pickle.dump(sbi_chains, handle, protocol=4)
 
 # Run MCMC inference
-mcmc_jtf = mcmc.join_then_fit(drawn_nfw_profiles)
-mcmc_ftj = mcmc.fit_then_join(drawn_nfw_profiles)
+mcmc_jtf = mcmc.join_then_fit(drawn_nfw_profiles, infer_config['priors'])
+mcmc_ftj = mcmc.fit_then_join(drawn_nfw_profiles, infer_config['priors'])
 
 # Output MCMC chains (pickling because diff sizes)
 with open(os.path.join(out_path, 'mcmc_chains.pickle'), 'wb') as handle:

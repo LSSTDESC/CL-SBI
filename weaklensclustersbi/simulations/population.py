@@ -14,7 +14,7 @@ def random_mass_conc(
     min_log10mass,
     max_log10mass,
     num_sims,
-    noise=0.2,
+    mc_scatter=0,
     mc_relation='murata17',
     z=0,
 ):
