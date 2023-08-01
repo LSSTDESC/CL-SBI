@@ -38,7 +38,9 @@ sample_mc_pairs = population.random_mass_conc(
     sim_config['max_log10mass'],
     sim_config['num_sims'],
     sim_config['sample_noise_dex'],
-    rm_relation=sim_config['rm_relation'])
+    mc_relation=sim_config['mc_relation'],
+    z=sim_config['z'],
+)
 
 # Apply filtering criteria to subselect mc_pairs
 filtered_mc_pairs = population.filter_mc_pairs(sample_mc_pairs,
@@ -51,12 +53,12 @@ simulated_nfw_profiles = np.array([
     for log10mass, concentration in filtered_mc_pairs
 ])
 
-measured_params = population.generate_richness_for_sample(
-    [mc_pair[0] for mc_pair in filtered_mc_pairs],
-    rm_relation=sim_config['rm_relation'])  # log10masses
+# measured_params = population.generate_richness_for_sample(
+#     [mc_pair[0] for mc_pair in filtered_mc_pairs],
+#     rm_relation=sim_config['rm_relation'])  # log10masses
 
 # Output to intermediate files in sim_dir to be read by inference example script
 np.save(os.path.join(config_path, 'simulated_nfw_profiles.npy'),
         simulated_nfw_profiles)
 np.save(os.path.join(config_path, 'sample_mc_pairs.npy'), filtered_mc_pairs)
-np.save(os.path.join(config_path, 'measured_params.npy'), measured_params)
+# np.save(os.path.join(config_path, 'measured_params.npy'), measured_params)
