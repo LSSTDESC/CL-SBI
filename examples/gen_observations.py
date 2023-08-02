@@ -32,14 +32,17 @@ drawn_mc_pairs = population.gen_mc_pairs_in_richness_bin(
     rm_relation=obs_config['rm_relation'],
     mc_relation=obs_config['mc_relation'],
     num_obs=obs_config['num_obs'],
-    noise_dex=obs_config['drawn_noise_dex'],
+    mc_scatter=obs_config['mc_scatter'],
+    rm_scatter=obs_config['rm_scatter'],
     z=obs_config['z'],
 )
 
-drawn_nfw_profiles = np.array([
-    wlprofile.simulate_nfw(log10mass, concentration, rbins)
+non_noisy_drawn_nfw_profiles = np.array([
+    wlprofile.simulate_nfw(log10mass, concentration, rbins, obs_config['z'])
     for log10mass, concentration in drawn_mc_pairs
 ])
+drawn_nfw_profiles = population.calculate_noise(
+    non_noisy_drawn_nfw_profiles, obs_config['profile_noise_dex'])
 
 # Output to intermediate files in obs_dir to be read by inference example script
 np.save(os.path.join(config_path, 'drawn_nfw_profiles.npy'),

@@ -26,7 +26,7 @@ def random_mass_conc(
         min_log10mass: lower bound of log10masses in our sample before we add noise
         max_log10mass: upper bound of log10masses in our sample before we add noise
         num_sims : number of mc_pairs we want in our result
-        noise : amount of random normal noise to add to our mc_pairs
+        mc_scatter : amount of random normal noise to add to our mc_pairs
 
     Returns:
         mc_pairs : a numpy array of (log10mass, concentration) tuples of size num_sims
@@ -42,14 +42,14 @@ def random_mass_conc(
         z=z,
     )
     concentration_sample = np.random.normal(non_noisy_concentration_sample,
-                                            noise, num_sims)
+                                            mc_scatter, num_sims)
     return list(zip(log10mass_sample, concentration_sample))
 
 
 def generate_concentration_for_sample(log10masses,
                                       z=0.0,
                                       mc_relation='child18',
-                                      scatter_concentration_scale=0.2):
+                                      mc_scatter=0):
     '''
     From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
     define the corresponding concentrations of this population assuming a mean concentration-mass relation 
@@ -71,8 +71,7 @@ def generate_concentration_for_sample(log10masses,
                                                  z=z,
                                                  model=mc_relation)
     # Note: May want to later generalize the distribution of concentration about the mean relation that is not random normal
-    concentrations = np.random.normal(non_noisy_concentrations,
-                                      scatter_concentration_scale,
+    concentrations = np.random.normal(non_noisy_concentrations, mc_scatter,
                                       np.shape(log10masses))
 
     return concentrations
@@ -81,7 +80,7 @@ def generate_concentration_for_sample(log10masses,
 def generate_richness_for_sample(log10masses,
                                  z=0.0,
                                  rm_relation='murata17',
-                                 scatter_richness_scale=1.0):
+                                 rm_scatter=0):
     '''
     From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
     define the corresponding richness of this population assuming a mean richness-mass relation 
@@ -102,7 +101,7 @@ def generate_richness_for_sample(log10masses,
         get_richness(log10mass, z=z, model=rm_relation)
         for log10mass in log10masses
     ])
-    richnesses = np.random.normal(non_noisy_richnesses, scatter_richness_scale,
+    richnesses = np.random.normal(non_noisy_richnesses, rm_scatter,
                                   np.shape(log10masses))
 
     return richnesses
@@ -113,31 +112,33 @@ def draw_masses_in_richness_bin(
     lambda_max,
     rm_relation='murata17',
     num_obs=10,
-    noise_dex=0,
+    rm_scatter=0,
 ):
     '''
     From a given richness bin (defined by the minimum and maximum lambda values), randomly draw a given number of masses and then
-    apply some noise dex.
+    apply some scatter to the rm relation.
 
     Args:
         lambda_min: minimum richness (should be at least 20 if using murata17)
         lambda_max: maximum richness (should be at most 100 if using murata 17)
         rm_relation : string that is a key to the model name of the richness-mass relation from colossus, default: murata17
         num_obs: number of masses to be drawn. this will determine the size of the output
-        noise_dex: how much noise to be applied
+        rm_scatter: how much scatter to be applied to the rm relation
 
     Returns:
         log10masses: a numpy array of size num_obs of log10mass values
     '''
 
-    from .populationutils import get_log10mass_from_richness, calculate_noise
+    from .populationutils import get_log10mass_from_richness
 
     lambdas = np.random.rand(num_obs) * (lambda_max - lambda_min) + lambda_min
-    log10masses = np.array([
+    non_noisy_log10masses = np.array([
         get_log10mass_from_richness(lambda_, model=rm_relation)
         for lambda_ in lambdas
     ])
-    return calculate_noise(log10masses, noise_dex)
+    log10masses = np.random.normal(non_noisy_log10masses, rm_scatter,
+                                   np.shape(lambdas))
+    return log10masses
 
 
 def gen_mc_pairs_in_richness_bin(
@@ -146,7 +147,8 @@ def gen_mc_pairs_in_richness_bin(
     rm_relation='murata17',
     mc_relation='child18',
     num_obs=10,
-    noise_dex=0,
+    mc_scatter=0,
+    rm_scatter=0,
     z=0,
 ):
     '''
@@ -157,7 +159,8 @@ def gen_mc_pairs_in_richness_bin(
         lambda_max: maximum richness (should be at most 100 if using murata 17)
         rm_relation : string that is a key to the model name of the richness-mass relation from colossus, default: murata17
         num_obs: number of masses to be drawn. this will determine the size of the output
-        noise_dex: how much noise to be applied
+        mc_scatter: how much scatter to be applied to the mc relation
+        rm_scatter: how much scatter to be applied to the rm relation
 
     Returns:
         mc_pairs: a numpy array of size num_obs of tupes of (log10mass, concentration)
@@ -168,13 +171,14 @@ def gen_mc_pairs_in_richness_bin(
         lambda_max,
         rm_relation=rm_relation,
         num_obs=num_obs,
-        noise_dex=noise_dex,
+        rm_scatter=rm_scatter,
     )
     concentration_sample = generate_concentration_for_sample(
         log10mass_sample,
+        mc_scatter=mc_scatter,
+        mc_relation=mc_relation,
         z=z,
-        scatter_concentration_scale=0.2,
-        mc_relation=mc_relation)
+    )
     mc_pairs = list(zip(log10mass_sample, concentration_sample))
     return mc_pairs
 
@@ -195,3 +199,8 @@ def filter_mc_pairs(mc_pairs, criteria='all'):
     # TODO: what other criteria will we want to filter by?
     if criteria == 'all':
         return mc_pairs
+
+
+def calculate_noise(sample, dex=0.0):
+    random_noise = np.random.normal(1, dex, np.shape(sample))
+    return 10**(random_noise * np.log10(sample))

@@ -15,7 +15,7 @@ import os
 sim_config = {
     'mc_relation': 'child18',
     'num_sims': 10000,
-    'sample_noise_dex': 0,
+    'mc_scatter': 0,
     'min_log10mass': 13,
     'max_log10mass': 15,
     'num_radial_bins': 30,
