@@ -1,6 +1,5 @@
 {
 	"mc_relation": "child18",
-	"num_sims": 10000,
 	"mc_scatter": 0.1,
 	"min_log10mass": 13,
 	"max_log10mass": 15,

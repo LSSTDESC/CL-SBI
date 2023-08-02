@@ -35,7 +35,7 @@ drawn_mc_pairs = population.gen_mc_pairs_in_richness_bin(
     obs_config['max_richness'],
     rm_relation=obs_config['rm_relation'],
     mc_relation=obs_config['mc_relation'],
-    num_obs=obs_config['num_obs'],
+    num_obs=int(args.num_obs),
     mc_scatter=obs_config['mc_scatter'],
     rm_scatter=obs_config['rm_scatter'],
     z=obs_config['z'],
