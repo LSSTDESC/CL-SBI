@@ -19,6 +19,7 @@ For each step, the script reading the config will save the output files to the c
 ---------------
 
 Running instructions:
+
 1) Create a simulation config in the ``configs/simulations`` directory
 2) Generate simulations using the following script: 
 	``python scripts/gen_simulations.py --sim_id {SIM_ID} --num_sims {NUM_SIMS}``. 
