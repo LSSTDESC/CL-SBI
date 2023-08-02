@@ -64,8 +64,7 @@ def plot_pygtc(chains, output_dir, infer_type, true_param_mean=()):
         nContourLevels=2,
     )
 
-    GTC.savefig(
-        os.path.join(output_dir, f'plot_{infer_type}_gtc_{timestamp()}.png'))
+    GTC.savefig(os.path.join(output_dir, f'{infer_type}_gtc.png'))
 
 
 def plot_chainconsumer(chains, output_dir, infer_type, true_param_mean=[]):
@@ -87,5 +86,4 @@ def plot_chainconsumer(chains, output_dir, infer_type, true_param_mean=[]):
     for ax in ax_list:
         ax.grid(False)
 
-    plt.savefig(
-        os.path.join(output_dir, f'plot_{infer_type}_cc_{timestamp()}.png'))
+    plt.savefig(os.path.join(output_dir, f'{infer_type}_cc.png'))

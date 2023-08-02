@@ -11,6 +11,10 @@ parser.add_argument('--infer_id')
 parser.add_argument('--obs_id')
 parser.add_argument('--num_sims')
 parser.add_argument('--num_obs')
+
+# Add regenerate flag if we want to overwrite any existing plots.
+# If false or not set, skip plot generation if they already exist from an earlier run.
+parser.add_argument('--regenerate', action='store_true')
 args = parser.parse_args()
 
 # Open the infer_dir specified in the command line
@@ -29,6 +33,17 @@ out_rel_path = f'../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{a
 out_path = os.path.join(script_dir, out_rel_path)
 if not os.path.exists(out_path):
     os.makedirs(out_path)
+# Checking if plots already exist from an earlier script run
+if (os.path.isfile(os.path.join(out_path, 'mcmc_gtc.png'))):
+    # Regenerating plots (continuing script)
+    if args.regenerate:
+        print('Overwriting existing plots because of --regenerate flag')
+    # Using existing plots (terminating script)
+    else:
+        print(
+            'Plots already exist. If you want to regenerate, re-run with the --regenerate flag'
+        )
+        quit()
 
 # TODO: add a wrapper function so we have a single interface with 'pygtc' or 'cc' as a param
 plotutils.plot_pygtc(mcmc_chains, out_path, 'mcmc', true_param_mean)
