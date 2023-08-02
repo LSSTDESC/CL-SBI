@@ -2,6 +2,7 @@
 .DS_Store
 *.npy
 *.png
+*.pdf
 sbi-logs/
 .ipynb_checkpoints/
 sbi_single_cluster_constraint-checkpoint copy.ipynb

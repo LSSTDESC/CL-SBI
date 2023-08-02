@@ -16,7 +16,7 @@ def timestamp():
     return timestr
 
 
-def plot_walkers(sampler):
+def plot_walkers(sampler, output_dir):
     chain = sampler.get_chain()
 
     # TODO: don't hardcode this
@@ -44,7 +44,8 @@ def plot_walkers(sampler):
     axes[-1].set_xlabel('# of steps')
 
     fig.set_size_inches(10, 6 * npar / 3)
-    plt.savefig(f'mcmc_walkers.png')
+    plt.savefig(os.path.join(output_dir, 'mcmc_walkers.png'))
+    plt.savefig(os.path.join(output_dir, 'mcmc_walkers.pdf'))
 
 
 def plot_pygtc(chains, output_dir, infer_type, true_param_mean=()):
@@ -65,6 +66,7 @@ def plot_pygtc(chains, output_dir, infer_type, true_param_mean=()):
     )
 
     GTC.savefig(os.path.join(output_dir, f'{infer_type}_gtc.png'))
+    GTC.savefig(os.path.join(output_dir, f'{infer_type}_gtc.pdf'))
 
 
 def plot_chainconsumer(chains, output_dir, infer_type, true_param_mean=[]):
@@ -87,3 +89,4 @@ def plot_chainconsumer(chains, output_dir, infer_type, true_param_mean=[]):
         ax.grid(False)
 
     plt.savefig(os.path.join(output_dir, f'{infer_type}_cc.png'))
+    plt.savefig(os.path.join(output_dir, f'{infer_type}_cc.pdf'))
