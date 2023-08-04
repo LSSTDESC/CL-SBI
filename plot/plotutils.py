@@ -116,9 +116,17 @@ def plot_cc_diagnostic(chains, out_path, infer_type, true_param_mean=[]):
 
 def plot_mc_pairs(mc_pairs, out_path):
     plt.scatter(mc_pairs[:, 0], mc_pairs[:, 1], s=50)
+    plt.scatter(
+        np.mean(mc_pairs[:, 0]),
+        np.mean(mc_pairs[:, 1]),
+        s=100,
+        marker='^',
+        label='mean m-c pair',
+    )
     plt.xlabel('log$_{10}$M [M$_\odot$]', fontsize='xx-large')
     plt.ylabel('Concentration', fontsize='xx-large')
     plt.title('Drawn mc_pairs')
+    plt.legend()
     plt.savefig(os.path.join(out_path, f'drawn_mc_pairs.png'))
     # plt.savefig(os.path.join(out_path, f'drawn_mc_pairs.pdf'))
     plt.close()
