@@ -10,3 +10,4 @@ SBIGalaxyClusterMass.ipynb
 *.pickle
 *pycache*
 *.json
+tmp_debug.ipynb
