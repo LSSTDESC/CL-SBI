@@ -15,6 +15,10 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--sim_id')
 parser.add_argument('--num_sims')
+
+# Add regenerate flag if we want to overwrite any existing simulations.
+# If false or not set, skip simulation generation if they already exist from an earlier run.
+parser.add_argument('--regenerate', action='store_true')
 args = parser.parse_args()
 
 # Open the copy of sim_config with the specified sim_id
@@ -25,6 +29,18 @@ sim_config_filename = os.path.join(sim_config_path, f'{args.sim_id}.json')
 
 out_rel_path = f'../outputs/simulations/{args.sim_id}.{args.num_sims}'
 out_path = os.path.join(script_dir, out_rel_path)
+
+# Checking if simulations already exist from an earlier script run
+if (os.path.isfile(os.path.join(out_path, 'simulated_nfw_profiles.npy'))):
+    # Regenerating simulations (continuing script)
+    if args.regenerate:
+        print('Overwriting existing simulation because of --regenerate flag')
+    # Using existing simulations (terminating script)
+    else:
+        print(
+            'Simulations already exist. If you want to regenerate, re-run with the --regenerate flag'
+        )
+        quit()
 
 # Open the copy of sim_config in sim_dir
 with open(sim_config_filename, 'r') as f:
@@ -41,8 +57,6 @@ sample_mc_pairs = population.random_mass_conc(
     sim_config['min_log10mass'],
     sim_config['max_log10mass'],
     int(args.num_sims),
-    sim_config['sample_noise_dex'],
-    mc_relation=sim_config['mc_relation'],
     mc_scatter=sim_config['mc_scatter'],
     mc_relation=sim_config['mc_relation'],
     z=sim_config['z'],

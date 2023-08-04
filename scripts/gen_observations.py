@@ -12,6 +12,10 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--obs_id')
 parser.add_argument('--num_obs')
+
+# Add regenerate flag if we want to overwrite any existing observations.
+# If false or not set, skip observation generation if they already exist from an earlier run.
+parser.add_argument('--regenerate', action='store_true')
 args = parser.parse_args()
 
 # Open the copy of obs_config with the specified obs_id
@@ -22,6 +26,18 @@ config_filename = os.path.join(config_path, f'{args.obs_id}.json')
 
 out_rel_path = f'../outputs/observations/{args.obs_id}.{args.num_obs}'
 out_path = os.path.join(script_dir, out_rel_path)
+
+# Checking if observations already exist from an earlier script run
+if (os.path.isfile(os.path.join(out_path, 'drawn_nfw_profiles.npy'))):
+    # Regenerating observations (continuing script)
+    if args.regenerate:
+        print('Overwriting existing observations because of --regenerate flag')
+    # Using existing observations (terminating script)
+    else:
+        print(
+            'Observations already exist. If you want to regenerate, re-run with the --regenerate flag'
+        )
+        quit()
 
 # Open the copy of obs_config in obs_dir
 with open(config_filename, 'r') as f:

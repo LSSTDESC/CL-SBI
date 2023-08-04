@@ -50,3 +50,13 @@ Running instructions:
 	``python scripts/plot_chains.py --sim_id {SIM_ID} --infer_id {INFER_ID} --obs_id {OBS_ID} --num_sims {NUM_SIMS} --num_obs {NUM_OBS}``.
 	
 	This will output to the ``outputs/plots/{SIM_ID}.{INFER_ID}.{OBS_ID}.{NUM_SIMS}.{NUM_OBS}`` directory
+
+Note: any of the above steps of the pipeline can be run with a --regenerate flag to overwrite existing output (with the exact same input parameters) for that step of the pipeline. This is a time saving step so we don't unnecessarily regenerate some output that we already have.
+
+
+---------------
+
+Bash script running instructions:
+
+1) Modify bash_run.sh with whatever combinations of {SIM_ID}, {INFER_ID}, {OBS_ID}, {NUM_SIMS}, and {NUM_OBS} you'd like to experiment with
+2) Navigate to the ``CL-SBI/scripts/`` directory and run ``./bash_run.sh``
