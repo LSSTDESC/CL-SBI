@@ -19,7 +19,7 @@ def loglike(params, model):
     from ..simulations.wlprofile import simulate_nfw
     estimate = simulate_nfw(log10mass=log10mass, concentration=concentration)
     # TODO: sanity check my error calculation
-    error = np.std(log10mass**2) + np.std(concentration)**2
+    error = np.std(log10mass)**2 + np.std(concentration)**2
     return -0.5 * np.sum((estimate - model)**2 / np.exp(2 * error) + 2 * error)
 
 

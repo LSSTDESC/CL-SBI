@@ -61,20 +61,34 @@ drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
 drawn_nfw_profiles = np.load(drawn_nfw_profiles_filename)
 
 # Run SBI inference
-sbi_chains = sbi_.apply_observations(posterior, drawn_mc_pairs,
-                                     drawn_nfw_profiles)
+sbi_chains, sbi_ftj_chains = sbi_.apply_observations(posterior, drawn_mc_pairs,
+                                                     drawn_nfw_profiles)
 
 # Output SBI chains
 with open(os.path.join(out_path, 'sbi_chains.pickle'), 'wb') as handle:
     pickle.dump(sbi_chains, handle, protocol=4)
 
+# Output each of the fit-then-join chains (for diagnostics)
+with open(os.path.join(out_path, 'sbi_ftj_chains.pickle'), 'wb') as handle:
+    pickle.dump(sbi_ftj_chains, handle, protocol=4)
+
 # Run MCMC inference
-mcmc_jtf = mcmc.join_then_fit(drawn_nfw_profiles, infer_config['priors'])
-mcmc_ftj = mcmc.fit_then_join(drawn_nfw_profiles, infer_config['priors'])
+mcmc_jtf_chain, mcmc_jtf_sampler = mcmc.join_then_fit(drawn_nfw_profiles,
+                                                      infer_config['priors'])
+mcmc_ftj_chains, mcmc_ftj_samplers = mcmc.fit_then_join(
+    drawn_nfw_profiles, infer_config['priors'])
 
 # Output MCMC chains (pickling because diff sizes)
 with open(os.path.join(out_path, 'mcmc_chains.pickle'), 'wb') as handle:
-    pickle.dump([mcmc_jtf, mcmc_ftj], handle, protocol=4)
+    pickle.dump([mcmc_jtf_chain, mcmc_ftj_chains], handle, protocol=4)
+
+# Output MCMC join-then-fit sampler (for diagnostics)
+with open(os.path.join(out_path, 'mcmc_jtf_sampler.pickle'), 'wb') as handle:
+    pickle.dump(mcmc_jtf_sampler, handle, protocol=4)
+
+# Output MCMC fit-then-join samplers (for diagnostics)
+with open(os.path.join(out_path, 'mcmc_ftj_samplers.pickle'), 'wb') as handle:
+    pickle.dump(mcmc_ftj_samplers, handle, protocol=4)
 
 # Output mean of drawn m-c pairs as "truth" value for plotting
 true_param_mean = (np.mean(drawn_mc_pairs.T[0]), np.mean(drawn_mc_pairs.T[1]))

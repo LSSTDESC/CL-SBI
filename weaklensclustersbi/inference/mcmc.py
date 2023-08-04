@@ -25,8 +25,9 @@ def run_mcmc(truth_val, priors):
                                     args=[priors, truth_val])
 
     # Add some noise to starting positions for walkers
-    starts = config['starts'] + 0.1 * np.random.randn(config['nwalkers'],
-                                                      config['npar'])
+    # TODO: randomly sample within the priors
+    starts = config['starts'] + 5 * np.random.randn(config['nwalkers'],
+                                                    config['npar'])
 
     # burn-in
     print('## burning in ... ')
@@ -50,10 +51,12 @@ def fit_then_join(profiles, priors):
     all of the chains into a single one (join).
     '''
     chains = []
+    samplers = []
     for profile in profiles:
         sampler = run_mcmc(profile, priors)
+        samplers.append(sampler)
         chains.append(sampler.flatchain)
-    return np.vstack(chains)
+    return np.vstack(chains), samplers
 
 
 def join_then_fit(profiles, priors):
@@ -63,4 +66,4 @@ def join_then_fit(profiles, priors):
     '''
     mean_profile = np.mean(profiles, keepdims=True, axis=0)
     sampler = run_mcmc(mean_profile, priors)
-    return sampler.flatchain
+    return sampler.flatchain, sampler

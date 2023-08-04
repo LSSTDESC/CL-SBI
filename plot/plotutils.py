@@ -16,38 +16,6 @@ def timestamp():
     return timestr
 
 
-def plot_walkers(sampler, output_dir):
-    chain = sampler.get_chain()
-
-    # TODO: don't hardcode this
-    npar = 2
-
-    fig, axes = plt.subplots(npar, 1)
-    plt.subplots_adjust(wspace=0.2, hspace=0.3)
-
-    for i in range(npar):
-        ax = axes[i]
-        # plot the chain
-        ax.plot(chain[:, :, i])
-        xmax = len(chain[:, i])
-        # truths
-        ax.plot([0 - 100, xmax + 100], [truths[i], truths[i]],
-                'k-.',
-                lw=2,
-                label='truth')
-        # starts
-        ax.plot([0], [starts[:, i]], 'x', color='#d62728')
-
-        ax.set_ylabel(r'%s' % param_labels[i])
-
-    axes[0].legend(bbox_to_anchor=(1, 1))
-    axes[-1].set_xlabel('# of steps')
-
-    fig.set_size_inches(10, 6 * npar / 3)
-    plt.savefig(os.path.join(output_dir, 'mcmc_walkers.png'))
-    plt.savefig(os.path.join(output_dir, 'mcmc_walkers.pdf'))
-
-
 def plot_pygtc(chains, output_dir, infer_type, true_param_mean=()):
     # posterFont = {'family': 'Arial', 'size': 18}
     GTC = pygtc.plotGTC(
@@ -73,6 +41,57 @@ def plot_chainconsumer(chains, output_dir, infer_type, true_param_mean=[]):
     cc = ChainConsumer()
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
     cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
+    cc.configure(
+        statistics='max',
+        summary=True,
+        label_font_size=20,
+        tick_font_size=16,
+        usetex=False,
+        serif=False,
+        sigmas=[0, 1, 2],
+    )
+    fig = cc.plotter.plot(
+        truth=true_param_mean,
+        parameters=param_labels,
+        # extents=list(wide_param_ranges),
+        figsize=(8, 8))
+    ax_list = fig.axes
+    for ax in ax_list:
+        ax.grid(False)
+
+    plt.savefig(os.path.join(output_dir, f'{infer_type}_cc.png'))
+    plt.savefig(os.path.join(output_dir, f'{infer_type}_cc.pdf'))
+    plt.close()
+
+
+### DIAGNOSTICS PLOTTING BELOW ###
+
+
+def plot_walkers(sampler, output_dir, prefix=''):
+    ndim = 2
+    fig, axes = plt.subplots(ndim, figsize=(10, 7), sharex=True)
+    samples = sampler.get_chain()
+    labels = ['log10mass', 'concentration']
+    for i in range(ndim):
+        ax = axes[i]
+        ax.plot(samples[:, :, i], "k", alpha=0.3)
+        ax.set_xlim(0, len(samples))
+        ax.set_ylabel(labels[i])
+        ax.yaxis.set_label_coords(-0.1, 0.5)
+
+    axes[-1].set_xlabel("step number")
+    plt.savefig(os.path.join(output_dir, f'{prefix}mcmc_walkers.png'))
+    # plt.savefig(os.path.join(output_dir, f'{prefix}mcmc_walkers.pdf'))
+    plt.close()
+
+
+# Overplotting multiple chains (for each observation)
+def plot_cc_diagnostic(chains, output_dir, infer_type, true_param_mean=[]):
+    cc = ChainConsumer()
+    i = 0
+    for chain in chains:
+        cc.add_chain(chain, parameters=param_labels, name=f'chain_{i}')
+        i += 1
     cc.configure(statistics='max',
                  summary=True,
                  label_font_size=20,
@@ -80,13 +99,15 @@ def plot_chainconsumer(chains, output_dir, infer_type, true_param_mean=[]):
                  usetex=False,
                  serif=False,
                  sigmas=[0, 1, 2])
-    fig = cc.plotter.plot(truth=true_param_mean,
-                          parameters=param_labels,
-                          extents=list(wide_param_ranges),
-                          figsize=(8, 8))
+    fig = cc.plotter.plot(
+        truth=true_param_mean,
+        parameters=param_labels,
+        # extents=list(wide_param_ranges),
+        figsize=(8, 8))
     ax_list = fig.axes
     for ax in ax_list:
         ax.grid(False)
 
     plt.savefig(os.path.join(output_dir, f'{infer_type}_cc.png'))
-    plt.savefig(os.path.join(output_dir, f'{infer_type}_cc.pdf'))
+    # plt.savefig(os.path.join(output_dir, f'{infer_type}_cc.pdf'))
+    plt.close()
