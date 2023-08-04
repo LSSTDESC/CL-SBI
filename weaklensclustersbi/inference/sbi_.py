@@ -62,16 +62,20 @@ def gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles):
 
 # Apply observations to the (un)pickled posterior and sample from the posterior
 def apply_observations(posterior, drawn_mc_pairs, drawn_nfw_profiles):
-    from .sbiutils import create_fit_join_observation_nfw, create_join_fit_observation_nfw
+    from .sbiutils import create_observation_nfw, create_join_fit_observation_nfw
 
-    # Create an observation
-    theta_o_fj, x_o_fj = create_fit_join_observation_nfw(
-        drawn_mc_pairs, drawn_nfw_profiles)
+    # Join (take the mean of) observations and then fit on that
     theta_o_jf, x_o_jf = create_join_fit_observation_nfw(
         drawn_mc_pairs, drawn_nfw_profiles)
 
     # Obtain samples of the posterior given the observation
-    samples_fj = posterior.sample((10000, ), x=x_o_fj)
     samples_jf = posterior.sample((10000, ), x=x_o_jf)
 
-    return [samples_fj.numpy(), np.vstack(samples_jf.numpy())]
+    # Fit each observation and join them (stack the chains) at the end
+    samples_fj = []
+    for i in range(len(drawn_nfw_profiles)):
+        theta_o_fj, x_o_fj = create_observation_nfw(drawn_mc_pairs[i],
+                                                    drawn_nfw_profiles[i])
+        samples_fj.append(posterior.sample((10000, ), x=x_o_fj).numpy())
+
+    return [samples_jf.numpy(), np.vstack(samples_fj)], samples_fj
