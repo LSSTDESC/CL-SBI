@@ -3,6 +3,7 @@ import numpy as np
 import argparse
 import os
 import pickle
+import json
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
@@ -64,3 +65,30 @@ plotutils.plot_cc_diagnostic(mcmc_ftj_chains, out_path, 'mcmc_ftj',
                              list(true_param_mean))
 plotutils.plot_cc_diagnostic(sbi_ftj_chains, out_path, 'sbi_ftj',
                              list(true_param_mean))
+
+# Load observations
+obs_rel_path = f'../outputs/observations/{args.obs_id}.{args.num_obs}'
+obs_path = os.path.join(script_dir, obs_rel_path)
+
+obs_config_rel_path = '../configs/observations/'
+obs_config_path = os.path.join(script_dir, obs_config_rel_path)
+obs_config_filename = os.path.join(obs_config_path, f'{args.obs_id}.json')
+with open(obs_config_filename, 'r') as f:
+    obs_config = json.load(f)
+
+drawn_mc_pairs_filename = os.path.join(obs_path, 'drawn_mc_pairs.npy')
+drawn_nfw_profiles_filename = os.path.join(obs_path, 'drawn_nfw_profiles.npy')
+drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
+drawn_nfw_profiles = np.load(drawn_nfw_profiles_filename)
+
+# Plotting drawn m-c pairs
+plotutils.plot_mc_pairs(drawn_mc_pairs, obs_path)
+
+# Plotting drawn NFW profiles
+plotutils.plot_nfw_profiles(
+    drawn_nfw_profiles,
+    obs_path,
+    obs_config['num_radial_bins'],
+    obs_config["min_richness"],
+    obs_config["max_richness"],
+)
