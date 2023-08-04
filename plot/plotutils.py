@@ -7,7 +7,7 @@ from colossus.cosmology import cosmology
 
 param_labels = ['log10mass', 'concentration']
 chain_labels = ['join_then_fit', 'fit_then_join']
-wide_param_ranges = ((12.5, 15.5), (3.5, 8.5))
+wide_param_ranges = ((13, 16), (4, 9))
 narrow_param_ranges = ((14.2, 15.2), (4.2, 6.2))
 
 
@@ -19,6 +19,14 @@ def timestamp():
 
 def plot_pygtc(chains, out_path, infer_type, true_param_mean=()):
     # posterFont = {'family': 'Arial', 'size': 18}
+
+    # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
+    # TODO: clean this up
+    if min(len(chains[0]),
+           len(chains)) > len(param_labels) and 'mcmc' in infer_type:
+        chains[0] = np.delete(chains[0], 2, 1)
+        chains[1] = np.delete(chains[1], 2, 1)
+
     GTC = pygtc.plotGTC(
         chains=chains,
         chainLabels=chain_labels,
@@ -40,6 +48,14 @@ def plot_pygtc(chains, out_path, infer_type, true_param_mean=()):
 
 def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
     cc = ChainConsumer()
+
+    # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
+    # TODO: clean this up
+    if min(len(chains[0]),
+           len(chains)) > len(param_labels) and 'mcmc' in infer_type:
+        chains[0] = np.delete(chains[0], 2, 1)
+        chains[1] = np.delete(chains[1], 2, 1)
+
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
     cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
     cc.configure(
@@ -49,13 +65,13 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
         tick_font_size=16,
         usetex=False,
         serif=False,
-        sigmas=[0, 1, 2],
+        sigmas=[0, 0.5, 1],
+        shade_alpha=0.3,
     )
-    fig = cc.plotter.plot(
-        truth=true_param_mean,
-        parameters=param_labels,
-        # extents=list(wide_param_ranges),
-        figsize=(8, 8))
+    fig = cc.plotter.plot(truth=true_param_mean,
+                          parameters=param_labels,
+                          extents=list(wide_param_ranges),
+                          figsize=(8, 8))
     ax_list = fig.axes
     for ax in ax_list:
         ax.grid(False)
@@ -82,7 +98,7 @@ def plot_walkers(sampler, out_path, prefix=''):
 
     axes[-1].set_xlabel("step number")
     plt.savefig(os.path.join(out_path, f'{prefix}mcmc_walkers.png'))
-    # plt.savefig(os.path.join(out_path, f'{prefix}mcmc_walkers.pdf'))
+    plt.savefig(os.path.join(out_path, f'{prefix}mcmc_walkers.pdf'))
     plt.close()
 
 
@@ -91,15 +107,22 @@ def plot_cc_diagnostic(chains, out_path, infer_type, true_param_mean=[]):
     cc = ChainConsumer()
     i = 0
     for chain in chains:
-        cc.add_chain(chain, parameters=param_labels, name=f'chain_{i}')
+        # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
+        # TODO: clean this up
+        if np.shape(chain)[1] > len(param_labels):
+            chain = np.delete(chain, 2, 1)
+
+        cc.add_chain(chain, parameters=param_labels)
         i += 1
-    cc.configure(statistics='max',
-                 summary=True,
-                 label_font_size=20,
-                 tick_font_size=16,
-                 usetex=False,
-                 serif=False,
-                 sigmas=[0, 1, 2])
+    cc.configure(
+        statistics='max',
+        summary=True,
+        # label_font_size=20,
+        tick_font_size=16,
+        usetex=False,
+        serif=False,
+        sigmas=[0, 0.5, 1],
+    )
     fig = cc.plotter.plot(
         truth=true_param_mean,
         parameters=param_labels,
@@ -110,7 +133,7 @@ def plot_cc_diagnostic(chains, out_path, infer_type, true_param_mean=[]):
         ax.grid(False)
 
     plt.savefig(os.path.join(out_path, f'{infer_type}_cc.png'))
-    # plt.savefig(os.path.join(out_path, f'{infer_type}_cc.pdf'))
+    plt.savefig(os.path.join(out_path, f'{infer_type}_cc.pdf'))
     plt.close()
 
 
@@ -128,7 +151,7 @@ def plot_mc_pairs(mc_pairs, out_path):
     plt.title('Drawn mc_pairs')
     plt.legend()
     plt.savefig(os.path.join(out_path, f'drawn_mc_pairs.png'))
-    # plt.savefig(os.path.join(out_path, f'drawn_mc_pairs.pdf'))
+    plt.savefig(os.path.join(out_path, f'drawn_mc_pairs.pdf'))
     plt.close()
 
 
@@ -145,10 +168,10 @@ def plot_nfw_profiles(nfw_profiles, out_path, num_radial_bins, min_richness,
         plt.plot(rbins, nfw_profile / cosmo.rho_m(0), '-', alpha=0.3)
     plt.plot(
         rbins,
-        np.mean(nfw_profiles, axis=0) / cosmo.rho_m(0),
+        np.median(nfw_profiles, axis=0) / cosmo.rho_m(0),
         '-',
-        label=f'Mean Drawn NFW, {min_richness} < $\lambda$ < {max_richness}')
+        label=f'Median Drawn NFW, {min_richness} < $\lambda$ < {max_richness}')
     plt.legend(fontsize='large')
     plt.savefig(os.path.join(out_path, f'drawn_nfw_profiles.png'))
-    # plt.savefig(os.path.join(out_path, f'drawn_nfw_profiles.pdf'))
+    plt.savefig(os.path.join(out_path, f'drawn_nfw_profiles.pdf'))
     plt.close()

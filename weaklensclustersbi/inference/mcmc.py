@@ -8,8 +8,9 @@ np.random.seed(2807)
 def default_config():
     return {
         'nwalkers': 100,
-        'npar': 2,
-        'starts': np.array([10, 10]),
+        # TODO - don't harcode these two
+        'npar': 3,
+        'starts': np.array([10, 10, 0]),
         'nsteps_burn': 500,
         'nsteps_per_chain': 2000,
     }
@@ -64,6 +65,8 @@ def join_then_fit(profiles, priors):
     For a given set of profiles, we first find the average profile (join) to reduce noise and then 
     run MCMC on that (fit).
     '''
-    mean_profile = np.mean(profiles, keepdims=True, axis=0)
-    sampler = run_mcmc(mean_profile, priors)
+    avg_profile = np.mean(profiles, keepdims=True, axis=0)
+    # TODO: mean or median? does this matter?
+    # avg_profile = np.median(profiles, keepdims=True, axis=0)
+    sampler = run_mcmc(avg_profile, priors)
     return sampler.flatchain, sampler
