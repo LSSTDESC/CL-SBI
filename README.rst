@@ -16,6 +16,11 @@ We've split our workflow into four parts:
 
 For each step, the script reading the config will save the output files to the corresponding outputs directory as the config.
 
+.. image:: images/pipeline_flowchart.png
+  :width: 400
+  :alt: Pipeline Flowchart
+
+
 ---------------
 
 Running instructions:
