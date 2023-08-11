@@ -10,14 +10,18 @@ import argparse
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
-parser.add_argument('--obs_dir')
+parser.add_argument('--obs_id')
+parser.add_argument('--num_obs')
 args = parser.parse_args()
 
-# Open the copy of obs_config in the obs_dir specified in the command line
+# Open the copy of obs_config with the specified obs_id
 script_dir = os.path.dirname(__file__)
-config_rel_path = '../configs/observations/' + args.obs_dir
+config_rel_path = '../configs/observations/'
 config_path = os.path.join(script_dir, config_rel_path)
-config_filename = os.path.join(config_path, 'obs_config.json')
+config_filename = os.path.join(config_path, f'{args.obs_id}.json')
+
+out_rel_path = f'../outputs/observations/{args.obs_id}.{args.num_obs}'
+out_path = os.path.join(script_dir, out_rel_path)
 
 # Open the copy of obs_config in obs_dir
 with open(config_filename, 'r') as f:
@@ -45,6 +49,7 @@ drawn_nfw_profiles = population.calculate_noise(
     non_noisy_drawn_nfw_profiles, obs_config['profile_noise_dex'])
 
 # Output to intermediate files in obs_dir to be read by inference example script
-np.save(os.path.join(config_path, 'drawn_nfw_profiles.npy'),
-        drawn_nfw_profiles)
-np.save(os.path.join(config_path, 'drawn_mc_pairs.npy'), drawn_mc_pairs)
+if not os.path.exists(out_path):
+    os.makedirs(out_path)
+np.save(os.path.join(out_path, 'drawn_nfw_profiles.npy'), drawn_nfw_profiles)
+np.save(os.path.join(out_path, 'drawn_mc_pairs.npy'), drawn_mc_pairs)

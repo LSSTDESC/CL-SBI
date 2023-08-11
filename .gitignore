@@ -9,3 +9,7 @@ sbi_single_cluster_constraint-checkpoint copy.ipynb
 SBIGalaxyClusterMass.ipynb
 *.pickle
 *pycache*
+*.json
+*.pdf
+!images/*
+tmp_debug.ipynb
