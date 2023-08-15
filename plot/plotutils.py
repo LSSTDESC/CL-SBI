@@ -22,8 +22,7 @@ def plot_pygtc(chains, out_path, infer_type, true_param_mean=()):
 
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
     # TODO: clean this up
-    if min(len(chains[0]),
-           len(chains)) > len(param_labels) and 'mcmc' in infer_type:
+    if np.shape(chains[0])[1] > len(param_labels) and 'mcmc' in infer_type:
         chains[0] = np.delete(chains[0], 2, 1)
         chains[1] = np.delete(chains[1], 2, 1)
 
@@ -32,7 +31,7 @@ def plot_pygtc(chains, out_path, infer_type, true_param_mean=()):
         chainLabels=chain_labels,
         paramNames=param_labels,
         figureSize=8.,
-        paramRanges=wide_param_ranges,
+        # paramRanges=wide_param_ranges,
         sigmaContourLevels=True,
         plotDensity=True,
         truths=true_param_mean,
@@ -51,10 +50,13 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
 
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
     # TODO: clean this up
-    if min(len(chains[0]),
-           len(chains)) > len(param_labels) and 'mcmc' in infer_type:
+    # print(len(chains))
+    # print(np.shape(chains[0]))
+    # print(len(param_labels))
+    if np.shape(chains[0])[1] > len(param_labels) and 'mcmc' in infer_type:
         chains[0] = np.delete(chains[0], 2, 1)
         chains[1] = np.delete(chains[1], 2, 1)
+    # print(np.shape(chains[0]))
 
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
     cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
@@ -68,10 +70,11 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
         sigmas=[0, 0.5, 1],
         shade_alpha=0.3,
     )
-    fig = cc.plotter.plot(truth=true_param_mean,
-                          parameters=param_labels,
-                          extents=list(wide_param_ranges),
-                          figsize=(8, 8))
+    fig = cc.plotter.plot(
+        truth=true_param_mean,
+        parameters=param_labels,
+        # extents=list(wide_param_ranges),
+        figsize=(8, 8))
     ax_list = fig.axes
     for ax in ax_list:
         ax.grid(False)
@@ -156,7 +159,7 @@ def plot_mc_pairs(mc_pairs, out_path):
 
 
 def plot_nfw_profiles(nfw_profiles, out_path, num_radial_bins, min_richness,
-                      max_richness):
+                      max_richness, is_noisy):
     cosmo = cosmology.setCosmology('planck18')
 
     rbins = 10**np.arange(0, num_radial_bins / 10, 0.1)
@@ -172,6 +175,12 @@ def plot_nfw_profiles(nfw_profiles, out_path, num_radial_bins, min_richness,
         '-',
         label=f'Median Drawn NFW, {min_richness} < $\lambda$ < {max_richness}')
     plt.legend(fontsize='large')
-    plt.savefig(os.path.join(out_path, f'drawn_nfw_profiles.png'))
-    plt.savefig(os.path.join(out_path, f'drawn_nfw_profiles.pdf'))
+    if is_noisy:
+        plt.savefig(os.path.join(out_path, f'drawn_nfw_profiles.png'))
+        plt.savefig(os.path.join(out_path, f'drawn_nfw_profiles.pdf'))
+    else:
+        plt.savefig(os.path.join(out_path,
+                                 f'noiseless_drawn_nfw_profiles.png'))
+        plt.savefig(os.path.join(out_path,
+                                 f'noiseless_drawn_nfw_profiles.pdf'))
     plt.close()

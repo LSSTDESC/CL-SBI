@@ -1,5 +1,6 @@
 import emcee
 import numpy as np
+from context import wlprofile
 
 
 def logprior(params, priors):
@@ -16,8 +17,8 @@ def logprior(params, priors):
 def loglike(params, model):
     log10mass, concentration, yerr = params
 
-    from ..simulations.wlprofile import simulate_nfw
-    estimate = simulate_nfw(log10mass=log10mass, concentration=concentration)
+    # TODO: add redshift to below function call?
+    estimate = wlprofile.simulate_nfw(log10mass, concentration)
     return -0.5 * np.sum((estimate - model)**2 /
                          (yerr**2) + np.log(2 * np.pi * yerr**2))
 

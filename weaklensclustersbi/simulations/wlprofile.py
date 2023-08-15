@@ -15,7 +15,7 @@ def simulate_nfw(log10mass,
                  rbins=10**np.arange(0, 3, 0.1),
                  z=0.0,
                  mdef='vir',
-                 kind='density'):
+                 kind='surface_density'):
     '''                                                                             
     Simulate an NFW profile with mass and concentration  defined with respect to a given mass definition.
     '''

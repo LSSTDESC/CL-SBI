@@ -118,7 +118,7 @@ run_config() {
 # 	# Simulations: minimal scatter, minimal profile noise
 # 	# Observations: no scatter, minimal profile noise
 # 	# Inference: wide priors
-# run_config	"sim_2"	"infer_1"	"obs_8"	10000	10
+# # run_config	"sim_2"	"infer_1"	"obs_8"	10000	10
 
 # CONFIG 17: Config 16 + 0.3 NFW noise (sim)
 	# Simulations: minimal scatter, minimal profile noise

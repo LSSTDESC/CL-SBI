@@ -203,4 +203,4 @@ def filter_mc_pairs(mc_pairs, criteria='all'):
 
 def calculate_noise(sample, dex=0.0):
     random_noise = np.random.normal(1, dex, np.shape(sample))
-    return 10**(random_noise * np.log10(sample))
+    return sample * 10**(random_noise)

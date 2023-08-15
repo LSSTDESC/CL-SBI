@@ -81,6 +81,10 @@ drawn_nfw_profiles_filename = os.path.join(obs_path, 'drawn_nfw_profiles.npy')
 drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
 drawn_nfw_profiles = np.load(drawn_nfw_profiles_filename)
 
+noiseless_drawn_nfw_profiles_filename = os.path.join(
+    obs_path, 'noiseless_drawn_nfw_profiles.npy')
+noiseless_drawn_nfw_profiles = np.load(noiseless_drawn_nfw_profiles_filename)
+
 # Plotting drawn m-c pairs
 plotutils.plot_mc_pairs(drawn_mc_pairs, obs_path)
 
@@ -91,4 +95,14 @@ plotutils.plot_nfw_profiles(
     obs_config['num_radial_bins'],
     obs_config["min_richness"],
     obs_config["max_richness"],
+    is_noisy=True,
+)
+
+plotutils.plot_nfw_profiles(
+    noiseless_drawn_nfw_profiles,
+    obs_path,
+    obs_config['num_radial_bins'],
+    obs_config["min_richness"],
+    obs_config["max_richness"],
+    is_noisy=False,
 )
