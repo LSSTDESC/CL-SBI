@@ -31,7 +31,7 @@ def plot_pygtc(chains, out_path, infer_type, true_param_mean=()):
         chainLabels=chain_labels,
         paramNames=param_labels,
         figureSize=8.,
-        # paramRanges=wide_param_ranges,
+        paramRanges=wide_param_ranges,
         sigmaContourLevels=True,
         plotDensity=True,
         truths=true_param_mean,
@@ -50,13 +50,9 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
 
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
     # TODO: clean this up
-    # print(len(chains))
-    # print(np.shape(chains[0]))
-    # print(len(param_labels))
     if np.shape(chains[0])[1] > len(param_labels) and 'mcmc' in infer_type:
         chains[0] = np.delete(chains[0], 2, 1)
         chains[1] = np.delete(chains[1], 2, 1)
-    # print(np.shape(chains[0]))
 
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
     cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
@@ -70,11 +66,10 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
         sigmas=[0, 0.5, 1],
         shade_alpha=0.3,
     )
-    fig = cc.plotter.plot(
-        truth=true_param_mean,
-        parameters=param_labels,
-        # extents=list(wide_param_ranges),
-        figsize=(8, 8))
+    fig = cc.plotter.plot(truth=true_param_mean,
+                          parameters=param_labels,
+                          extents=list(wide_param_ranges),
+                          figsize=(8, 8))
     ax_list = fig.axes
     for ax in ax_list:
         ax.grid(False)
@@ -126,11 +121,10 @@ def plot_cc_diagnostic(chains, out_path, infer_type, true_param_mean=[]):
         serif=False,
         sigmas=[0, 0.5, 1],
     )
-    fig = cc.plotter.plot(
-        truth=true_param_mean,
-        parameters=param_labels,
-        # extents=list(wide_param_ranges),
-        figsize=(8, 8))
+    fig = cc.plotter.plot(truth=true_param_mean,
+                          parameters=param_labels,
+                          extents=list(wide_param_ranges),
+                          figsize=(8, 8))
     ax_list = fig.axes
     for ax in ax_list:
         ax.grid(False)
@@ -166,12 +160,12 @@ def plot_nfw_profiles(nfw_profiles, out_path, num_radial_bins, min_richness,
     plt.figure()
     plt.loglog()
     plt.xlabel('radius [kpc/h]', fontsize='xx-large')
-    plt.ylabel('Density profile [$\\rho/\\rho_m$]', fontsize='xx-large')
+    plt.ylabel('$\Delta\Sigma$ [$M_\odot h / kpc^2$]', fontsize='xx-large')
     for nfw_profile in nfw_profiles:
-        plt.plot(rbins, nfw_profile / cosmo.rho_m(0), '-', alpha=0.3)
+        plt.plot(rbins, nfw_profile, '-', alpha=0.3)
     plt.plot(
         rbins,
-        np.median(nfw_profiles, axis=0) / cosmo.rho_m(0),
+        np.median(nfw_profiles, axis=0),
         '-',
         label=f'Median Drawn NFW, {min_richness} < $\lambda$ < {max_richness}')
     plt.legend(fontsize='large')

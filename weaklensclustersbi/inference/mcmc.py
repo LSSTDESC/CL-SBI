@@ -65,8 +65,7 @@ def join_then_fit(profiles, priors):
     For a given set of profiles, we first find the average profile (join) to reduce noise and then 
     run MCMC on that (fit).
     '''
-    avg_profile = np.mean(profiles, keepdims=True, axis=0)
-    # TODO: mean or median? does this matter?
-    # avg_profile = np.median(profiles, keepdims=True, axis=0)
+
+    avg_profile = np.median(profiles, keepdims=True, axis=0)
     sampler = run_mcmc(avg_profile, priors)
     return sampler.flatchain, sampler

@@ -25,9 +25,7 @@ def create_join_fit_observation_nfw(mc_pairs, nfw_profiles):
     Returns the parameters (input), and the observations (radial profile) as tensors
     '''
 
-    mean_mc_pair = np.mean(mc_pairs, keepdims=True, axis=0)[0]
-    mean_nfw_profile = np.mean(nfw_profiles, keepdims=True, axis=0)[0]
-    return create_observation_nfw(mean_mc_pair, mean_nfw_profile)
     # TODO: mean or median? does it matter?
-    # median_nfw_profile = np.median(nfw_profiles, keepdims=True, axis=0)[0]
-    # return create_observation_nfw(mean_mc_pair, median_nfw_profile)
+    mean_mc_pair = np.mean(mc_pairs, keepdims=True, axis=0)[0]
+    median_nfw_profile = np.median(nfw_profiles, keepdims=True, axis=0)[0]
+    return create_observation_nfw(mean_mc_pair, median_nfw_profile)
