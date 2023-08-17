@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from chainconsumer import ChainConsumer
 import os
 from colossus.cosmology import cosmology
+from context import wlprofile
 
 param_labels = ['log10mass', 'concentration']
 chain_labels = ['join_then_fit', 'fit_then_join']
@@ -152,8 +153,16 @@ def plot_mc_pairs(mc_pairs, out_path):
     plt.close()
 
 
-def plot_nfw_profiles(nfw_profiles, out_path, num_radial_bins, min_richness,
-                      max_richness, is_noisy):
+def plot_nfw_profiles(
+    nfw_profiles,
+    out_path,
+    num_radial_bins,
+    min_richness,
+    max_richness,
+    is_noisy,
+    mcmc_chains=None,
+    sbi_chains=None,
+):
     cosmo = cosmology.setCosmology('planck18')
 
     rbins = 10**np.arange(0, num_radial_bins / 10, 0.1)
@@ -168,6 +177,34 @@ def plot_nfw_profiles(nfw_profiles, out_path, num_radial_bins, min_richness,
         np.median(nfw_profiles, axis=0),
         '-',
         label=f'Median Drawn NFW, {min_richness} < $\lambda$ < {max_richness}')
+
+    if mcmc_chains:
+        mcmc_jtf_nfw = inferred_nfw_from_chains(mcmc_chains[0])
+        plt.plot(rbins,
+                 mcmc_jtf_nfw,
+                 '--',
+                 label=f'MCMC join-then-fit',
+                 color='g')
+        mcmc_jtf_nfw = inferred_nfw_from_chains(mcmc_chains[1])
+        plt.plot(rbins,
+                 mcmc_jtf_nfw,
+                 '-.',
+                 label=f'MCMC fit-then-join',
+                 color='g')
+    if sbi_chains:
+        sbi_jtf_nfw = inferred_nfw_from_chains(sbi_chains[0])
+        plt.plot(rbins,
+                 sbi_jtf_nfw,
+                 '--',
+                 label=f'SBI join-then-fit',
+                 color='b')
+        sbi_jtf_nfw = inferred_nfw_from_chains(sbi_chains[1])
+        plt.plot(rbins,
+                 sbi_jtf_nfw,
+                 '-.',
+                 label=f'SBI fit-then-join',
+                 color='b')
+
     plt.legend(fontsize='large')
     if is_noisy:
         plt.savefig(os.path.join(out_path, f'drawn_nfw_profiles.png'))
@@ -178,3 +215,16 @@ def plot_nfw_profiles(nfw_profiles, out_path, num_radial_bins, min_richness,
         plt.savefig(os.path.join(out_path,
                                  f'noiseless_drawn_nfw_profiles.pdf'))
     plt.close()
+
+
+# From chains, let's see what the inferred mc pair is to compare with drawn mc pairs.
+def inferred_mc_from_chains(chains):
+    inferred_log10mass = np.median(chains[:, 0])
+    inferred_concentration = np.median(chains[:, 1])
+    return (inferred_log10mass, inferred_concentration)
+
+
+# From chains, generate an NFW from the inferred m-c pair to compare with drawn NFWs.
+def inferred_nfw_from_chains(chains):
+    inferred_mc_pair = inferred_mc_from_chains(chains)
+    return wlprofile.simulate_nfw(inferred_mc_pair[0], inferred_mc_pair[1])
