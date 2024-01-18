@@ -76,6 +76,9 @@ non_noisy_simulated_nfw_profiles = np.array([
 simulated_nfw_profiles = population.calculate_noise(
     non_noisy_simulated_nfw_profiles, sim_config['profile_noise_dex'])
 
+simulated_nfw_profiles = population.gen_error_bars(simulated_nfw_profiles,
+                                                   sim_config['error_dex'])
+
 # Output to intermediate files in sim_dir to be read by inference example script
 if not os.path.exists(out_path):
     os.makedirs(out_path)

@@ -27,5 +27,5 @@ def create_join_fit_observation_nfw(mc_pairs, nfw_profiles):
 
     # TODO: mean or median? does it matter?
     mean_mc_pair = np.mean(mc_pairs, keepdims=True, axis=0)[0]
-    median_nfw_profile = np.median(nfw_profiles, keepdims=True, axis=0)[0]
+    median_nfw_profile = np.median(nfw_profiles, axis=0)
     return create_observation_nfw(mean_mc_pair, median_nfw_profile)

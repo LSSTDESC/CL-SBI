@@ -10,8 +10,8 @@ def default_config():
         'nwalkers': 100,
         # TODO - don't harcode these two
         'npar': 3,
-        'starts': np.array([10, 10, 0]),
-        'nsteps_burn': 500,
+        'starts': np.array([15, 10, 0]),
+        'nsteps_burn': 300,
         'nsteps_per_chain': 2000,
     }
 
@@ -27,8 +27,8 @@ def run_mcmc(truth_val, priors):
 
     # Add some noise to starting positions for walkers
     # TODO: randomly sample within the priors
-    starts = config['starts'] + 5 * np.random.randn(config['nwalkers'],
-                                                    config['npar'])
+    starts = config['starts'] + 5 * np.random.uniform(size=(config['nwalkers'],
+                                                            config['npar']))
 
     # burn-in
     print('## burning in ... ')

@@ -8,6 +8,7 @@ Notes::
 Copyright 2022-2023, LSST-DESC
 """
 import numpy as np
+from scipy.stats import halfnorm
 
 
 def random_mass_conc(
@@ -204,3 +205,20 @@ def filter_mc_pairs(mc_pairs, criteria='all'):
 def calculate_noise(sample, dex=0.0):
     random_noise = np.random.normal(0, dex, np.shape(sample))
     return sample * 10**(random_noise)
+
+
+def gen_error_bars(nfw_profile, dex=0.0):
+    shape = np.shape(nfw_profile)
+    upper_error = halfnorm.rvs(loc=0, scale=dex, size=shape)
+
+    # Add some dex to generate our upper error
+    upper_error_obs = nfw_profile * 10**(upper_error)
+
+    # Subtract some dex to generate our lower error
+    lower_error = halfnorm.rvs(loc=0, scale=dex, size=shape)
+    lower_error_obs = nfw_profile * 10**(-lower_error)
+
+    # return lower_error_obs, nfw_profile, upper_error_obs
+
+    return np.concatenate([lower_error_obs, nfw_profile, upper_error_obs],
+                          axis=1)

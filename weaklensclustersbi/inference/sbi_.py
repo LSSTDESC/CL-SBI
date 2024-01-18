@@ -61,7 +61,10 @@ def gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles):
 
 
 # Apply observations to the (un)pickled posterior and sample from the posterior
-def apply_observations(posterior, drawn_mc_pairs, drawn_nfw_profiles):
+def apply_observations(posterior,
+                       drawn_mc_pairs,
+                       drawn_nfw_profiles,
+                       err_dex=0.0):
     from .sbiutils import create_observation_nfw, create_join_fit_observation_nfw
 
     # Join (take the mean of) observations and then fit on that

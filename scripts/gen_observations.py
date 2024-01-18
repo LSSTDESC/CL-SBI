@@ -64,6 +64,9 @@ noiseless_drawn_nfw_profiles = np.array([
 drawn_nfw_profiles = population.calculate_noise(
     noiseless_drawn_nfw_profiles, obs_config['profile_noise_dex'])
 
+drawn_nfw_profiles = population.gen_error_bars(drawn_nfw_profiles,
+                                               obs_config['error_dex'])
+
 # Output to intermediate files in obs_dir to be read by inference example script
 if not os.path.exists(out_path):
     os.makedirs(out_path)

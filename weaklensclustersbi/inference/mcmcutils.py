@@ -19,6 +19,7 @@ def loglike(params, model):
 
     # TODO: add redshift to below function call?
     estimate = wlprofile.simulate_nfw(log10mass, concentration)
+    estimate = np.concatenate([estimate, estimate, estimate])
     return -0.5 * np.sum((estimate - model)**2 /
                          (yerr**2) + np.log(2 * np.pi * yerr**2))
 

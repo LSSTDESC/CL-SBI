@@ -58,7 +58,7 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
     cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
     cc.configure(
-        statistics='max',
+        statistics='mean',
         summary=True,
         label_font_size=20,
         tick_font_size=16,
@@ -72,6 +72,8 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
                           extents=list(wide_param_ranges),
                           figsize=(8, 8))
     ax_list = fig.axes
+    plt.gcf().subplots_adjust(bottom=0.12)
+    plt.gcf().subplots_adjust(left=0.1)
     for ax in ax_list:
         ax.grid(False)
 
@@ -170,13 +172,33 @@ def plot_nfw_profiles(
     plt.loglog()
     plt.xlabel('radius [kpc/h]', fontsize='xx-large')
     plt.ylabel('$\Delta\Sigma$ [$M_\odot h / kpc^2$]', fontsize='xx-large')
+    le = []
+    ue = []
     for nfw_profile in nfw_profiles:
-        plt.plot(rbins, nfw_profile, '-', alpha=0.3)
+        plt.plot(rbins,
+                 nfw_profile[num_radial_bins:2 * num_radial_bins],
+                 '-',
+                 alpha=0.3)
+        le.append(nfw_profile[num_radial_bins:2 * num_radial_bins] -
+                  nfw_profile[0:num_radial_bins])
+        ue.append(nfw_profile[2 * num_radial_bins:3 * num_radial_bins] -
+                  nfw_profile[num_radial_bins:2 * num_radial_bins])
     plt.plot(
         rbins,
-        np.median(nfw_profiles, axis=0),
-        '-',
+        np.median(nfw_profiles[:, num_radial_bins:2 * num_radial_bins],
+                  axis=0),
+        'k',
         label=f'Median Drawn NFW, {min_richness} < $\lambda$ < {max_richness}')
+
+    yerr = [(np.median(le, axis=0)), (np.median(ue, axis=0))]
+    plt.errorbar(
+        rbins,
+        np.median(nfw_profiles[:, num_radial_bins:2 * num_radial_bins],
+                  axis=0),
+        yerr=yerr,
+        fmt='.k',
+        capsize=3.,
+    )
 
     if mcmc_chains:
         mcmc_jtf_nfw = inferred_nfw_from_chains(mcmc_chains[0])

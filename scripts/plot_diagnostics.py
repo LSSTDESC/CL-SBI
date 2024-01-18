@@ -103,14 +103,14 @@ plotutils.plot_nfw_profiles(
     is_noisy=True,
 )
 
-plotutils.plot_nfw_profiles(
-    noiseless_drawn_nfw_profiles,
-    obs_path,
-    obs_config['num_radial_bins'],
-    obs_config["min_richness"],
-    obs_config["max_richness"],
-    is_noisy=False,
-)
+# plotutils.plot_nfw_profiles(
+#     noiseless_drawn_nfw_profiles,
+#     obs_path,
+#     obs_config['num_radial_bins'],
+#     obs_config["min_richness"],
+#     obs_config["max_richness"],
+#     is_noisy=False,
+# )
 
 # Plotting drawn AND inferred profiles in plots directory
 plotutils.plot_nfw_profiles(
@@ -124,13 +124,13 @@ plotutils.plot_nfw_profiles(
     sbi_chains=sbi_chains,
 )
 
-plotutils.plot_nfw_profiles(
-    noiseless_drawn_nfw_profiles,
-    out_path,
-    obs_config['num_radial_bins'],
-    obs_config["min_richness"],
-    obs_config["max_richness"],
-    is_noisy=False,
-    mcmc_chains=mcmc_chains,
-    sbi_chains=sbi_chains,
-)
+# plotutils.plot_nfw_profiles(
+#     noiseless_drawn_nfw_profiles,
+#     out_path,
+#     obs_config['num_radial_bins'],
+#     obs_config["min_richness"],
+#     obs_config["max_richness"],
+#     is_noisy=False,
+#     mcmc_chains=mcmc_chains,
+#     sbi_chains=sbi_chains,
+# )
