@@ -8,9 +8,10 @@ np.random.seed(2807)
 def default_config():
     return {
         'nwalkers': 100,
-        'npar': 2,
-        'starts': np.array([10, 10]),
-        'nsteps_burn': 500,
+        # TODO - don't harcode these two
+        'npar': 3,
+        'starts': np.array([15, 10, 0]),
+        'nsteps_burn': 300,
         'nsteps_per_chain': 2000,
     }
 
@@ -26,8 +27,8 @@ def run_mcmc(truth_val, priors):
 
     # Add some noise to starting positions for walkers
     # TODO: randomly sample within the priors
-    starts = config['starts'] + 5 * np.random.randn(config['nwalkers'],
-                                                    config['npar'])
+    starts = config['starts'] + 5 * np.random.uniform(size=(config['nwalkers'],
+                                                            config['npar']))
 
     # burn-in
     print('## burning in ... ')
@@ -64,6 +65,7 @@ def join_then_fit(profiles, priors):
     For a given set of profiles, we first find the average profile (join) to reduce noise and then 
     run MCMC on that (fit).
     '''
-    mean_profile = np.mean(profiles, keepdims=True, axis=0)
-    sampler = run_mcmc(mean_profile, priors)
+
+    avg_profile = np.median(profiles, keepdims=True, axis=0)
+    sampler = run_mcmc(avg_profile, priors)
     return sampler.flatchain, sampler

@@ -6,17 +6,22 @@ run_config() {
 	OBS_ID=$3
 	NUM_SIMS=$4
 	NUM_OBS=$5
-	python3 gen_simulations.py --sim_id $SIM_ID --num_sims $NUM_SIMS
-	python3 gen_observations.py --obs_id $OBS_ID --num_obs $NUM_OBS
-	python3 gen_posterior.py --sim_id $SIM_ID --infer_id $INFER_ID --num_sims $NUM_SIMS
-	python3 run_inference.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS
-	python3 plot_chains.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS
-	python3 plot_diagnostics.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS
+
+	echo -e "Running experiment:\t$SIM_ID\t\t$INFER_ID\t\t$OBS_ID\t\t$NUM_SIMS\t\t$NUM_OBS"
+
+	python3 gen_simulations.py --sim_id $SIM_ID --num_sims $NUM_SIMS #--regenerate
+	python3 gen_observations.py --obs_id $OBS_ID --num_obs $NUM_OBS #--regenerate
+	python3 gen_posterior.py --sim_id $SIM_ID --infer_id $INFER_ID --num_sims $NUM_SIMS #--regenerate
+	python3 run_inference.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
+	python3 plot_chains.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
+	python3 plot_diagnostics.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
+
+	echo -e "Completed experiment: $SIM_ID\t\t$INFER_ID\t\t$OBS_ID\t\t$NUM_SIMS\t\t$NUM_OBS\n\n\n"
 
 }
 
-# # Add lines below for any configuration to run
-# #  run_config	"{SIM_ID}"	"{INFER_ID}"	"{OBS_ID}"	{NUM_SIMS}	{NUM_OBS}
+# Add lines below for any configuration to run
+#  run_config	"{SIM_ID}"	"{INFER_ID}"	"{OBS_ID}"	{NUM_SIMS}	{NUM_OBS}
 
 
 # # CONFIG 1: Ideal
@@ -54,7 +59,6 @@ run_config() {
 # 	# Observations: different m-c model, no noise/scatter
 # 	# Inference: wide priors
 # run_config	"sim_1"	"infer_1"	"obs_6"	10000	10
-
 
 # # [DOESN'T CONVERGE] CONFIG 7: Config 5 + 0.1 NFW noise (obs)
 # 	# Simulations: minimal scatter
@@ -109,3 +113,30 @@ run_config() {
 # 	# Observations: different m-c model, no noise/scatter
 # 	# Inference: wide priors
 # run_config	"sim_2"	"infer_1"	"obs_6"	10000	5
+
+# # [DOESN'T CONVERGE] CONFIG 16: Config 2 + 0.3 NFW noise (obs)
+# 	# Simulations: minimal scatter, minimal profile noise
+# 	# Observations: no scatter, minimal profile noise
+# 	# Inference: wide priors
+# # run_config	"sim_2"	"infer_1"	"obs_8"	10000	10
+
+# # CONFIG 17: Config 16 + 0.3 NFW noise (sim)
+# 	# Simulations: minimal scatter, minimal profile noise
+# 	# Observations: no scatter, minimal profile noise
+# 	# Inference: wide priors
+# run_config	"sim_3"	"infer_1"	"obs_8"	10000	10
+
+# # CONFIG 18: Config 16 + 0.3 NFW noise (sim)
+# 	# Simulations: minimal scatter, minimal profile noise
+# 	# Observations: no scatter, minimal profile noise
+# 	# Inference: wide priors
+# run_config	"sim_3"	"infer_1"	"obs_9"	10000	10
+
+
+# run_config	"sim_4"	"infer_1"	"obs_11"	10000	10
+# run_config	"sim_4"	"infer_1"	"obs_12"	10000	10
+# run_config	"sim_3"	"infer_1"	"obs_1"		10000	10
+
+# run_config	"sim_1"	"infer_2"	"obs_1"		10000	10
+run_config	"sim_3"	"infer_2"	"obs_8"		10000	10
+run_config	"sim_3"	"infer_2"	"obs_10"	10000	10

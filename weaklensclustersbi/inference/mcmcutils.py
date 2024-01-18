@@ -1,9 +1,10 @@
 import emcee
 import numpy as np
+from context import wlprofile
 
 
 def logprior(params, priors):
-    log10mass, concentration = params
+    log10mass, concentration, yerr = params
     if not priors['min_log10mass'] < log10mass < priors['max_log10mass']:
         return -np.inf
     if not priors['min_concentration'] < concentration < priors[
@@ -14,13 +15,13 @@ def logprior(params, priors):
 
 
 def loglike(params, model):
-    log10mass, concentration = params
+    log10mass, concentration, yerr = params
 
-    from ..simulations.wlprofile import simulate_nfw
-    estimate = simulate_nfw(log10mass=log10mass, concentration=concentration)
-    # TODO: sanity check my error calculation
-    error = np.std(log10mass)**2 + np.std(concentration)**2
-    return -0.5 * np.sum((estimate - model)**2 / np.exp(2 * error) + 2 * error)
+    # TODO: add redshift to below function call?
+    estimate = wlprofile.simulate_nfw(log10mass, concentration)
+    estimate = np.concatenate([estimate, estimate, estimate])
+    return -0.5 * np.sum((estimate - model)**2 /
+                         (yerr**2) + np.log(2 * np.pi * yerr**2))
 
 
 def logprob(params, priors, model):

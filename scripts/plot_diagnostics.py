@@ -50,6 +50,11 @@ with open(os.path.join(infer_path, 'mcmc_ftj_samplers.pickle'),
 with open(os.path.join(infer_path, 'sbi_ftj_chains.pickle'), 'rb') as handle:
     sbi_ftj_chains = pickle.load(handle)
 
+with open(os.path.join(infer_path, 'mcmc_chains.pickle'), 'rb') as handle:
+    mcmc_chains = pickle.load(handle)
+with open(os.path.join(infer_path, 'sbi_chains.pickle'), 'rb') as handle:
+    sbi_chains = pickle.load(handle)
+
 true_param_mean = np.load(os.path.join(infer_path, 'true_param_mean.npy'))
 
 # Plot the walkers for jtf sampler
@@ -81,14 +86,51 @@ drawn_nfw_profiles_filename = os.path.join(obs_path, 'drawn_nfw_profiles.npy')
 drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
 drawn_nfw_profiles = np.load(drawn_nfw_profiles_filename)
 
+noiseless_drawn_nfw_profiles_filename = os.path.join(
+    obs_path, 'noiseless_drawn_nfw_profiles.npy')
+noiseless_drawn_nfw_profiles = np.load(noiseless_drawn_nfw_profiles_filename)
+
 # Plotting drawn m-c pairs
 plotutils.plot_mc_pairs(drawn_mc_pairs, obs_path)
 
-# Plotting drawn NFW profiles
+# Plotting drawn NFW profiles in observations directory
 plotutils.plot_nfw_profiles(
     drawn_nfw_profiles,
     obs_path,
     obs_config['num_radial_bins'],
     obs_config["min_richness"],
     obs_config["max_richness"],
+    is_noisy=True,
 )
+
+# plotutils.plot_nfw_profiles(
+#     noiseless_drawn_nfw_profiles,
+#     obs_path,
+#     obs_config['num_radial_bins'],
+#     obs_config["min_richness"],
+#     obs_config["max_richness"],
+#     is_noisy=False,
+# )
+
+# Plotting drawn AND inferred profiles in plots directory
+plotutils.plot_nfw_profiles(
+    drawn_nfw_profiles,
+    out_path,
+    obs_config['num_radial_bins'],
+    obs_config["min_richness"],
+    obs_config["max_richness"],
+    is_noisy=True,
+    mcmc_chains=mcmc_chains,
+    sbi_chains=sbi_chains,
+)
+
+# plotutils.plot_nfw_profiles(
+#     noiseless_drawn_nfw_profiles,
+#     out_path,
+#     obs_config['num_radial_bins'],
+#     obs_config["min_richness"],
+#     obs_config["max_richness"],
+#     is_noisy=False,
+#     mcmc_chains=mcmc_chains,
+#     sbi_chains=sbi_chains,
+# )
