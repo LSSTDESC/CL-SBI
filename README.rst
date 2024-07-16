@@ -1,7 +1,7 @@
 weaklensingclustersbi
 ========================
 
-This repository contains tools for experiments for Weak Lensing Galaxy Clusters using Simulation Based Inference.
+This repository contains tools for experiments for mass estimation of Weak Lensing Galaxy Clusters using Simulation Based Inference and comparison with MCMC.
 
 ---------------
 
