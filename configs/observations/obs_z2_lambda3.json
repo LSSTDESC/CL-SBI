@@ -1,0 +1,12 @@
+{
+	"rm_relation": "mcclintock18",
+	"mc_relation": "child18",
+	"min_richness": 14,
+	"max_richness": 20,
+	"rm_scatter": 0.1,
+	"mc_scatter": 0.1,
+	"profile_noise_dex": 0.3,
+	"num_radial_bins": 30,
+	"min_z": 0.35,
+	"max_z": 0.5
+}
