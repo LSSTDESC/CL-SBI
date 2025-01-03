@@ -83,42 +83,59 @@ with open(obs_config_filename, 'r') as f:
 
 drawn_mc_pairs_filename = os.path.join(obs_path, 'drawn_mc_pairs.npy')
 drawn_nfw_profiles_filename = os.path.join(obs_path, 'drawn_nfw_profiles.npy')
+log_sigmas_filename = os.path.join(obs_path, 'log_sigmas.npy')
 drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
 drawn_nfw_profiles = np.load(drawn_nfw_profiles_filename)
+log_sigmas = np.load(log_sigmas_filename)
 
 noiseless_drawn_nfw_profiles_filename = os.path.join(
     obs_path, 'noiseless_drawn_nfw_profiles.npy')
 noiseless_drawn_nfw_profiles = np.load(noiseless_drawn_nfw_profiles_filename)
 
+# Load posterior
+posterior_rel_path = f'../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}'
+posterior_path = os.path.join(script_dir, posterior_rel_path)
+posterior_filename = os.path.join(posterior_path, 'posterior.pickle')
+with open(posterior_filename, 'rb') as handle:
+    posterior = pickle.load(handle)
+
 # Plotting drawn m-c pairs
 plotutils.plot_mc_pairs(drawn_mc_pairs, obs_path)
+
+z = (obs_config["min_z"] + obs_config["max_z"]) / 2
 
 # Plotting drawn NFW profiles in observations directory
 plotutils.plot_nfw_profiles(
     drawn_nfw_profiles,
+    log_sigmas,
     obs_path,
     obs_config['num_radial_bins'],
     obs_config["min_richness"],
     obs_config["max_richness"],
+    z,
     is_noisy=True,
 )
 
-# plotutils.plot_nfw_profiles(
-#     noiseless_drawn_nfw_profiles,
-#     obs_path,
-#     obs_config['num_radial_bins'],
-#     obs_config["min_richness"],
-#     obs_config["max_richness"],
-#     is_noisy=False,
-# )
+plotutils.plot_nfw_profiles(
+    noiseless_drawn_nfw_profiles,
+    None,
+    obs_path,
+    obs_config['num_radial_bins'],
+    obs_config["min_richness"],
+    obs_config["max_richness"],
+    z,
+    is_noisy=False,
+)
 
 # Plotting drawn AND inferred profiles in plots directory
 plotutils.plot_nfw_profiles(
     drawn_nfw_profiles,
+    log_sigmas,
     out_path,
     obs_config['num_radial_bins'],
     obs_config["min_richness"],
     obs_config["max_richness"],
+    z,
     is_noisy=True,
     mcmc_chains=mcmc_chains,
     sbi_chains=sbi_chains,
@@ -133,4 +150,14 @@ plotutils.plot_nfw_profiles(
 #     is_noisy=False,
 #     mcmc_chains=mcmc_chains,
 #     sbi_chains=sbi_chains,
+# )
+
+# plotutils.plot_ppc(
+#     drawn_nfw_profiles,
+#     np.mean(drawn_mc_pairs, axis=0),
+#     posterior,
+#     out_path,
+#     # TODO: this should be from the infer config i think?
+#     obs_config['num_radial_bins'],
+#     z,
 # )

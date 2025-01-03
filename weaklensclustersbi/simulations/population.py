@@ -17,7 +17,8 @@ def random_mass_conc(
     num_sims,
     mc_scatter=0,
     mc_relation='murata17',
-    z=0,
+    min_z=0,
+    max_z=0,
 ):
     '''
     In the provided log10mass range, randomly sample num_sims log10masses and find their
@@ -37,18 +38,20 @@ def random_mass_conc(
     log10mass_sample = np.random.uniform(min_log10mass,
                                          max_log10mass,
                                          size=num_sims)
-    non_noisy_concentration_sample = get_concentration(
-        log10mass_sample,
-        model=mc_relation,
-        z=z,
-    )
+    z_sample = np.random.uniform(min_z, max_z, size=num_sims)
+
+    non_noisy_concentration_sample = np.array([
+        get_concentration(log10mass, model=mc_relation, z=z)
+        for log10mass, z in zip(log10mass_sample, z_sample)
+    ])
+
     concentration_sample = np.random.normal(non_noisy_concentration_sample,
                                             mc_scatter, num_sims)
     return list(zip(log10mass_sample, concentration_sample))
 
 
 def generate_concentration_for_sample(log10masses,
-                                      z=0.0,
+                                      zs,
                                       mc_relation='child18',
                                       mc_scatter=0):
     '''
@@ -68,9 +71,13 @@ def generate_concentration_for_sample(log10masses,
 
     from .populationutils import get_concentration
 
-    non_noisy_concentrations = get_concentration(log10masses,
-                                                 z=z,
-                                                 model=mc_relation)
+    # non_noisy_concentrations = get_concentration(log10masses,
+    #                                              z=z,
+    #                                              model=mc_relation)
+    non_noisy_concentrations = np.array([
+        get_concentration(log10mass, model=mc_relation, z=z)
+        for log10mass, z in zip(log10masses, zs)
+    ])
     # Note: May want to later generalize the distribution of concentration about the mean relation that is not random normal
     concentrations = np.random.normal(non_noisy_concentrations, mc_scatter,
                                       np.shape(log10masses))
@@ -108,13 +115,12 @@ def generate_richness_for_sample(log10masses,
     return richnesses
 
 
-def draw_masses_in_richness_bin(
-    lambda_min,
-    lambda_max,
-    rm_relation='murata17',
-    num_obs=10,
-    rm_scatter=0,
-):
+def draw_masses_in_richness_bin(lambda_min,
+                                lambda_max,
+                                rm_relation='murata17',
+                                num_obs=10,
+                                rm_scatter=0,
+                                return_pairs=False):
     '''
     From a given richness bin (defined by the minimum and maximum lambda values), randomly draw a given number of masses and then
     apply some scatter to the rm relation.
@@ -139,7 +145,10 @@ def draw_masses_in_richness_bin(
     ])
     log10masses = np.random.normal(non_noisy_log10masses, rm_scatter,
                                    np.shape(lambdas))
-    return log10masses
+    if not return_pairs:
+        return log10masses
+    else:
+        return list(zip(lambdas, log10masses))
 
 
 def gen_mc_pairs_in_richness_bin(
@@ -150,7 +159,8 @@ def gen_mc_pairs_in_richness_bin(
     num_obs=10,
     mc_scatter=0,
     rm_scatter=0,
-    z=0,
+    min_z=0,
+    max_z=0,
 ):
     '''
     For a given richness bin, generate {num_obs} mass-concentration samples with some user-specified noise
@@ -174,11 +184,12 @@ def gen_mc_pairs_in_richness_bin(
         num_obs=num_obs,
         rm_scatter=rm_scatter,
     )
+    z_sample = np.random.uniform(min_z, max_z, size=num_obs)
     concentration_sample = generate_concentration_for_sample(
         log10mass_sample,
         mc_scatter=mc_scatter,
         mc_relation=mc_relation,
-        z=z,
+        zs=z_sample,
     )
     mc_pairs = list(zip(log10mass_sample, concentration_sample))
     return mc_pairs

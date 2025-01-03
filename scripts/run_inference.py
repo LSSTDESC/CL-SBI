@@ -57,8 +57,10 @@ obs_rel_path = f'../outputs/observations/{args.obs_id}.{args.num_obs}'
 obs_path = os.path.join(script_dir, obs_rel_path)
 drawn_mc_pairs_filename = os.path.join(obs_path, 'drawn_mc_pairs.npy')
 drawn_nfw_profiles_filename = os.path.join(obs_path, 'drawn_nfw_profiles.npy')
+sigmas_filename = os.path.join(obs_path, 'sigmas.npy')
 drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
 drawn_nfw_profiles = np.load(drawn_nfw_profiles_filename)
+sigmas = np.load(sigmas_filename)
 
 # Run SBI inference
 sbi_chains, sbi_ftj_chains = sbi_.apply_observations(posterior, drawn_mc_pairs,
@@ -74,9 +76,10 @@ with open(os.path.join(out_path, 'sbi_ftj_chains.pickle'), 'wb') as handle:
 
 # Run MCMC inference
 mcmc_jtf_chain, mcmc_jtf_sampler = mcmc.join_then_fit(drawn_nfw_profiles,
+                                                      sigmas,
                                                       infer_config['priors'])
 mcmc_ftj_chains, mcmc_ftj_samplers = mcmc.fit_then_join(
-    drawn_nfw_profiles, infer_config['priors'])
+    drawn_nfw_profiles, sigmas, infer_config['priors'])
 
 # Output MCMC chains (pickling because diff sizes)
 with open(os.path.join(out_path, 'mcmc_chains.pickle'), 'wb') as handle:
