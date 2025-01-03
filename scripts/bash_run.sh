@@ -9,12 +9,12 @@ run_config() {
 
 	echo -e "Running experiment:\t$SIM_ID\t\t$INFER_ID\t\t$OBS_ID\t\t$NUM_SIMS\t\t$NUM_OBS"
 
-	python3 gen_simulations.py --sim_id $SIM_ID --num_sims $NUM_SIMS #--regenerate
-	python3 gen_observations.py --obs_id $OBS_ID --num_obs $NUM_OBS #--regenerate
-	python3 gen_posterior.py --sim_id $SIM_ID --infer_id $INFER_ID --num_sims $NUM_SIMS #--regenerate
-	python3 run_inference.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
-	python3 plot_chains.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
-	python3 plot_diagnostics.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
+	# python3 gen_simulations.py --sim_id $SIM_ID --num_sims $NUM_SIMS #--regenerate
+	# python3 gen_observations.py --obs_id $OBS_ID --num_obs $NUM_OBS #--regenerate
+	# python3 gen_posterior.py --sim_id $SIM_ID --infer_id $INFER_ID --num_sims $NUM_SIMS #--regenerate
+	# python3 run_inference.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
+	# python3 plot_chains.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
+	python3 plot_diagnostics.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --regenerate
 
 	echo -e "Completed experiment: $SIM_ID\t\t$INFER_ID\t\t$OBS_ID\t\t$NUM_SIMS\t\t$NUM_OBS\n\n\n"
 
@@ -23,120 +23,50 @@ run_config() {
 # Add lines below for any configuration to run
 #  run_config	"{SIM_ID}"	"{INFER_ID}"	"{OBS_ID}"	{NUM_SIMS}	{NUM_OBS}
 
+# # McClintock richness-redshift bins, all with near-ideal conditions
+# run_config	"sim_z1"			"infer_z1"				"obs_z1_lambda1"	10000	10636
+# run_config	"sim_z1"			"infer_z1"				"obs_z1_lambda2"	10000	2089
+# run_config	"sim_z1"			"infer_z1"				"obs_z1_lambda3"	10000	1375
+# run_config	"sim_z1"			"infer_z1"				"obs_z1_lambda4"	10000	10
+# run_config	"sim_z1"			"infer_z1"				"obs_z1_lambda5"	10000	10
+# run_config	"sim_z1"			"infer_z1"				"obs_z1_lambda6"	10000	10
+# run_config	"sim_z1"			"infer_z1"				"obs_z1_lambda7"	10000	10
 
-# # CONFIG 1: Ideal
-# 	# Simulations: minimal scatter
-# 	# Observations: no scatter, no profile noise
-# 	# Inference: wide priors
-# run_config	"sim_1"	"infer_1"	"obs_1"	10000	10
+# run_config	"sim_z2"			"infer_z2"				"obs_z2_lambda1"	10000	18331
+# run_config	"sim_z2"			"infer_z2"				"obs_z2_lambda2"	10000	4135
+# run_config	"sim_z2"			"infer_z2"				"obs_z2_lambda3"	10000	2612
+# run_config	"sim_z2"			"infer_z2"				"obs_z2_lambda4"	10000	10
+# run_config	"sim_z2"			"infer_z2"				"obs_z2_lambda5"	10000	10
+# run_config	"sim_z2"			"infer_z2"				"obs_z2_lambda6"	10000	10
+# run_config	"sim_z2"			"infer_z2"				"obs_z2_lambda7"	10000	10
 
-# # CONFIG 2: Config 1 + 0.01 NFW noise (obs)
-# 	# Simulations: minimal scatter
-# 	# Observations: no scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_1"	"infer_1"	"obs_2"	10000	10
+# run_config	"sim_z3"			"infer_z3"				"obs_z3_lambda1"	10000	22991
+# run_config	"sim_z3"			"infer_z3"				"obs_z3_lambda2"	10000	4974
+# run_config	"sim_z3"			"infer_z3"				"obs_z3_lambda3"	10000	2927
+# run_config	"sim_z3"			"infer_z3"				"obs_z3_lambda4"	10000	10
+# run_config	"sim_z3"			"infer_z3"				"obs_z3_lambda5"	10000	10
+# run_config	"sim_z3"			"infer_z3"				"obs_z3_lambda6"	10000	10
+# run_config	"sim_z3"			"infer_z3"				"obs_z3_lambda7"	10000	10
 
-# # CONFIG 3: Config 2 + 0.1 r-m scatter (obs)
-# 	# Simulations: minimal scatter
-# 	# Observations: no m-c scatter, minimal r-m scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_1"	"infer_1"	"obs_3"	10000	10
-
-# # CONFIG 4: Config 3 + 0.1 m-c scatter (obs)
-# 	# Simulations: minimal scatter
-# 	# Observations: minimal m-c scatter, minimal r-m scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_1"	"infer_1"	"obs_4"	10000	10
-
-# # [VERY SLOW] CONFIG 5: Config 4 + 100 observations
-# 	# Simulations: minimal scatter
-# 	# Observations: minimal m-c scatter, minimal r-m scatter, minimal profile noise
-# 	# Inference: wide priors
-# # run_config	"sim_1"	"infer_1"	"obs_5"	10000	100
-
-# # CONFIG 6: Config 1 + Wrong m-c model (obs)
-# 	# Simulations: minimal scatter
-# 	# Observations: different m-c model, no noise/scatter
-# 	# Inference: wide priors
-# run_config	"sim_1"	"infer_1"	"obs_6"	10000	10
-
-# # [DOESN'T CONVERGE] CONFIG 7: Config 5 + 0.1 NFW noise (obs)
-# 	# Simulations: minimal scatter
-# 	# Observations: no scatter, minimal profile noise
-# 	# Inference: wide priors
-# # run_config	"sim_1"	"infer_1"	"obs_7"	10000	10
-
-# # CONFIG 8: Config 7 + 0.1 NFW noise (sim)
-# 	# Simulations: minimal scatter, minimal profile noise
-# 	# Observations: no scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_2"	"infer_1"	"obs_7"	10000	10
-
-# # CONFIG 9: Config 1 + 0.1 NFW noise (sim)
-# 	# Simulations: minimal scatter
-# 	# Observations: no scatter, no profile noise
-# 	# Inference: wide priors
-# run_config	"sim_2"	"infer_1"	"obs_1"	10000	10
-
-# # CONFIG 10: Config 2 + 0.01 NFW noise (sim)
-# 	# Simulations: minimal scatter
-# 	# Observations: no scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_2"	"infer_1"	"obs_2"	10000	10
-
-# # CONFIG 11: Config 3 + 0.01 NFW noise (sim)
-# 	# Simulations: minimal scatter
-# 	# Observations: no m-c scatter, minimal r-m scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_2"	"infer_1"	"obs_3"	10000	10
-
-# # CONFIG 12: Config 4 + 0.01 NFW noise (sim)
-# 	# Simulations: minimal scatter
-# 	# Observations: minimal m-c scatter, minimal r-m scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_2"	"infer_1"	"obs_4"	10000	10
-
-# # [VERY SLOW] CONFIG 13: Config 5 + 0.01 NFW noise (sim)
-# 	# Simulations: minimal scatter
-# 	# Observations: minimal m-c scatter, minimal r-m scatter, minimal profile noise
-# 	# Inference: wide priors
-# # run_config	"sim_2"	"infer_1"	"obs_5"	10000	100
-
-# # CONFIG 14: Config 6 + 0.01 NFW noise (sim)
-# 	# Simulations: minimal scatter
-# 	# Observations: different m-c model, no noise/scatter
-# 	# Inference: wide priors
-# run_config	"sim_2"	"infer_1"	"obs_6"	10000	10
-
-# # CONFIG 15: Config 7 + few observations
-# 	# Simulations: minimal scatter
-# 	# Observations: different m-c model, no noise/scatter
-# 	# Inference: wide priors
-# run_config	"sim_2"	"infer_1"	"obs_6"	10000	5
-
-# # [DOESN'T CONVERGE] CONFIG 16: Config 2 + 0.3 NFW noise (obs)
-# 	# Simulations: minimal scatter, minimal profile noise
-# 	# Observations: no scatter, minimal profile noise
-# 	# Inference: wide priors
-# # run_config	"sim_2"	"infer_1"	"obs_8"	10000	10
-
-# # CONFIG 17: Config 16 + 0.3 NFW noise (sim)
-# 	# Simulations: minimal scatter, minimal profile noise
-# 	# Observations: no scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_3"	"infer_1"	"obs_8"	10000	10
-
-# # CONFIG 18: Config 16 + 0.3 NFW noise (sim)
-# 	# Simulations: minimal scatter, minimal profile noise
-# 	# Observations: no scatter, minimal profile noise
-# 	# Inference: wide priors
-# run_config	"sim_3"	"infer_1"	"obs_9"	10000	10
+# # Near ideal conditions
+# run_config	"sim_low"			"infer_low"				"obs_low"	10000	10
 
 
-# run_config	"sim_4"	"infer_1"	"obs_11"	10000	10
-# run_config	"sim_4"	"infer_1"	"obs_12"	10000	10
-# run_config	"sim_3"	"infer_1"	"obs_1"		10000	10
+# # Add more noise/error/scatter to sims and obs. For more scatter, also add to MCMC priors
+run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5"					10000	376
+run_config	"sim_z1_high_noise"			"infer_z1"					"obs_z1_lambda5_high_noise"			10000	376
+run_config	"sim_z1_high_mc_scatter"	"infer_z1_high_mc_scatter"	"obs_z1_lambda5_high_mc_scatter"	10000	376
+run_config	"sim_z1_mid_mc_scatter"		"infer_z1_mid_mc_scatter"	"obs_z1_lambda5_mid_mc_scatter"		10000	376
+run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5_high_rm_scatter"	10000	376
+run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5_mid_rm_scatter"		10000	376
+# run_config	"sim_z1_high_error"			"infer_z1"					"obs_z1_lambda5_high_error"			10000	10
+# run_config	"sim_z1_high_noise_error"	"infer_z1"					"obs_z1_lambda5_high_noise_error"	10000	10
 
-# run_config	"sim_1"	"infer_2"	"obs_1"		10000	10
-run_config	"sim_3"	"infer_2"	"obs_8"		10000	10
-run_config	"sim_3"	"infer_2"	"obs_10"	10000	10
+
+# # Wrong m-c relation - out of distribution
+run_config	"sim_z1"	"infer_z1"		"obs_z1_lambda5_prada"		10000	376
+run_config	"sim_z1"	"infer_z1"		"obs_z1_lambda5_ludlow"		10000	376
+
+# # Simulations more idealized than obs
+# run_config	"sim_low"	"infer_low"		"obs_high_noise"	10000	10
+# run_config	"sim_low"	"infer_low"		"obs_high_error"	10000	10

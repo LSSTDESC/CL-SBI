@@ -46,10 +46,13 @@ if (os.path.isfile(os.path.join(out_path, 'mcmc_gtc.png'))):
         quit()
 
 # TODO: add a wrapper function so we have a single interface with 'pygtc' or 'cc' as a param
-plotutils.plot_pygtc(mcmc_chains, out_path, 'mcmc', true_param_mean)
+# plotutils.plot_pygtc(mcmc_chains, out_path, 'mcmc', true_param_mean)
 plotutils.plot_chainconsumer(mcmc_chains, out_path, 'mcmc',
                              list(true_param_mean))
 
 plotutils.plot_pygtc(sbi_chains, out_path, 'sbi', true_param_mean)
 plotutils.plot_chainconsumer(sbi_chains, out_path, 'sbi',
                              list(true_param_mean))
+
+plotutils.plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path,
+                                      list(true_param_mean))

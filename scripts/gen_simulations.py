@@ -59,8 +59,13 @@ sample_mc_pairs = population.random_mass_conc(
     int(args.num_sims),
     mc_scatter=sim_config['mc_scatter'],
     mc_relation=sim_config['mc_relation'],
-    z=sim_config['z'],
+    min_z=sim_config['min_z'],
+    max_z=sim_config['max_z'],
 )
+
+z_sample = np.random.uniform(sim_config['min_z'],
+                             sim_config['max_z'],
+                             size=int(args.num_sims))
 
 # Apply filtering criteria to subselect mc_pairs
 filtered_mc_pairs = population.filter_mc_pairs(sample_mc_pairs,
@@ -69,15 +74,16 @@ filtered_mc_pairs = population.filter_mc_pairs(sample_mc_pairs,
 # Simulate NFW profiles for each of the mc_pairs
 rbins = 10**np.arange(0, sim_config['num_radial_bins'] / 10, 0.1)
 non_noisy_simulated_nfw_profiles = np.array([
-    wlprofile.simulate_nfw(log10mass, concentration, rbins, sim_config['z'])
-    for log10mass, concentration in filtered_mc_pairs
+    wlprofile.simulate_nfw(log10mass, concentration, rbins, z)
+    for log10mass, concentration, z in np.column_stack((filtered_mc_pairs,
+                                                        z_sample))
 ])
 
 simulated_nfw_profiles = population.calculate_noise(
     non_noisy_simulated_nfw_profiles, sim_config['profile_noise_dex'])
 
-simulated_nfw_profiles = population.gen_error_bars(simulated_nfw_profiles,
-                                                   sim_config['error_dex'])
+# simulated_nfw_profiles = population.gen_error_bars(simulated_nfw_profiles,
+#                                                    sim_config['error_dex'])
 
 # Output to intermediate files in sim_dir to be read by inference example script
 if not os.path.exists(out_path):

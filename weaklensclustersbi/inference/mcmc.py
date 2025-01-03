@@ -9,10 +9,10 @@ def default_config():
     return {
         'nwalkers': 100,
         # TODO - don't harcode these two
-        'npar': 3,
-        'starts': np.array([15, 10, 0]),
-        'nsteps_burn': 300,
-        'nsteps_per_chain': 2000,
+        'npar': 2,
+        'starts': np.array([15, 5]),
+        'nsteps_burn': 100,
+        'nsteps_per_chain': 200,
     }
 
 
@@ -46,7 +46,7 @@ def run_mcmc(truth_val, priors):
     return sampler
 
 
-def fit_then_join(profiles, priors):
+def fit_then_join(profiles, sigmas, priors):
     '''
     For a given set of profiles, we run MCMC on each of them (fit). To reduce noise, at the end, we stack
     all of the chains into a single one (join).
@@ -54,18 +54,20 @@ def fit_then_join(profiles, priors):
     chains = []
     samplers = []
     for profile in profiles:
+        profile = np.concatenate((profile, sigmas))
         sampler = run_mcmc(profile, priors)
         samplers.append(sampler)
         chains.append(sampler.flatchain)
     return np.vstack(chains), samplers
 
 
-def join_then_fit(profiles, priors):
+def join_then_fit(profiles, sigmas, priors):
     '''
     For a given set of profiles, we first find the average profile (join) to reduce noise and then 
     run MCMC on that (fit).
     '''
 
-    avg_profile = np.median(profiles, keepdims=True, axis=0)
+    avg_profile = np.median(profiles, axis=0)
+    avg_profile = np.concatenate((avg_profile, sigmas))
     sampler = run_mcmc(avg_profile, priors)
     return sampler.flatchain, sampler

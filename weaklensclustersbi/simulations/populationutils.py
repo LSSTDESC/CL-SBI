@@ -31,6 +31,9 @@ def get_richness(log10mass, z=0.0, model='murata17', strict=False):
             )
 
         return lambda_
+    if model == 'mcclintock18':
+        m0, G, F = _get_mcclintock18_parameters
+        return ((10**log10mass / m0) * (((1 + z) / 1.35)**-G))**(1 / F) * 40
     return 0
 
 
@@ -49,6 +52,9 @@ def get_log10mass_from_richness(lambda_,
 
         a, b, mass_pivot = _get_murata2017_parameters()
         return np.log10(np.exp((np.log(lambda_) - a) / b) * mass_pivot)
+    if model == 'mcclintock18':
+        m0, G, F = _get_mcclintock18_parameters()
+        return np.log10(m0 * (lambda_ / 40)**F + ((1 + z) / 1.35)**G)
     return 0
 
 
@@ -60,3 +66,13 @@ def _get_murata2017_parameters():
     b = 0.993
     mass_pivot = 3. * 10**14
     return a, b, mass_pivot
+
+
+def _get_mcclintock18_parameters():
+    '''
+    Fetching parameters that are used in the murata17 richness-mass relation
+    '''
+    m0 = 3.081e14
+    G = -0.3
+    F = 1.356
+    return m0, G, F

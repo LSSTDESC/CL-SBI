@@ -9,6 +9,6 @@ sys.path.insert(0,
                 os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import weaklensclustersbi
-from weaklensclustersbi.simulations import population, wlprofile
+from weaklensclustersbi.simulations import population, wlprofile, populationutils
 from weaklensclustersbi.inference import mcmc, sbi_
 from plot import plotutils
