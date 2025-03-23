@@ -1,0 +1,12 @@
+{
+	"priors": {
+		"min_log10mass": 10,
+		"max_log10mass": 20,
+		"mc_scatter": 0.1,
+		"mc_relation": "child18",
+		"min_concentration": 0,
+		"max_concentration": 10,
+		"profile_noise_dex": 0.5,
+		"error_dex": 0.1
+	}
+}
