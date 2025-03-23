@@ -67,7 +67,7 @@ def apply_observations(posterior,
                        err_dex=0.0):
     from .sbiutils import create_observation_nfw, create_join_fit_observation_nfw
 
-    # Join (take the mean of) observations and then fit on that
+    # Join (take the median of) observations and then fit on that
     theta_o_jf, x_o_jf = create_join_fit_observation_nfw(
         drawn_mc_pairs, drawn_nfw_profiles)
 

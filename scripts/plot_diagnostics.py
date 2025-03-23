@@ -55,7 +55,7 @@ with open(os.path.join(infer_path, 'mcmc_chains.pickle'), 'rb') as handle:
 with open(os.path.join(infer_path, 'sbi_chains.pickle'), 'rb') as handle:
     sbi_chains = pickle.load(handle)
 
-true_param_mean = np.load(os.path.join(infer_path, 'true_param_mean.npy'))
+true_param_median = np.load(os.path.join(infer_path, 'true_param_median.npy'))
 
 # Plot the walkers for jtf sampler
 plotutils.plot_walkers(mcmc_jtf_sampler, out_path, 'mcmc_jtf_')
@@ -67,9 +67,9 @@ for i in range(len(mcmc_ftj_samplers)):
 
 # Plotting contour plots for each of the observations (that we later join in fit_then_join)
 plotutils.plot_cc_diagnostic(mcmc_ftj_chains, out_path, 'mcmc_ftj',
-                             list(true_param_mean))
+                             list(true_param_median))
 plotutils.plot_cc_diagnostic(sbi_ftj_chains, out_path, 'sbi_ftj',
-                             list(true_param_mean))
+                             list(true_param_median))
 
 # Load observations
 obs_rel_path = f'../outputs/observations/{args.obs_id}.{args.num_obs}'
@@ -154,7 +154,7 @@ plotutils.plot_nfw_profiles(
 
 # plotutils.plot_ppc(
 #     drawn_nfw_profiles,
-#     np.mean(drawn_mc_pairs, axis=0),
+#     np.median(drawn_mc_pairs, axis=0),
 #     posterior,
 #     out_path,
 #     # TODO: this should be from the infer config i think?

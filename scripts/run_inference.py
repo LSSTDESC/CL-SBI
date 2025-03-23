@@ -24,7 +24,7 @@ out_path = os.path.join(script_dir, out_rel_path)
 if not os.path.exists(out_path):
     os.makedirs(out_path)
 # Checking if output already exists from an earlier script run
-if (os.path.isfile(os.path.join(out_path, 'true_param_mean.npy'))):
+if (os.path.isfile(os.path.join(out_path, 'true_param_median.npy'))):
     # Rerunning inference (continuing script)
     if args.regenerate:
         print(
@@ -93,6 +93,6 @@ with open(os.path.join(out_path, 'mcmc_jtf_sampler.pickle'), 'wb') as handle:
 with open(os.path.join(out_path, 'mcmc_ftj_samplers.pickle'), 'wb') as handle:
     pickle.dump(mcmc_ftj_samplers, handle, protocol=4)
 
-# Output mean of drawn m-c pairs as "truth" value for plotting
-true_param_mean = (np.mean(drawn_mc_pairs.T[0]), np.mean(drawn_mc_pairs.T[1]))
-np.save(os.path.join(out_path, 'true_param_mean.npy'), true_param_mean)
+# Output median of drawn m-c pairs as "truth" value for plotting
+true_param_median = (np.median(drawn_mc_pairs.T[0]), np.median(drawn_mc_pairs.T[1]))
+np.save(os.path.join(out_path, 'true_param_median.npy'), true_param_median)

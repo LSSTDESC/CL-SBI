@@ -19,7 +19,7 @@ def timestamp():
     return timestr
 
 
-def plot_pygtc(chains, out_path, infer_type, true_param_mean=()):
+def plot_pygtc(chains, out_path, infer_type, true_param_median=()):
     # posterFont = {'family': 'Arial', 'size': 18}
 
     GTC = pygtc.plotGTC(
@@ -30,7 +30,7 @@ def plot_pygtc(chains, out_path, infer_type, true_param_mean=()):
         # paramRanges=wide_param_ranges,
         sigmaContourLevels=True,
         plotDensity=True,
-        truths=true_param_mean,
+        truths=true_param_median,
         # customLabelFont=posterFont,
         # customTickFont=posterFont,
         # customLegendFont=posterFont,
@@ -42,7 +42,7 @@ def plot_pygtc(chains, out_path, infer_type, true_param_mean=()):
     plt.close(GTC)
 
 
-def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
+def plot_chainconsumer(chains, out_path, infer_type, true_param_median=[]):
     cc = ChainConsumer()
 
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
@@ -60,7 +60,7 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
         sigmas=[1, 2],
         shade_alpha=0.3,
     )
-    fig = cc.plotter.plot(truth=true_param_mean,
+    fig = cc.plotter.plot(truth=true_param_median,
                           parameters=param_labels,
                           extents=list(wide_param_ranges),
                           figsize=(8, 8))
@@ -70,6 +70,9 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
     for ax in ax_list:
         ax.grid(False)
 
+    # Add a large text label in the top-right empty space
+    fig.text(0.85, 0.85, infer_type.upper(), fontsize=24, weight="bold", ha="center", va="center")
+
     plt.savefig(os.path.join(out_path, f'{infer_type}_cc.png'))
     plt.savefig(os.path.join(out_path, f'{infer_type}_cc.pdf'))
     plt.close()
@@ -78,7 +81,7 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_mean=[]):
 def plot_chainconsumer_combined(mcmc_chains,
                                 sbi_chains,
                                 out_path,
-                                true_param_mean=[]):
+                                true_param_median=[]):
     cc = ChainConsumer()
 
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
@@ -108,7 +111,7 @@ def plot_chainconsumer_combined(mcmc_chains,
         shade_alpha=0.3,
     )
     fig = cc.plotter.plot(
-        truth=true_param_mean,
+        truth=true_param_median,
         parameters=param_labels,
         # extents=list(wide_param_ranges),
         figsize=(8, 8))
@@ -145,7 +148,7 @@ def plot_walkers(sampler, out_path, prefix=''):
 
 
 # Overplotting multiple chains (for each observation)
-def plot_cc_diagnostic(chains, out_path, infer_type, true_param_mean=[]):
+def plot_cc_diagnostic(chains, out_path, infer_type, true_param_median=[]):
     cc = ChainConsumer()
     i = 0
     for chain in chains:
@@ -166,7 +169,7 @@ def plot_cc_diagnostic(chains, out_path, infer_type, true_param_mean=[]):
         sigmas=[2, 3],
     )
     fig = cc.plotter.plot(
-        truth=true_param_mean,
+        truth=true_param_median,
         parameters=param_labels,
         # extents=list(wide_param_ranges),
         figsize=(8, 8))
@@ -182,11 +185,11 @@ def plot_cc_diagnostic(chains, out_path, infer_type, true_param_mean=[]):
 def plot_mc_pairs(mc_pairs, out_path):
     plt.scatter(mc_pairs[:, 0], mc_pairs[:, 1], s=50)
     plt.scatter(
-        np.mean(mc_pairs[:, 0]),
-        np.mean(mc_pairs[:, 1]),
+        np.median(mc_pairs[:, 0]),
+        np.median(mc_pairs[:, 1]),
         s=100,
         marker='^',
-        label='mean m-c pair',
+        label='median m-c pair',
     )
     plt.xlabel('log$_{10}$M [M$_\odot$]', fontsize='xx-large')
     plt.ylabel('Concentration', fontsize='xx-large')
@@ -220,7 +223,7 @@ def plot_nfw_profiles(
     # yerr = sigmas
 
     for nfw_profile in nfw_profiles:
-        plt.plot(rbins, nfw_profile, '-', alpha=0.1)
+        plt.plot(rbins, nfw_profile, '-', alpha=0.1, zorder=0)
     plt.plot(
         rbins,
         np.median(nfw_profiles, axis=0),
@@ -241,6 +244,9 @@ def plot_nfw_profiles(
             yerr=yerr,
             fmt='k',
             capsize=3.,
+            linewidth=4,
+            elinewidth=1,
+            zorder=1
         )
 
     if mcmc_chains:
@@ -321,7 +327,7 @@ def inferred_nfw_from_chains(chains, z):
 
 def plot_ppc(
     drawn_nfw_profiles,
-    mean_obs_mc_pair,
+    median_obs_mc_pair,
     posterior,
     out_path,
     num_radial_bins=30,
@@ -350,7 +356,7 @@ def plot_ppc(
         for log10mass, concentration in prior_samples.numpy()
     ])
 
-    # 3 - Compare with the mean observed NFW profile
+    # 3 - Compare with the median observed NFW profile
     plt.loglog()
     plt.xlabel('radius [kpc/h]', fontsize='xx-large')
     plt.ylabel('$\Delta\Sigma$ [$M_\odot h / kpc^2$]', fontsize='xx-large')
@@ -478,7 +484,7 @@ def plot_ppc(
     plt.close()
 
     # 4 - For a given radial bin, compare the delta sigma values from observation vs from the generated values
-    nfw_samples_norm = nfw_samples - np.mean(nfw_samples, axis=0)
+    nfw_samples_norm = nfw_samples - np.median(nfw_samples, axis=0)
     sigmas_diff = []
     upper_sigmas_diff = []
     lower_sigmas_diff = []
@@ -503,13 +509,13 @@ def plot_ppc(
         plt.title(f'Radial Bin: {rbin}')
         plt.savefig(f'{out_path}/PPC/rbin_{rbin}.pdf', bbox_inches='tight')
         plt.close()
-        sigmas_diff.append((median_obs[rbin] - np.mean(nfw_samples[:, rbin])) /
+        sigmas_diff.append((median_obs[rbin] - np.median(nfw_samples[:, rbin])) /
                            np.std(nfw_samples[:, rbin]))
         upper_sigmas_diff.append(
-            (upper_error[rbin] - np.mean(nfw_samples[:, rbin])) /
+            (upper_error[rbin] - np.median(nfw_samples[:, rbin])) /
             np.std(nfw_samples[:, rbin]))
         lower_sigmas_diff.append(
-            (lower_error[rbin] - np.mean(nfw_samples[:, rbin])) /
+            (lower_error[rbin] - np.median(nfw_samples[:, rbin])) /
             np.std(nfw_samples[:, rbin]))
 
     for rbin in range(num_radial_bins):
@@ -527,7 +533,7 @@ def plot_ppc(
     )
     # plt.plot(rbins, sigmas_diff)
     plt.xscale('log')
-    plt.axhline(np.mean(sigmas_diff), color='gray', linestyle='--')
+    plt.axhline(np.median(sigmas_diff), color='gray', linestyle='--')
     plt.xlabel('radius [kpc/h]', fontsize='xx-large')
     plt.ylabel(r'Inference error: $\sigma$s from observation')
     plt.savefig(f'{out_path}/PPC/error_per_radial_bin.pdf',

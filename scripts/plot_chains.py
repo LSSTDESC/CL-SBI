@@ -27,7 +27,7 @@ with open(os.path.join(infer_path, 'mcmc_chains.pickle'), 'rb') as handle:
 with open(os.path.join(infer_path, 'sbi_chains.pickle'), 'rb') as handle:
     sbi_chains = pickle.load(handle)
 
-true_param_mean = np.load(os.path.join(infer_path, 'true_param_mean.npy'))
+true_param_median = np.load(os.path.join(infer_path, 'true_param_median.npy'))
 
 out_rel_path = f'../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}'
 out_path = os.path.join(script_dir, out_rel_path)
@@ -46,13 +46,13 @@ if (os.path.isfile(os.path.join(out_path, 'mcmc_gtc.png'))):
         quit()
 
 # TODO: add a wrapper function so we have a single interface with 'pygtc' or 'cc' as a param
-# plotutils.plot_pygtc(mcmc_chains, out_path, 'mcmc', true_param_mean)
+# plotutils.plot_pygtc(mcmc_chains, out_path, 'mcmc', true_param_median)
 plotutils.plot_chainconsumer(mcmc_chains, out_path, 'mcmc',
-                             list(true_param_mean))
+                             list(true_param_median))
 
-plotutils.plot_pygtc(sbi_chains, out_path, 'sbi', true_param_mean)
+plotutils.plot_pygtc(sbi_chains, out_path, 'sbi', true_param_median)
 plotutils.plot_chainconsumer(sbi_chains, out_path, 'sbi',
-                             list(true_param_mean))
+                             list(true_param_median))
 
 plotutils.plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path,
-                                      list(true_param_mean))
+                                      list(true_param_median))

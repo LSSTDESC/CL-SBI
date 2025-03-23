@@ -63,7 +63,7 @@ def fit_then_join(profiles, sigmas, priors):
 
 def join_then_fit(profiles, sigmas, priors):
     '''
-    For a given set of profiles, we first find the average profile (join) to reduce noise and then 
+    For a given set of profiles, we first find the median profile (join) to reduce noise and then 
     run MCMC on that (fit).
     '''
 
