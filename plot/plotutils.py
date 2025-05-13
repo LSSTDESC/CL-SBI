@@ -42,7 +42,7 @@ def plot_pygtc(chains, out_path, infer_type, true_param_median=()):
     plt.close(GTC)
 
 
-def plot_chainconsumer(chains, out_path, infer_type, true_param_median=[]):
+def plot_chainconsumer(chains, out_path, infer_type, true_param=[]):
     cc = ChainConsumer()
 
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
@@ -60,15 +60,48 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_median=[]):
         sigmas=[1, 2],
         shade_alpha=0.3,
     )
-    fig = cc.plotter.plot(truth=true_param_median,
-                          parameters=param_labels,
-                          extents=list(wide_param_ranges),
-                          figsize=(8, 8))
-    ax_list = fig.axes
-    plt.gcf().subplots_adjust(bottom=0.12)
-    plt.gcf().subplots_adjust(left=0.1)
-    for ax in ax_list:
-        ax.grid(False)
+    
+    # Manually plot the truth values
+    p25 = np.array(true_param[1])  # 25th percentile
+    p50 = np.array(true_param[0])  # median
+    p75 = np.array(true_param[2])  # 75th percentile
+
+    # Set the median as the truth value
+    fig = cc.plotter.plot(
+        truth=p50,
+        parameters=param_labels,
+        extents=list(wide_param_ranges),
+        figsize=(8, 8)
+    )
+
+    # These are your actual data extents
+    mass_range = wide_param_ranges[0]
+    conc_range = wide_param_ranges[1]
+
+    # TODO: there has to be a cleaner solution than this to plotting 25 and 75 percentiles
+    def is_close_range(r1, r2, tol=0.1):
+        return abs(r1[0] - r2[0]) < tol and abs(r1[1] - r2[1]) < tol
+
+    for ax in fig.get_axes():
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+
+        # Top histogram: log10mass only
+        if is_close_range(xlim, mass_range) and ylim[1] < 5:
+            ax.axvline(p25[0], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axvline(p75[0], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+
+        # Right histogram: concentration only
+        elif is_close_range(ylim, conc_range) and xlim[1] < 6:
+            ax.axhline(p25[1], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axhline(p75[1], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+
+        # Bottom-left 2D plot: both mass and concentration
+        elif is_close_range(xlim, mass_range) and is_close_range(ylim, conc_range):
+            ax.axvline(p25[0], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axvline(p75[0], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axhline(p25[1], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axhline(p75[1], color='gray', linestyle='--', linewidth=1, alpha=0.5)
 
     # Add a large text label in the top-right empty space
     fig.text(0.85, 0.85, infer_type.upper(), fontsize=24, weight="bold", ha="center", va="center")
@@ -81,7 +114,7 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param_median=[]):
 def plot_chainconsumer_combined(mcmc_chains,
                                 sbi_chains,
                                 out_path,
-                                true_param_median=[]):
+                                true_param=[]):
     cc = ChainConsumer()
 
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
@@ -110,11 +143,45 @@ def plot_chainconsumer_combined(mcmc_chains,
         sigmas=[2, 3],
         shade_alpha=0.3,
     )
+     # Manually plot the truth values
+    p25 = np.array(true_param[1])  # 25th percentile
+    p50 = np.array(true_param[0])  # median
+    p75 = np.array(true_param[2])  # 75th percentile
+
     fig = cc.plotter.plot(
-        truth=true_param_median,
+        truth=p50,
         parameters=param_labels,
-        # extents=list(wide_param_ranges),
+        extents=list(wide_param_ranges),
         figsize=(8, 8))
+    
+    # These are your actual data extents
+    mass_range = wide_param_ranges[0]
+    conc_range = wide_param_ranges[1]
+
+    # TODO: there has to be a cleaner solution than this to plotting 25 and 75 percentiles
+    def is_close_range(r1, r2, tol=0.1):
+        return abs(r1[0] - r2[0]) < tol and abs(r1[1] - r2[1]) < tol
+
+    for ax in fig.get_axes():
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+
+        # Top histogram: log10mass only
+        if is_close_range(xlim, mass_range) and ylim[1] < 5:
+            ax.axvline(p25[0], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axvline(p75[0], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+
+        # Right histogram: concentration only
+        elif is_close_range(ylim, conc_range) and xlim[1] < 6:
+            ax.axhline(p25[1], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axhline(p75[1], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+
+        # Bottom-left 2D plot: both mass and concentration
+        elif is_close_range(xlim, mass_range) and is_close_range(ylim, conc_range):
+            ax.axvline(p25[0], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axvline(p75[0], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axhline(p25[1], color='gray', linestyle='--', linewidth=1, alpha=0.5)
+            ax.axhline(p75[1], color='gray', linestyle='--', linewidth=1, alpha=0.5)
     ax_list = fig.axes
     plt.gcf().subplots_adjust(bottom=0.12)
     plt.gcf().subplots_adjust(left=0.1)
