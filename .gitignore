@@ -4,12 +4,9 @@
 *.png
 *.pdf
 sbi-logs/
+adhoc/
 .ipynb_checkpoints/
-sbi_single_cluster_constraint-checkpoint copy.ipynb
-SBIGalaxyClusterMass.ipynb
+.virtual_documents/
 *.pickle
 *pycache*
-*.json
-tmp_debug.ipynb
-Untitled.ipynb
 *.pickle
