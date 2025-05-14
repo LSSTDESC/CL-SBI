@@ -7,8 +7,11 @@ Notes::
 
 Copyright 2022-2023, LSST-DESC
 """
+
 import numpy as np
 from scipy.stats import halfnorm
+from colossus.cosmology import cosmology
+from colossus.lss import mass_function
 
 
 def random_mass_conc(
@@ -16,11 +19,11 @@ def random_mass_conc(
     max_log10mass,
     num_sims,
     mc_scatter=0,
-    mc_relation='murata17',
+    mc_relation="murata17",
     min_z=0,
     max_z=0,
 ):
-    '''
+    """
     In the provided log10mass range, randomly sample num_sims log10masses and find their
     corresponding concentrations, with some added random normal noise added.
 
@@ -32,32 +35,32 @@ def random_mass_conc(
 
     Returns:
         mc_pairs : a numpy array of (log10mass, concentration) tuples of size num_sims
-    '''
+    """
     from .populationutils import get_concentration
 
-    log10mass_sample = np.random.uniform(min_log10mass,
-                                         max_log10mass,
-                                         size=num_sims)
+    log10mass_sample = np.random.uniform(min_log10mass, max_log10mass, size=num_sims)
     z_sample = np.random.uniform(min_z, max_z, size=num_sims)
 
-    non_noisy_concentration_sample = np.array([
-        get_concentration(log10mass, model=mc_relation, z=z)
-        for log10mass, z in zip(log10mass_sample, z_sample)
-    ])
+    non_noisy_concentration_sample = np.array(
+        [
+            get_concentration(log10mass, model=mc_relation, z=z)
+            for log10mass, z in zip(log10mass_sample, z_sample)
+        ]
+    )
 
-    concentration_sample = np.random.normal(non_noisy_concentration_sample,
-                                            mc_scatter, num_sims)
+    concentration_sample = np.random.normal(
+        non_noisy_concentration_sample, mc_scatter, num_sims
+    )
     return list(zip(log10mass_sample, concentration_sample))
 
 
-def generate_concentration_for_sample(log10masses,
-                                      zs,
-                                      mc_relation='child18',
-                                      mc_scatter=0):
-    '''
-    From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
-    define the corresponding concentrations of this population assuming a mean concentration-mass relation 
-    based on theoretical prediction) with some scatter in concentration at fixed mass. 
+def generate_concentration_for_sample(
+    log10masses, zs, mc_relation="child18", mc_scatter=0
+):
+    """
+    From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift,
+    define the corresponding concentrations of this population assuming a mean concentration-mass relation
+    based on theoretical prediction) with some scatter in concentration at fixed mass.
 
     Args:
         log10masses: a numpy array of masses, e.g. np.random.uniform(13,15,size=10000)
@@ -67,32 +70,34 @@ def generate_concentration_for_sample(log10masses,
     Returns:
         concentrations : a numpy array of concentration values
 
-    '''
+    """
 
     from .populationutils import get_concentration
 
     # non_noisy_concentrations = get_concentration(log10masses,
     #                                              z=z,
     #                                              model=mc_relation)
-    non_noisy_concentrations = np.array([
-        get_concentration(log10mass, model=mc_relation, z=z)
-        for log10mass, z in zip(log10masses, zs)
-    ])
+    non_noisy_concentrations = np.array(
+        [
+            get_concentration(log10mass, model=mc_relation, z=z)
+            for log10mass, z in zip(log10masses, zs)
+        ]
+    )
     # Note: May want to later generalize the distribution of concentration about the mean relation that is not random normal
-    concentrations = np.random.normal(non_noisy_concentrations, mc_scatter,
-                                      np.shape(log10masses))
+    concentrations = np.random.normal(
+        non_noisy_concentrations, mc_scatter, np.shape(log10masses)
+    )
 
     return concentrations
 
 
-def generate_richness_for_sample(log10masses,
-                                 z=0.0,
-                                 rm_relation='murata17',
-                                 rm_scatter=0):
-    '''
-    From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift, 
-    define the corresponding richness of this population assuming a mean richness-mass relation 
-    based on theoretical prediction) with some scatter in richness at fixed mass. 
+def generate_richness_for_sample(
+    log10masses, z=0.0, rm_relation="murata17", rm_scatter=0
+):
+    """
+    From the assumed true masses for a sampled population of simulated galaxy clusters at a given redshift,
+    define the corresponding richness of this population assuming a mean richness-mass relation
+    based on theoretical prediction) with some scatter in richness at fixed mass.
 
     Args:
         log10masses: a numpy array of masses, e.g. np.random.uniform(13,15,size=10000)
@@ -102,26 +107,33 @@ def generate_richness_for_sample(log10masses,
     Returns:
         richnesses : a numpy array of richness values
 
-    '''
+    """
     from .populationutils import get_richness
 
-    non_noisy_richnesses = np.array([
-        get_richness(log10mass, z=z, model=rm_relation)
-        for log10mass in log10masses
-    ])
-    richnesses = np.random.normal(non_noisy_richnesses, rm_scatter,
-                                  np.shape(log10masses))
+    non_noisy_richnesses = np.array(
+        [get_richness(log10mass, z=z, model=rm_relation) for log10mass in log10masses]
+    )
+    richnesses = np.random.normal(
+        non_noisy_richnesses, rm_scatter, np.shape(log10masses)
+    )
 
     return richnesses
 
 
-def draw_masses_in_richness_bin(lambda_min,
-                                lambda_max,
-                                rm_relation='murata17',
-                                num_obs=10,
-                                rm_scatter=0,
-                                return_pairs=False):
-    '''
+def draw_masses_in_richness_bin(
+    lambda_min,
+    lambda_max,
+    rm_relation="murata17",
+    num_obs=10,
+    rm_scatter=0,
+    # return_pairs=False,
+    # mass function params
+    mdef="200m",
+    model="tinker08",
+    cosmo="planck18",
+    z=0.5,
+):
+    """
     From a given richness bin (defined by the minimum and maximum lambda values), randomly draw a given number of masses and then
     apply some scatter to the rm relation.
 
@@ -134,35 +146,69 @@ def draw_masses_in_richness_bin(lambda_min,
 
     Returns:
         log10masses: a numpy array of size num_obs of log10mass values
-    '''
+    """
 
     from .populationutils import get_log10mass_from_richness
 
-    lambdas = np.random.rand(num_obs) * (lambda_max - lambda_min) + lambda_min
-    non_noisy_log10masses = np.array([
-        get_log10mass_from_richness(lambda_, model=rm_relation)
-        for lambda_ in lambdas
-    ])
-    log10masses = np.random.normal(non_noisy_log10masses, rm_scatter,
-                                   np.shape(lambdas))
-    if not return_pairs:
-        return log10masses
-    else:
-        return list(zip(lambdas, log10masses))
+    # lambdas = np.random.rand(num_obs) * (lambda_max - lambda_min) + lambda_min
+    # non_noisy_log10masses = np.array([
+    #     get_log10mass_from_richness(lambda_, model=rm_relation)
+    #     for lambda_ in lambdas
+    # ])
+    # log10masses = np.random.normal(non_noisy_log10masses, rm_scatter,
+    #                                np.shape(lambdas))
+    # if not return_pairs:
+    #     return log10masses
+    # else:
+    #     return list(zip(lambdas, log10masses))
+
+    grid_size = 1000
+
+    min_log10mass = get_log10mass_from_richness(lambda_min, model=rm_relation)
+    max_log10mass = get_log10mass_from_richness(lambda_max, model=rm_relation)
+    log10masses = np.linspace(min_log10mass, max_log10mass, grid_size)
+
+    cosmo = cosmology.setCosmology(cosmo)
+
+    # mass func in units of dn/dlnM
+    dndlnM = mass_function.massFunction(
+        10**log10masses, z, mdef=mdef, model=model, q_out="dndlnM"
+    )
+
+    # probability density function
+    pdf = dndlnM * np.log(10)
+    pdf /= np.trapz(pdf, log10masses)
+
+    # cumulative distribution function
+    cdf = np.cumsum(pdf)
+    cdf /= cdf[-1]
+
+    # inverse-transform sampling
+    us = np.random.rand(num_obs)
+    sampled_log10m = np.interp(us, cdf, log10masses)
+
+    # TODO: add scatter? how?
+    # sampled_log10m = np.random.normal(sampled_log10m, rm_scatter)
+
+    return sampled_log10m
 
 
 def gen_mc_pairs_in_richness_bin(
     lambda_min,
     lambda_max,
-    rm_relation='murata17',
-    mc_relation='child18',
+    rm_relation="murata17",
+    mc_relation="child18",
     num_obs=10,
     mc_scatter=0,
     rm_scatter=0,
     min_z=0,
     max_z=0,
+    # mass function params
+    mdef="200m",
+    model="tinker08",
+    cosmo="planck18",
 ):
-    '''
+    """
     For a given richness bin, generate {num_obs} mass-concentration samples with some user-specified noise
 
     Args:
@@ -175,14 +221,17 @@ def gen_mc_pairs_in_richness_bin(
         z: redshift
     Returns:
         mc_pairs: a numpy array of size num_obs of tupes of (log10mass, concentration)
-    '''
-
+    """
     log10mass_sample = draw_masses_in_richness_bin(
         lambda_min,
         lambda_max,
         rm_relation=rm_relation,
         num_obs=num_obs,
         rm_scatter=rm_scatter,
+        z=(min_z + max_z) / 2,
+        mdef=mdef,
+        model=model,
+        cosmo=cosmo,
     )
     z_sample = np.random.uniform(min_z, max_z, size=num_obs)
     concentration_sample = generate_concentration_for_sample(
@@ -195,8 +244,8 @@ def gen_mc_pairs_in_richness_bin(
     return mc_pairs
 
 
-def filter_mc_pairs(mc_pairs, criteria='all'):
-    '''
+def filter_mc_pairs(mc_pairs, criteria="all"):
+    """
     Adding subselection criteria that we may want to use to filter the simulated mass concentration pairs
     that are used in SBI.
 
@@ -206,16 +255,16 @@ def filter_mc_pairs(mc_pairs, criteria='all'):
 
         Returns:
             mc_pairs: filtered mc_pairs
-    '''
+    """
 
     # TODO: what other criteria will we want to filter by?
-    if criteria == 'all':
+    if criteria == "all":
         return mc_pairs
 
 
 def calculate_noise(sample, dex=0.0):
     random_noise = np.random.normal(0, dex, np.shape(sample))
-    return sample * 10**(random_noise)
+    return sample * 10 ** (random_noise)
 
 
 def gen_error_bars(nfw_profile, dex=0.0):
@@ -223,13 +272,12 @@ def gen_error_bars(nfw_profile, dex=0.0):
     upper_error = halfnorm.rvs(loc=0, scale=dex, size=shape)
 
     # Add some dex to generate our upper error
-    upper_error_obs = nfw_profile * 10**(upper_error)
+    upper_error_obs = nfw_profile * 10 ** (upper_error)
 
     # Subtract some dex to generate our lower error
     lower_error = halfnorm.rvs(loc=0, scale=dex, size=shape)
-    lower_error_obs = nfw_profile * 10**(-lower_error)
+    lower_error_obs = nfw_profile * 10 ** (-lower_error)
 
     # return lower_error_obs, nfw_profile, upper_error_obs
 
-    return np.concatenate([lower_error_obs, nfw_profile, upper_error_obs],
-                          axis=1)
+    return np.concatenate([lower_error_obs, nfw_profile, upper_error_obs], axis=1)
