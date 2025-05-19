@@ -291,6 +291,11 @@ def plot_nfw_profiles(
     is_noisy,
     mcmc_chains=None,
     sbi_chains=None,
+    mcmc_ftj_samplers=None,
+    mcmc_jtf_sampler=None,
+    # sbi_posterior=None,
+    sbi_ftj_mcs=None,
+    sbi_jtf_mc=None,
 ):
     cosmo = cosmology.setCosmology("planck18")
 
@@ -299,7 +304,7 @@ def plot_nfw_profiles(
     plt.loglog()
     plt.xlabel("radius [kpc/h]", fontsize="xx-large")
     plt.ylabel("$ \Delta \Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
-    # plt.ylim(1e7, 1e10)
+    plt.ylim(1e7, 1e10)
     plt.xlim(min(rbins), max(rbins))
     # yerr = sigmas
 
@@ -333,8 +338,20 @@ def plot_nfw_profiles(
         )
 
     if mcmc_chains:
-        mcmc_jtf_nfw = inferred_nfw_from_chains(mcmc_chains[0], z)
-        mcmc_ftj_nfw = inferred_nfw_from_chains(mcmc_chains[1], z)
+        mcmc_jtf_nfw = inferred_nfw_from_chains(
+            mcmc_chains[0],
+            z,
+            method="map",
+            log_probs=mcmc_jtf_sampler.get_log_prob(flat=True),
+        )
+        mcmc_ftj_nfw = inferred_nfw_from_chains(
+            mcmc_chains[1],
+            z,
+            method="map",
+            log_probs=np.concatenate(
+                [s.get_log_prob(flat=True) for s in mcmc_ftj_samplers]
+            ),
+        )
         plt.plot(
             rbins,
             mcmc_jtf_nfw,
@@ -348,7 +365,7 @@ def plot_nfw_profiles(
             mcmc_ftj_nfw,
             linestyle="dashed",
             # linewidth=2.0,
-            label=f"MCMC fit-then-fit",
+            label=f"MCMC fit-then-join",
             color="g",
         )
         plt.ylim(
@@ -356,24 +373,26 @@ def plot_nfw_profiles(
             max(max(mcmc_jtf_nfw), max(mcmc_ftj_nfw)) * 1.2,
         )
     if sbi_chains:
-        sbi_jtf_nfw = inferred_nfw_from_chains(sbi_chains[0], z)
-        sbi_ftj_nfw = inferred_nfw_from_chains(sbi_chains[1], z)
-        plt.plot(
-            rbins,
-            sbi_jtf_nfw,
-            # linestyle='dashed',
-            # linewidth=2.0,
-            label=f"SBI join-then-fit",
-            color="b",
-        )
-        plt.plot(
-            rbins,
-            sbi_ftj_nfw,
-            linestyle="dashed",
-            # linewidth=2.0,
-            label=f"SBI fit-then-join",
-            color="b",
-        )
+        if sbi_ftj_mcs is not None:
+            sbi_ftj_mc = np.median(sbi_ftj_mcs, axis=0)
+            sbi_ftj_nfw = wlprofile.simulate_nfw(sbi_ftj_mc[0], sbi_ftj_mc[1], z=z)
+            plt.plot(
+                rbins,
+                sbi_ftj_nfw,
+                linestyle="dashed",
+                label=f"SBI fit-then-join",
+                color="b",
+            )
+        if sbi_jtf_mc is not None:
+            sbi_jtf_nfw = wlprofile.simulate_nfw(
+                float(sbi_jtf_mc[0]), float(sbi_jtf_mc[1]), z=z
+            )
+            plt.plot(
+                rbins,
+                sbi_jtf_nfw,
+                label=f"SBI join-then-fit",
+                color="b",
+            )
         plt.ylim(
             min(
                 min(sbi_jtf_nfw), min(sbi_ftj_nfw), min(np.median(nfw_profiles, axis=0))
@@ -416,15 +435,27 @@ def plot_nfw_profiles(
 
 
 # From chains, let's see what the inferred mc pair is to compare with drawn mc pairs.
-def inferred_mc_from_chains(chains):
-    inferred_log10mass = np.median(chains[:, 0])
-    inferred_concentration = np.median(chains[:, 1])
-    return (inferred_log10mass, inferred_concentration)
+def inferred_mc_from_chains(
+    chains, method="joint_median", log_probs=None, sbi_posterior=None
+):
+    if method == "joint_median":
+        inferred_log10mass = np.median(chains[:, 0])
+        inferred_concentration = np.median(chains[:, 1])
+        return (inferred_log10mass, inferred_concentration)
+    elif method == "map" and log_probs is not None:
+        idx = np.argmax(log_probs)
+        return tuple(chains[idx])
+    else:
+        raise ValueError(
+            "Invalid method. Choose either 'joint_median' or 'map' with log_probs."
+        )
 
 
 # From chains, generate an NFW from the inferred m-c pair to compare with drawn NFWs.
-def inferred_nfw_from_chains(chains, z):
-    inferred_mc_pair = inferred_mc_from_chains(chains)
+def inferred_nfw_from_chains(
+    chains, z, method="joint_median", log_probs=None, sbi_posterior=None
+):
+    inferred_mc_pair = inferred_mc_from_chains(chains, method, log_probs, sbi_posterior)
     return wlprofile.simulate_nfw(inferred_mc_pair[0], inferred_mc_pair[1], z=z)
 
 

@@ -47,6 +47,12 @@ with open(os.path.join(infer_path, "mcmc_ftj_samplers.pickle"), "rb") as handle:
 with open(os.path.join(infer_path, "sbi_ftj_chains.pickle"), "rb") as handle:
     sbi_ftj_chains = pickle.load(handle)
 
+# Load SBI inferred m-c pairs
+with open(os.path.join(infer_path, "sbi_ftj_mcs.pickle"), "rb") as handle:
+    sbi_ftj_mcs = pickle.load(handle)
+with open(os.path.join(infer_path, "sbi_jtf_mc.pickle"), "rb") as handle:
+    sbi_jtf_mc = pickle.load(handle)
+
 with open(os.path.join(infer_path, "mcmc_chains.pickle"), "rb") as handle:
     mcmc_chains = pickle.load(handle)
 with open(os.path.join(infer_path, "sbi_chains.pickle"), "rb") as handle:
@@ -141,6 +147,10 @@ plotutils.plot_nfw_profiles(
     is_noisy=True,
     mcmc_chains=mcmc_chains,
     sbi_chains=sbi_chains,
+    mcmc_jtf_sampler=mcmc_jtf_sampler,
+    mcmc_ftj_samplers=mcmc_ftj_samplers,
+    sbi_ftj_mcs=sbi_ftj_mcs,
+    sbi_jtf_mc=sbi_jtf_mc,
 )
 
 # plotutils.plot_nfw_profiles(

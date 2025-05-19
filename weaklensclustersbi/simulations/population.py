@@ -163,10 +163,18 @@ def draw_masses_in_richness_bin(
     #     return list(zip(lambdas, log10masses))
 
     grid_size = 1000
+    lambdas = np.random.rand(grid_size) * (lambda_max - lambda_min) + lambda_min
+    log10masses = np.array(
+        [
+            get_log10mass_from_richness(lambda_, model=rm_relation, z=z)
+            for lambda_ in lambdas
+        ]
+    )
+    log10masses = np.random.normal(log10masses, rm_scatter, np.shape(lambdas))
 
-    min_log10mass = get_log10mass_from_richness(lambda_min, model=rm_relation)
-    max_log10mass = get_log10mass_from_richness(lambda_max, model=rm_relation)
-    log10masses = np.linspace(min_log10mass, max_log10mass, grid_size)
+    # min_log10mass = get_log10mass_from_richness(lambda_min, model=rm_relation)
+    # max_log10mass = get_log10mass_from_richness(lambda_max, model=rm_relation)
+    # log10masses = np.linspace(min_log10mass, max_log10mass, grid_size)
 
     cosmo = cosmology.setCosmology(cosmo)
 
@@ -177,20 +185,24 @@ def draw_masses_in_richness_bin(
 
     # probability density function
     pdf = dndlnM * np.log(10)
-    pdf /= np.trapz(pdf, log10masses)
+    pdf /= pdf.sum()  # np.trapz(pdf, log10masses)
 
     # cumulative distribution function
     cdf = np.cumsum(pdf)
     cdf /= cdf[-1]
 
-    # inverse-transform sampling
-    us = np.random.rand(num_obs)
-    sampled_log10m = np.interp(us, cdf, log10masses)
+    # pick num_obs indices with replacement from the PDF
+    idx = np.random.choice(grid_size, size=num_obs, replace=True, p=pdf)
 
-    # TODO: add scatter? how?
-    # sampled_log10m = np.random.normal(sampled_log10m, rm_scatter)
+    # us = np.random.rand(num_obs)
+    # sampled_log10m = np.interp(us, cdf, log10masses)
 
-    return sampled_log10m
+    # get lambdas by finding the ids of sampled_log10m in log10masses
+    # sampled_lambdas = np.array(
+    #     [np.where(log10masses == sampled_log10m[i])[0][0] for i in range(num_obs)]
+    # )
+
+    return lambdas[idx], log10masses[idx]
 
 
 def gen_mc_pairs_in_richness_bin(
@@ -222,7 +234,7 @@ def gen_mc_pairs_in_richness_bin(
     Returns:
         mc_pairs: a numpy array of size num_obs of tupes of (log10mass, concentration)
     """
-    log10mass_sample = draw_masses_in_richness_bin(
+    _, log10mass_sample = draw_masses_in_richness_bin(
         lambda_min,
         lambda_max,
         rm_relation=rm_relation,

@@ -15,12 +15,12 @@ def sbi_config():
 # Create an inferrer with the priors from the inference config
 def gen_inferrer(priors):
     prior = BoxUniform(
-        torch.as_tensor([priors['min_log10mass'],
-                         priors['min_concentration']]),
-        torch.as_tensor([priors['max_log10mass'],
-                         priors['max_concentration']]))
-    return SNPE(prior, density_estimator="mdn",
-                device="cpu")  # SNLE, SNRE are other options
+        torch.as_tensor([priors["min_log10mass"], priors["min_concentration"]]),
+        torch.as_tensor([priors["max_log10mass"], priors["max_concentration"]]),
+    )
+    return SNPE(
+        prior, density_estimator="mdn", device="cpu"
+    )  # SNLE, SNRE are other options
 
 
 # Train the inferrer with the simulations. We'll pickle this posterior for future use.
@@ -61,24 +61,33 @@ def gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles):
 
 
 # Apply observations to the (un)pickled posterior and sample from the posterior
-def apply_observations(posterior,
-                       drawn_mc_pairs,
-                       drawn_nfw_profiles,
-                       err_dex=0.0):
+def apply_observations(posterior, drawn_mc_pairs, drawn_nfw_profiles, err_dex=0.0):
     from .sbiutils import create_observation_nfw, create_join_fit_observation_nfw
 
     # Join (take the median of) observations and then fit on that
     theta_o_jf, x_o_jf = create_join_fit_observation_nfw(
-        drawn_mc_pairs, drawn_nfw_profiles)
+        drawn_mc_pairs, drawn_nfw_profiles
+    )
 
     # Obtain samples of the posterior given the observation
-    samples_jf = posterior.sample((10000, ), x=x_o_jf)
+    samples_jf = posterior.sample((10000,), x=x_o_jf)
+
+    # Calculate the log-probability of the samples given the observation to find the maximum a posteriori (MAP) estimate
+    logp_jf = posterior.log_prob(samples_jf, x=x_o_jf)
+    idx_jf = np.argmax(logp_jf)
+    map_mc_jf = samples_jf[idx_jf]
 
     # Fit each observation and join them (stack the chains) at the end
     samples_fj = []
+    map_mc_fj = []
     for i in range(len(drawn_nfw_profiles)):
-        theta_o_fj, x_o_fj = create_observation_nfw(drawn_mc_pairs[i],
-                                                    drawn_nfw_profiles[i])
-        samples_fj.append(posterior.sample((10000, ), x=x_o_fj).numpy())
+        theta_o_fj, x_o_fj = create_observation_nfw(
+            drawn_mc_pairs[i], drawn_nfw_profiles[i]
+        )
+        s = posterior.sample((10000,), x=x_o_fj).numpy()
+        lp = posterior.log_prob(s, x=x_o_fj)
+        idx = np.argmax(lp)
+        map_mc_fj.append(s[idx])
+        samples_fj.append(s)
 
-    return [samples_jf.numpy(), np.vstack(samples_fj)], samples_fj
+    return [samples_jf.numpy(), np.vstack(samples_fj)], samples_fj, map_mc_fj, map_mc_jf
