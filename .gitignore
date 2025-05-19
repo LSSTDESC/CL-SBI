@@ -10,3 +10,5 @@ adhoc/
 *.pickle
 *pycache*
 *.pickle
+scripts/bash2.sh
+scripts/bash3.sh
