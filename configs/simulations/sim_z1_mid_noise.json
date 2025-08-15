@@ -1,8 +1,8 @@
 {
 	"mc_relation": "child18",
 	"mc_scatter": 0.1,
-	"min_log10mass": 13,
-	"max_log10mass": 16,
+	"min_log10mass": 10,
+	"max_log10mass": 20,
 	"num_radial_bins": 30,
 	"profile_noise_dex": 0.5,
 	"mc_pair_subselect": "all",

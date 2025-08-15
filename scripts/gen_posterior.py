@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--infer_id")
 parser.add_argument("--sim_id")
 parser.add_argument("--num_sims")
+parser.add_argument("--num_obs")
 
 # Add regenerate flag if we want to overwrite any existing posterior.
 # If false or not set, skip posterior generation if they already exist from an earlier run.
@@ -39,7 +40,6 @@ infer_config_path = os.path.join(script_dir, infer_config_rel_path)
 infer_config_filename = os.path.join(infer_config_path, f"{args.infer_id}.json")
 with open(infer_config_filename, "r") as f:
     infer_config = json.load(f)
-inferrer = sbi_.gen_inferrer(infer_config["priors"])
 
 # Open simulations output
 sim_rel_path = f"../outputs/simulations/{args.sim_id}.{args.num_sims}"
@@ -49,8 +49,16 @@ simulated_nfw_profiles_filename = os.path.join(sim_path, "simulated_nfw_profiles
 sample_mc_pairs = np.load(sample_mc_pairs_filename)
 simulated_nfw_profiles = np.load(simulated_nfw_profiles_filename)
 
-# TODO: update for the aggregate observation
-posterior = sbi_.gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles)
+# SBI inference on aggregate data vector (num_obs x num_radial_bins x 3)
+if "agg" in infer_config and infer_config["agg"]:
+    num_obs = int(args.num_obs)
+    inferrer = sbi_.gen_agg_inferrer(infer_config["priors"], num_obs=num_obs)
+    posterior = sbi_.gen_agg_posterior(
+        inferrer, sample_mc_pairs, simulated_nfw_profiles, num_obs=num_obs
+    )
+else:
+    inferrer = sbi_.gen_inferrer(infer_config["priors"])
+    posterior = sbi_.gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles)
 
 # Pickle posterior
 pickle.dump(posterior, open(os.path.join(out_path, "posterior.pickle"), "wb"))

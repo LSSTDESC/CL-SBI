@@ -49,6 +49,12 @@ def plot_pygtc(chains, out_path, infer_type, true_param_median=()):
 
 
 def plot_chainconsumer(chains, out_path, infer_type, true_param=[]):
+    # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
+    # TODO: clean this up
+    if np.shape(chains[0])[1] > len(param_labels):
+        chains[0] = np.delete(chains[0], 2, 1)
+        chains[1] = np.delete(chains[1], 2, 1)
+
     cc = ChainConsumer()
 
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
@@ -151,7 +157,8 @@ def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]
         tick_font_size=16,
         usetex=False,
         serif=False,
-        sigmas=[2, 3],
+        # sigmas=[2, 3],
+        sigmas=[1],
         shade_alpha=0.3,
     )
     # Manually plot the truth values
@@ -205,6 +212,123 @@ def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]
     plt.close()
 
 
+def plot_chainconsumer_agg(chain, out_path, true_params=None):
+    """
+    Generate two contour plots from an aggregate SBI posterior:
+    1) All individual cluster posteriors overlaid in one plot
+    2) One combined posterior from pooling all samples
+
+    Args:
+        chain: ndarray of shape (n_samples, 2 * N_obs)
+        out_path: directory path to save plots
+        true_params: optional list of N_obs (m, c) tuples for ground truth
+    """
+    chain = np.asarray(chain)
+    nsamp, ndim = chain.shape
+    if ndim % 2:
+        raise ValueError(f"Expected even dims (2*N_obs), got {ndim}")
+    N_obs = ndim // 2
+
+    # labels for each (m,c)
+    unit_labels = ["log10 M", "c"]
+
+    truth_flat = None
+    if true_params is not None:
+        truth_flat = np.array([val for pair in true_params for val in pair])
+
+    # 1) Individual overlay plot
+    cc_ind = ChainConsumer()
+    for i in range(N_obs):
+        sub = chain[:, 2 * i : 2 * i + 2]
+        cc_ind.add_chain(sub, parameters=unit_labels, name=f"cluster_{i}")
+    cc_ind.configure(statistics="mean", summary=False, sigmas=[1], shade_alpha=0.2)
+    fig1 = cc_ind.plotter.plot(
+        truth=truth_flat,
+        figsize=(6, 6),
+        parameters=unit_labels,
+        extents=list(wide_param_ranges),
+    )
+    os.makedirs(out_path, exist_ok=True)
+    fig1.savefig(os.path.join(out_path, "sbi_agg_individual.png"))
+    fig1.savefig(os.path.join(out_path, "sbi_agg_individual.pdf"))
+    plt.close(fig1)
+
+    # 2) Combined-chain plot
+    pooled = np.vstack([chain[:, 2 * i : 2 * i + 2] for i in range(N_obs)])
+    cc_comb = ChainConsumer()
+    cc_comb.add_chain(pooled, parameters=unit_labels, name="combined")
+    cc_comb.configure(statistics="mean", summary=True, sigmas=[1, 2], shade_alpha=0.3)
+    fig2 = cc_comb.plotter.plot(
+        truth=truth_flat,
+        parameters=unit_labels,
+        figsize=(6, 6),
+        extents=list(wide_param_ranges),
+    )
+    fig2.savefig(os.path.join(out_path, "sbi_agg_combined.png"))
+    fig2.savefig(os.path.join(out_path, "sbi_agg_combined.pdf"))
+    plt.close(fig2)
+
+
+def plot_chainconsumer_agg2(chains, out_path, true_params):
+    """
+    chains: numpy array of shape (N,6)
+    true_params: list/tuple of three (mass,conc) pairs:
+       [ (m50,c50), (m25,c25), (m75,c75) ]  or however you have it stored
+    """
+    # Grab each percentile chain
+    chain_25 = chains[:, 0:2]
+    chain_50 = chains[:, 2:4]
+    chain_75 = chains[:, 4:6]
+
+    cc = ChainConsumer()
+    cc.add_chain(chain_50, parameters=param_labels, name="median (50%)")
+    cc.add_chain(chain_25, parameters=param_labels, name="25th percentile")
+    cc.add_chain(chain_75, parameters=param_labels, name="75th percentile")
+
+    cc.configure(
+        statistics="mean",
+        summary=True,
+        sigmas=[1, 2],
+        shade_alpha=0.3,
+    )
+
+    # true_params should be [(m50,c50), (m25,c25), (m75,c75)]
+    # we pass the median as 'truth'
+    truth = np.array(true_params[0])
+
+    # DEBUG
+    # 1) Verify shapes make sense
+    print("chains shape:", chains.shape)
+    chain_25, chain_50, chain_75 = chains[:, :2], chains[:, 2:4], chains[:, 4:6]
+    print("chain_50 shape:", chain_50.shape)
+
+    # 2) Check for NaN / Inf
+    for name, ch in [("25th", chain_25), ("50th", chain_50), ("75th", chain_75)]:
+        print(f"{name} has NaN/Inf?", not np.isfinite(ch).all())
+
+    # 3) Check for zero width
+    for name, ch in [("25th", chain_25), ("50th", chain_50), ("75th", chain_75)]:
+        mins, maxs = ch.min(axis=0), ch.max(axis=0)
+        print(
+            f"{name} mins/maxs:",
+            mins,
+            "/",
+            maxs,
+            "  zero‐width?",
+            np.allclose(mins, maxs),
+        )
+
+    fig = cc.plotter.plot(
+        truth=truth,
+        parameters=param_labels,
+        figsize=(6, 6),
+        extents=list(wide_param_ranges),
+    )
+
+    fig.savefig(os.path.join(out_path, "sbi_agg_cc.png"))
+    fig.savefig(os.path.join(out_path, "sbi_agg_cc.pdf"))
+
+
 ### DIAGNOSTICS PLOTTING BELOW ###
 
 
@@ -245,7 +369,8 @@ def plot_cc_diagnostic(chains, out_path, infer_type, true_param_median=[]):
         tick_font_size=16,
         usetex=False,
         serif=False,
-        sigmas=[2, 3],
+        # sigmas=[2, 3],
+        sigmas=[1],
     )
     fig = cc.plotter.plot(
         truth=true_param_median,
