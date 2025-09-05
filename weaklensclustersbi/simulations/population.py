@@ -124,7 +124,7 @@ def draw_masses_in_richness_bin(
     lambda_min,
     lambda_max,
     rm_relation="murata17",
-    num_obs=10,
+    num_samples=10,
     rm_scatter=0,
     # return_pairs=False,
     # mass function params
@@ -192,7 +192,7 @@ def draw_masses_in_richness_bin(
     cdf /= cdf[-1]
 
     # pick num_obs indices with replacement from the PDF
-    idx = np.random.choice(grid_size, size=num_obs, replace=True, p=pdf)
+    idx = np.random.choice(grid_size, size=num_samples, replace=True, p=pdf)
 
     # us = np.random.rand(num_obs)
     # sampled_log10m = np.interp(us, cdf, log10masses)
@@ -210,7 +210,7 @@ def gen_mc_pairs_in_richness_bin(
     lambda_max,
     rm_relation="murata17",
     mc_relation="child18",
-    num_obs=10,
+    num_samples=10,
     mc_scatter=0,
     rm_scatter=0,
     min_z=0,
@@ -238,14 +238,14 @@ def gen_mc_pairs_in_richness_bin(
         lambda_min,
         lambda_max,
         rm_relation=rm_relation,
-        num_obs=num_obs,
+        num_samples=num_samples,
         rm_scatter=rm_scatter,
         z=(min_z + max_z) / 2,
         mdef=mdef,
         model=model,
         cosmo=cosmo,
     )
-    z_sample = np.random.uniform(min_z, max_z, size=num_obs)
+    z_sample = np.random.uniform(min_z, max_z, size=num_samples)
     concentration_sample = generate_concentration_for_sample(
         log10mass_sample,
         mc_scatter=mc_scatter,
@@ -274,8 +274,17 @@ def filter_mc_pairs(mc_pairs, criteria="all"):
         return mc_pairs
 
 
+# Calculate noise with a fixed dex value
 def calculate_noise(sample, dex=0.0):
     random_noise = np.random.normal(0, dex, np.shape(sample))
+    return sample * 10 ** (random_noise)
+
+
+# Calculate noise with a range of dex values between 0 and max_dex
+def calculate_noise_range(sample, max_dex=0.0):
+    shape = np.shape(sample)
+    dex = np.random.uniform(0, max_dex, size=shape)
+    random_noise = np.random.normal(0, dex, shape)
     return sample * 10 ** (random_noise)
 
 

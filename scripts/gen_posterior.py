@@ -46,8 +46,12 @@ sim_rel_path = f"../outputs/simulations/{args.sim_id}.{args.num_sims}"
 sim_path = os.path.join(script_dir, sim_rel_path)
 sample_mc_pairs_filename = os.path.join(sim_path, "sample_mc_pairs.npy")
 simulated_nfw_profiles_filename = os.path.join(sim_path, "simulated_nfw_profiles.npy")
+simulated_nfw_profiles_range_filename = os.path.join(
+    sim_path, "simulated_nfw_profiles_range.npy"
+)
 sample_mc_pairs = np.load(sample_mc_pairs_filename)
 simulated_nfw_profiles = np.load(simulated_nfw_profiles_filename)
+simulated_nfw_profiles_range = np.load(simulated_nfw_profiles_range_filename)
 
 # SBI inference on aggregate data vector (num_obs x num_radial_bins x 3)
 if "agg" in infer_config and infer_config["agg"]:
@@ -59,6 +63,12 @@ if "agg" in infer_config and infer_config["agg"]:
 else:
     inferrer = sbi_.gen_inferrer(infer_config["priors"])
     posterior = sbi_.gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles)
-
+    inferrer = sbi_.gen_inferrer(infer_config["priors"])
+    posterior_range = sbi_.gen_posterior(
+        inferrer, sample_mc_pairs, simulated_nfw_profiles_range
+    )
 # Pickle posterior
 pickle.dump(posterior, open(os.path.join(out_path, "posterior.pickle"), "wb"))
+pickle.dump(
+    posterior_range, open(os.path.join(out_path, "posterior_range.pickle"), "wb")
+)

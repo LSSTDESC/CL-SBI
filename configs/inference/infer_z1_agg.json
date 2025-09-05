@@ -1,0 +1,11 @@
+{
+	"priors": {
+		"min_log10mass": 10,
+		"max_log10mass": 20,
+		"min_concentration": 0,
+		"max_concentration": 10,
+		"min_z": 0.2,
+		"max_z": 0.35
+	},
+	"agg": 1
+}

@@ -51,6 +51,10 @@ def main():
     with open(posterior_filename, "rb") as handle:
         posterior = pickle.load(handle)
 
+    posterior_range_filename = os.path.join(posterior_path, "posterior_range.pickle")
+    with open(posterior_range_filename, "rb") as handle:
+        posterior_range = pickle.load(handle)
+
     # Load infer config
     infer_config_rel_path = "../configs/inference/"
     infer_config_path = os.path.join(script_dir, infer_config_rel_path)
@@ -85,7 +89,7 @@ def main():
         # Run SBI inference
         t0 = time.perf_counter()
         sbi_chains, sbi_ftj_chains, sbi_ftj_mcs, sbi_jtf_mc = sbi_.apply_observations(
-            posterior, drawn_mc_pairs, drawn_nfw_profiles
+            posterior, posterior_range, drawn_mc_pairs, drawn_nfw_profiles
         )
         log_time("SBI", args.num_obs, "both", time.perf_counter() - t0)
 

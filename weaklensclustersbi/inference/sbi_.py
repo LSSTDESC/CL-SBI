@@ -61,7 +61,9 @@ def gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles):
 
 
 # Apply observations to the (un)pickled posterior and sample from the posterior
-def apply_observations(posterior, drawn_mc_pairs, drawn_nfw_profiles, err_dex=0.0):
+def apply_observations(
+    posterior, posterior_range, drawn_mc_pairs, drawn_nfw_profiles, err_dex=0.0
+):
     from .sbiutils import create_observation_nfw, create_join_fit_observation_nfw
 
     # Join (take the median of) observations and then fit on that
@@ -70,10 +72,10 @@ def apply_observations(posterior, drawn_mc_pairs, drawn_nfw_profiles, err_dex=0.
     )
 
     # Obtain samples of the posterior given the observation
-    samples_jf = posterior.sample((10000,), x=x_o_jf)
+    samples_jf = posterior_range.sample((10000,), x=x_o_jf)
 
     # Calculate the log-probability of the samples given the observation to find the maximum a posteriori (MAP) estimate
-    logp_jf = posterior.log_prob(samples_jf, x=x_o_jf)
+    logp_jf = posterior_range.log_prob(samples_jf, x=x_o_jf)
     idx_jf = np.argmax(logp_jf)
     map_mc_jf = samples_jf[idx_jf]
 
