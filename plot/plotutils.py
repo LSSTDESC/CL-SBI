@@ -407,7 +407,7 @@ def plot_mc_pairs(mc_pairs, out_path):
 
 def plot_nfw_profiles(
     nfw_profiles,
-    log_sigmas,
+    sigmas,
     out_path,
     num_radial_bins,
     min_richness,
@@ -423,6 +423,8 @@ def plot_nfw_profiles(
     sbi_jtf_mc=None,
 ):
     cosmo = cosmology.setCosmology("planck18")
+
+    nfw_profiles = 10**nfw_profiles  # convert back from log space
 
     rbins = 10 ** np.arange(0, num_radial_bins / 10, 0.1)
     plt.figure(figsize=(8, 8))
@@ -444,10 +446,10 @@ def plot_nfw_profiles(
     )
     if is_noisy:
         upper_error = np.exp(
-            np.log(np.median(nfw_profiles, axis=0)) + log_sigmas
+            np.log(np.median(nfw_profiles, axis=0)) + sigmas
         ) - np.median(nfw_profiles, axis=0)
         lower_error = np.median(nfw_profiles, axis=0) - np.exp(
-            np.log(np.median(nfw_profiles, axis=0)) - log_sigmas
+            np.log(np.median(nfw_profiles, axis=0)) - sigmas
         )
         yerr = [lower_error, upper_error]
 
@@ -473,9 +475,8 @@ def plot_nfw_profiles(
             mcmc_chains[1],
             z,
             method="map",
-            log_probs=np.concatenate(
-                [s.get_log_prob(flat=True) for s in mcmc_ftj_samplers]
-            ),
+            log_probs=mcmc_ftj_samplers.get_log_prob(flat=True),
+            # np.concatenate([s.get_log_prob(flat=True) for s in mcmc_ftj_samplers]),
         )
         plt.plot(
             rbins,

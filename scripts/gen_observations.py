@@ -68,7 +68,6 @@ noiseless_drawn_nfw_profiles = np.array(
     ]
 )
 
-# TODO: add a range of noise levels to simulations
 drawn_nfw_profiles = population.calculate_noise(
     noiseless_drawn_nfw_profiles, obs_config["profile_noise_dex"]
 )
@@ -76,6 +75,10 @@ drawn_nfw_profiles = population.calculate_noise(
 # Observational error is defined as the standard deviation of the observable for each radial bin
 sigmas = np.std(drawn_nfw_profiles, axis=0)
 log_sigmas = np.std(np.log10(drawn_nfw_profiles), axis=0)
+
+# Observables to logspace
+drawn_nfw_profiles = np.log10(drawn_nfw_profiles)
+noiseless_drawn_nfw_profiles = np.log10(noiseless_drawn_nfw_profiles)
 
 # Output to intermediate files in obs_dir to be read by inference example script
 if not os.path.exists(out_path):
@@ -86,5 +89,5 @@ np.save(
 )
 np.save(os.path.join(out_path, "drawn_nfw_profiles.npy"), drawn_nfw_profiles)
 np.save(os.path.join(out_path, "drawn_mc_pairs.npy"), drawn_mc_pairs)
-np.save(os.path.join(out_path, "sigmas.npy"), sigmas)
-np.save(os.path.join(out_path, "log_sigmas.npy"), log_sigmas)
+# np.save(os.path.join(out_path, "sigmas.npy"), sigmas)
+np.save(os.path.join(out_path, "sigmas.npy"), log_sigmas)

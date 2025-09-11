@@ -63,15 +63,15 @@ true_param_median = np.load(os.path.join(infer_path, "true_param_median.npy"))
 # Plot the walkers for jtf sampler
 plotutils.plot_walkers(mcmc_jtf_sampler, out_path, "mcmc_jtf_")
 
-mcmc_ftj_chains = []
-for i in range(len(mcmc_ftj_samplers)):
-    # Plot the walkers for each of the ftj samplers
-    mcmc_ftj_chains.append(mcmc_ftj_samplers[i].flatchain)
+# mcmc_ftj_chains = []
+# for i in range(len(mcmc_ftj_samplers)):
+#     # Plot the walkers for each of the ftj samplers
+#     mcmc_ftj_chains.append(mcmc_ftj_samplers[i].flatchain)
 
-# Plotting contour plots for each of the observations (that we later join in fit_then_join)
-plotutils.plot_cc_diagnostic(
-    mcmc_ftj_chains, out_path, "mcmc_ftj", list(true_param_median)
-)
+# # Plotting contour plots for each of the observations (that we later join in fit_then_join)
+# plotutils.plot_cc_diagnostic(
+#     mcmc_ftj_chains, out_path, "mcmc_ftj", list(true_param_median)
+# )
 plotutils.plot_cc_diagnostic(
     sbi_ftj_chains, out_path, "sbi_ftj", list(true_param_median)
 )
@@ -88,10 +88,10 @@ with open(obs_config_filename, "r") as f:
 
 drawn_mc_pairs_filename = os.path.join(obs_path, "drawn_mc_pairs.npy")
 drawn_nfw_profiles_filename = os.path.join(obs_path, "drawn_nfw_profiles.npy")
-log_sigmas_filename = os.path.join(obs_path, "log_sigmas.npy")
+sigmas_filename = os.path.join(obs_path, "sigmas.npy")
 drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
 drawn_nfw_profiles = np.load(drawn_nfw_profiles_filename)
-log_sigmas = np.load(log_sigmas_filename)
+sigmas = np.load(sigmas_filename)
 
 noiseless_drawn_nfw_profiles_filename = os.path.join(
     obs_path, "noiseless_drawn_nfw_profiles.npy"
@@ -115,7 +115,7 @@ z = (obs_config["min_z"] + obs_config["max_z"]) / 2
 # Plotting drawn NFW profiles in observations directory
 plotutils.plot_nfw_profiles(
     drawn_nfw_profiles,
-    log_sigmas,
+    sigmas,
     obs_path,
     obs_config["num_radial_bins"],
     obs_config["min_richness"],
@@ -138,7 +138,7 @@ plotutils.plot_nfw_profiles(
 # Plotting drawn AND inferred profiles in plots directory
 plotutils.plot_nfw_profiles(
     drawn_nfw_profiles,
-    log_sigmas,
+    sigmas,
     out_path,
     obs_config["num_radial_bins"],
     obs_config["min_richness"],

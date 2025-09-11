@@ -14,8 +14,8 @@ def default_config():
         # "starts": np.array([15, 5]),
         "npar": 3,
         "starts": np.array([14, 4, 0]),
-        "nsteps_burn": 200,
-        "nsteps_per_chain": 1000,
+        "nsteps_burn": 100,
+        "nsteps_per_chain": 500,
     }
 
 
@@ -90,24 +90,24 @@ def fit_then_join(profiles, sigmas, priors, pool=None):
     For a given set of profiles, we run MCMC on each of them (fit). To reduce noise, at the end, we stack
     all of the chains into a single one (join).
     """
-    chains = []
-    samplers = []
-    for profile in profiles:
-        profile = np.concatenate((profile, sigmas))
-        sampler = run_mcmc(profile, priors, pool=pool)
-        samplers.append(sampler)
-        # tau = sampler.get_autocorr_time()
-        # print(f"Autocorrelation time for fit-then-join chain: {tau}")
-        # flat_chain = sampler.get_chain(thin=int(tau[0] / 2), flat=True)
-        # flat_chain = sampler.get_chain(thin=25, flat=True)
-        # chains.append(flat_chain)
-        chains.append(sampler.flatchain)
-    return np.vstack(chains), samplers
+    # chains = []
+    # samplers = []
+    # for profile in profiles:
+    #     profile = np.concatenate((profile, sigmas))
+    #     sampler = run_mcmc(profile, priors, pool=pool)
+    #     samplers.append(sampler)
+    #     # tau = sampler.get_autocorr_time()
+    #     # print(f"Autocorrelation time for fit-then-join chain: {tau}")
+    #     # flat_chain = sampler.get_chain(thin=int(tau[0] / 2), flat=True)
+    #     # flat_chain = sampler.get_chain(thin=25, flat=True)
+    #     # chains.append(flat_chain)
+    #     chains.append(sampler.flatchain)
+    # return np.vstack(chains), samplers
 
-    # joint_payload = [np.concatenate((prof, sigmas)) for prof in profiles]
-    # sampler = run_joint_mcmc(joint_payload, priors, pool=pool)
-    # flat_chain = sampler.flatchain
-    # return flat_chain, sampler
+    joint_payload = [np.concatenate((prof, sigmas)) for prof in profiles]
+    sampler = run_joint_mcmc(joint_payload, priors, pool=pool)
+    flat_chain = sampler.flatchain
+    return flat_chain, sampler
 
 
 def join_then_fit(profiles, sigmas, priors, pool=None):

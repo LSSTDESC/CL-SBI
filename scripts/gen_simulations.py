@@ -95,16 +95,22 @@ non_noisy_simulated_nfw_profiles = np.array(
     ]
 )
 
+# Add a "fixed" amount of noise to each profile
 simulated_nfw_profiles = population.calculate_noise(
     # select first half of non_noisy_simulated_nfw_profiles to add noise to
     non_noisy_simulated_nfw_profiles,
     sim_config["profile_noise_dex"],
 )
 
+# Add a range of noise to each profile (used for join-then-fit)
 simulated_nfw_profiles_range = population.calculate_noise_range(
     non_noisy_simulated_nfw_profiles,
     sim_config["profile_noise_dex"],
 )
+
+# Simulations to logspace
+simulated_nfw_profiles = np.log10(simulated_nfw_profiles)
+simulated_nfw_profiles_range = np.log10(simulated_nfw_profiles_range)
 
 # Output to intermediate files in sim_dir to be read by inference example script
 if not os.path.exists(out_path):

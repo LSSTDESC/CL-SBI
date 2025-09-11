@@ -20,6 +20,9 @@ def logprior(params, priors):
     c_from_m = populationutils.get_concentration(
         log10mass, model=priors["mc_relation"], z=z
     )
+    # Reject unlikely m-c pairs, (P < 0.2)
+    # if scipy.stats.norm(loc=c_from_m, scale=mc_scatter).pdf(concentration) < 0.05:
+    #     return -np.inf
     return scipy.stats.norm(loc=c_from_m, scale=mc_scatter).logpdf(concentration)
 
 
@@ -28,10 +31,12 @@ def loglike(params, priors, model):
 
     z = (priors["min_z"] + priors["max_z"]) / 2
 
-    estimate = wlprofile.simulate_nfw(
-        log10mass,
-        concentration,
-        z=z,
+    estimate = np.log10(
+        wlprofile.simulate_nfw(
+            log10mass,
+            concentration,
+            z=z,
+        )
     )
 
     num_radial_bins = len(estimate)
@@ -47,3 +52,13 @@ def logprob(params, priors, model):
     if not np.isfinite(lp):
         return -np.inf
     return lp + loglike(params, priors, model)
+
+
+def joint_logprob(params, priors, models):
+    lp = logprior(params, priors)
+    if not np.isfinite(lp):
+        return -np.inf
+    ll = 0.0
+    for model in models:
+        ll += loglike(params, priors, model) / len(models)
+    return lp + ll
