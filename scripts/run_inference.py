@@ -43,17 +43,15 @@ def main():
             quit()
 
     # Load posterior
-    posterior_rel_path = (
-        f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}"
-    )
+    posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}"
     posterior_path = os.path.join(script_dir, posterior_rel_path)
     posterior_filename = os.path.join(posterior_path, "posterior.pickle")
     with open(posterior_filename, "rb") as handle:
         posterior = pickle.load(handle)
 
-    posterior_range_filename = os.path.join(posterior_path, "posterior_range.pickle")
-    with open(posterior_range_filename, "rb") as handle:
-        posterior_range = pickle.load(handle)
+    posterior_jtf_filename = os.path.join(posterior_path, "posterior_jtf.pickle")
+    with open(posterior_jtf_filename, "rb") as handle:
+        posterior_jtf = pickle.load(handle)
 
     # Load infer config
     infer_config_rel_path = "../configs/inference/"
@@ -85,70 +83,66 @@ def main():
         with open(LOGFILE, "a", newline="") as f:
             csv.writer(f).writerow([ts, technique, num_obs, stacking, f"{secs:.3f}"])
 
-    if "agg" not in infer_config:
-        # Run SBI inference
+    # Run SBI inference
+    t0 = time.perf_counter()
+    (
+        sbi_jtf_chains,
+        sbi_ftj_chains,
+        sbi_jtf_mc,
+        sbi_ftj_mc,
+        sbi_jtf_logprob,
+        sbi_ftj_logprob,
+    ) = sbi_.apply_observations(
+        posterior, posterior_jtf, drawn_mc_pairs, drawn_nfw_profiles
+    )
+    log_time("SBI", args.num_obs, "both", time.perf_counter() - t0)
+
+    # Output SBI chains
+    with open(os.path.join(out_path, "sbi_chains.pickle"), "wb") as handle:
+        pickle.dump([sbi_jtf_chains, sbi_ftj_chains], handle, protocol=4)
+    # Output each of the fit-then-join chains (for diagnostics)
+    # with open(os.path.join(out_path, "sbi_ftj_chains.pickle"), "wb") as handle:
+    #     pickle.dump(sbi_ftj_chains, handle, protocol=4)
+
+    # Output inferred m-c pairs from SBI
+    with open(os.path.join(out_path, "sbi_ftj_mc.pickle"), "wb") as handle:
+        pickle.dump(sbi_ftj_mc, handle, protocol=4)
+
+    with open(os.path.join(out_path, "sbi_jtf_mc.pickle"), "wb") as handle:
+        pickle.dump(sbi_jtf_mc, handle, protocol=4)
+
+    with open(os.path.join(out_path, "sbi_jtf_logprob.pickle"), "wb") as handle:
+        pickle.dump(sbi_jtf_logprob, handle, protocol=4)
+
+    with open(os.path.join(out_path, "sbi_ftj_logprob.pickle"), "wb") as handle:
+        pickle.dump(sbi_ftj_logprob, handle, protocol=4)
+
+    # Run MCMC inference
+    with multiprocessing.Pool() as pool:
         t0 = time.perf_counter()
-        sbi_chains, sbi_ftj_chains, sbi_ftj_mcs, sbi_jtf_mc = sbi_.apply_observations(
-            posterior, posterior_range, drawn_mc_pairs, drawn_nfw_profiles
+        jtf_sigmas = np.sqrt(np.pi / 2) * sigmas / np.sqrt(int(args.num_obs))
+        mcmc_jtf_chain, mcmc_jtf_sampler = mcmc.join_then_fit(
+            drawn_nfw_profiles, jtf_sigmas, infer_config["priors"], pool=pool
         )
-        log_time("SBI", args.num_obs, "both", time.perf_counter() - t0)
+        log_time("MCMC", args.num_obs, "jtf", time.perf_counter() - t0)
 
-        # Output SBI chains
-        with open(os.path.join(out_path, "sbi_chains.pickle"), "wb") as handle:
-            pickle.dump(sbi_chains, handle, protocol=4)
-
-        # Output each of the fit-then-join chains (for diagnostics)
-        with open(os.path.join(out_path, "sbi_ftj_chains.pickle"), "wb") as handle:
-            pickle.dump(sbi_ftj_chains, handle, protocol=4)
-
-        # Output inferred m-c pairs from SBI
-        with open(os.path.join(out_path, "sbi_ftj_mcs.pickle"), "wb") as handle:
-            pickle.dump(sbi_ftj_mcs, handle, protocol=4)
-
-        with open(os.path.join(out_path, "sbi_jtf_mc.pickle"), "wb") as handle:
-            pickle.dump(sbi_jtf_mc, handle, protocol=4)
-
-        # Run MCMC inference
-        with multiprocessing.Pool() as pool:
-            t0 = time.perf_counter()
-            jtf_sigmas = np.sqrt(np.pi / 2) * sigmas / np.sqrt(int(args.num_obs))
-            mcmc_jtf_chain, mcmc_jtf_sampler = mcmc.join_then_fit(
-                drawn_nfw_profiles, jtf_sigmas, infer_config["priors"], pool=pool
-            )
-            log_time("MCMC", args.num_obs, "jtf", time.perf_counter() - t0)
-
-            t0 = time.perf_counter()
-            mcmc_ftj_chains, mcmc_ftj_samplers = mcmc.fit_then_join(
-                drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
-            )
-            log_time("MCMC", args.num_obs, "ftj", time.perf_counter() - t0)
-
-        # Output MCMC chains (pickling because diff sizes)
-        with open(os.path.join(out_path, "mcmc_chains.pickle"), "wb") as handle:
-            pickle.dump([mcmc_jtf_chain, mcmc_ftj_chains], handle, protocol=4)
-
-        # Output MCMC join-then-fit sampler (for diagnostics)
-        with open(os.path.join(out_path, "mcmc_jtf_sampler.pickle"), "wb") as handle:
-            pickle.dump(mcmc_jtf_sampler, handle, protocol=4)
-
-        # Output MCMC fit-then-join samplers (for diagnostics)
-        with open(os.path.join(out_path, "mcmc_ftj_samplers.pickle"), "wb") as handle:
-            pickle.dump(mcmc_ftj_samplers, handle, protocol=4)
-    else:
-        # Run Aggregate SBI inference
         t0 = time.perf_counter()
-        sbi_agg_chains, sbi_agg_mcs = sbi_.apply_observations_agg(
-            posterior, drawn_mc_pairs, drawn_nfw_profiles
+        mcmc_ftj_chains, mcmc_ftj_samplers = mcmc.fit_then_join(
+            drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
         )
-        log_time("SBI(agg)", args.num_obs, "both", time.perf_counter() - t0)
+        log_time("MCMC", args.num_obs, "ftj", time.perf_counter() - t0)
 
-        # Output SBI(agg) chains
-        with open(os.path.join(out_path, "sbi_agg_chains.pickle"), "wb") as handle:
-            pickle.dump(sbi_agg_chains, handle, protocol=4)
+    # Output MCMC chains (pickling because diff sizes)
+    with open(os.path.join(out_path, "mcmc_chains.pickle"), "wb") as handle:
+        pickle.dump([mcmc_jtf_chain, mcmc_ftj_chains], handle, protocol=4)
 
-        # Output inferred m-c percentiles from SBI
-        with open(os.path.join(out_path, "sbi_agg_mcs.pickle"), "wb") as handle:
-            pickle.dump(sbi_agg_mcs, handle, protocol=4)
+    # Output MCMC join-then-fit sampler (for diagnostics)
+    with open(os.path.join(out_path, "mcmc_jtf_sampler.pickle"), "wb") as handle:
+        pickle.dump(mcmc_jtf_sampler, handle, protocol=4)
+
+    # Output MCMC fit-then-join samplers (for diagnostics)
+    with open(os.path.join(out_path, "mcmc_ftj_samplers.pickle"), "wb") as handle:
+        pickle.dump(mcmc_ftj_samplers, handle, protocol=4)
 
     # Output median and percentile (25th and 75th) of drawn m-c pairs as "truth" value for plotting
     true_param_median = (np.median(drawn_mc_pairs.T[0]), np.median(drawn_mc_pairs.T[1]))

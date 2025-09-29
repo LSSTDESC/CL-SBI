@@ -29,7 +29,7 @@ if not os.path.exists(out_path):
     os.makedirs(out_path)
 
 # Checking if plots already exist from an earlier script run
-if os.path.isfile(os.path.join(out_path, "mcmc_ftj_cc.png")):
+if os.path.isfile(os.path.join(out_path, "mcmc_cc.png")):
     # Regenerating plots (continuing script)
     if args.regenerate:
         print("Overwriting existing diagnostic plots because of --regenerate flag")
@@ -44,12 +44,12 @@ with open(os.path.join(infer_path, "mcmc_jtf_sampler.pickle"), "rb") as handle:
     mcmc_jtf_sampler = pickle.load(handle)
 with open(os.path.join(infer_path, "mcmc_ftj_samplers.pickle"), "rb") as handle:
     mcmc_ftj_samplers = pickle.load(handle)
-with open(os.path.join(infer_path, "sbi_ftj_chains.pickle"), "rb") as handle:
-    sbi_ftj_chains = pickle.load(handle)
+# with open(os.path.join(infer_path, "sbi_ftj_chains.pickle"), "rb") as handle:
+#     sbi_ftj_chains = pickle.load(handle)
 
 # Load SBI inferred m-c pairs
-with open(os.path.join(infer_path, "sbi_ftj_mcs.pickle"), "rb") as handle:
-    sbi_ftj_mcs = pickle.load(handle)
+with open(os.path.join(infer_path, "sbi_ftj_mc.pickle"), "rb") as handle:
+    sbi_ftj_mc = pickle.load(handle)
 with open(os.path.join(infer_path, "sbi_jtf_mc.pickle"), "rb") as handle:
     sbi_jtf_mc = pickle.load(handle)
 
@@ -58,23 +58,15 @@ with open(os.path.join(infer_path, "mcmc_chains.pickle"), "rb") as handle:
 with open(os.path.join(infer_path, "sbi_chains.pickle"), "rb") as handle:
     sbi_chains = pickle.load(handle)
 
+with open(os.path.join(infer_path, "sbi_jtf_logprob.pickle"), "rb") as handle:
+    sbi_jtf_logprob = pickle.load(handle)
+with open(os.path.join(infer_path, "sbi_ftj_logprob.pickle"), "rb") as handle:
+    sbi_ftj_logprob = pickle.load(handle)
+
 true_param_median = np.load(os.path.join(infer_path, "true_param_median.npy"))
 
 # Plot the walkers for jtf sampler
 plotutils.plot_walkers(mcmc_jtf_sampler, out_path, "mcmc_jtf_")
-
-# mcmc_ftj_chains = []
-# for i in range(len(mcmc_ftj_samplers)):
-#     # Plot the walkers for each of the ftj samplers
-#     mcmc_ftj_chains.append(mcmc_ftj_samplers[i].flatchain)
-
-# # Plotting contour plots for each of the observations (that we later join in fit_then_join)
-# plotutils.plot_cc_diagnostic(
-#     mcmc_ftj_chains, out_path, "mcmc_ftj", list(true_param_median)
-# )
-plotutils.plot_cc_diagnostic(
-    sbi_ftj_chains, out_path, "sbi_ftj", list(true_param_median)
-)
 
 # Load observations
 obs_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}"
@@ -99,9 +91,7 @@ noiseless_drawn_nfw_profiles_filename = os.path.join(
 noiseless_drawn_nfw_profiles = np.load(noiseless_drawn_nfw_profiles_filename)
 
 # Load posterior
-posterior_rel_path = (
-    f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}"
-)
+posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}"
 posterior_path = os.path.join(script_dir, posterior_rel_path)
 posterior_filename = os.path.join(posterior_path, "posterior.pickle")
 with open(posterior_filename, "rb") as handle:
@@ -122,6 +112,7 @@ plotutils.plot_nfw_profiles(
     obs_config["max_richness"],
     z,
     is_noisy=True,
+    true_param_median=true_param_median,
 )
 
 plotutils.plot_nfw_profiles(
@@ -133,10 +124,28 @@ plotutils.plot_nfw_profiles(
     obs_config["max_richness"],
     z,
     is_noisy=False,
+    true_param_median=true_param_median,
 )
 
 # Plotting drawn AND inferred profiles in plots directory
-plotutils.plot_nfw_profiles(
+# plotutils.plot_nfw_profiles(
+#     drawn_nfw_profiles,
+#     sigmas,
+#     out_path,
+#     obs_config["num_radial_bins"],
+#     obs_config["min_richness"],
+#     obs_config["max_richness"],
+#     z,
+#     is_noisy=True,
+#     mcmc_chains=mcmc_chains,
+#     sbi_chains=sbi_chains,
+#     mcmc_jtf_sampler=mcmc_jtf_sampler,
+#     mcmc_ftj_samplers=mcmc_ftj_samplers,
+#     sbi_ftj_mc=sbi_ftj_mc,
+#     sbi_jtf_mc=sbi_jtf_mc,
+# )
+
+plotutils.plot_mcmc_nfw_profiles(
     drawn_nfw_profiles,
     sigmas,
     out_path,
@@ -144,13 +153,45 @@ plotutils.plot_nfw_profiles(
     obs_config["min_richness"],
     obs_config["max_richness"],
     z,
-    is_noisy=True,
     mcmc_chains=mcmc_chains,
-    sbi_chains=sbi_chains,
     mcmc_jtf_sampler=mcmc_jtf_sampler,
     mcmc_ftj_samplers=mcmc_ftj_samplers,
-    sbi_ftj_mcs=sbi_ftj_mcs,
+    true_param_median=true_param_median,
+)
+
+plotutils.plot_sbi_nfw_profiles(
+    drawn_nfw_profiles,
+    sigmas,
+    out_path,
+    obs_config["num_radial_bins"],
+    obs_config["min_richness"],
+    obs_config["max_richness"],
+    z,
+    sbi_chains=sbi_chains,
+    sbi_ftj_mc=sbi_ftj_mc,
     sbi_jtf_mc=sbi_jtf_mc,
+    sbi_ftj_logprob=sbi_ftj_logprob,
+    sbi_jtf_logprob=sbi_jtf_logprob,
+    true_param_median=true_param_median,
+)
+
+plotutils.plot_frac_diff(
+    drawn_nfw_profiles,
+    sigmas,
+    out_path,
+    obs_config["num_radial_bins"],
+    obs_config["min_richness"],
+    obs_config["max_richness"],
+    z,
+    mcmc_chains=mcmc_chains,
+    mcmc_jtf_sampler=mcmc_jtf_sampler,
+    mcmc_ftj_samplers=mcmc_ftj_samplers,
+    sbi_chains=sbi_chains,
+    # sbi_ftj_mc=sbi_ftj_mc,
+    # sbi_jtf_mc=sbi_jtf_mc,
+    true_param_median=true_param_median,
+    sbi_ftj_logprob=sbi_ftj_logprob,
+    sbi_jtf_logprob=sbi_jtf_logprob,
 )
 
 # plotutils.plot_nfw_profiles(

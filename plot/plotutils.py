@@ -1,6 +1,7 @@
 import pygtc
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from chainconsumer import ChainConsumer
 import os
 from colossus.cosmology import cosmology
@@ -15,7 +16,7 @@ plt.style.use(os.path.join(script_dir, "mplstyle.txt"))
 param_labels = ["log10mass", "concentration"]
 chain_labels = ["join_then_fit", "fit_then_join"]
 wide_param_ranges = ((12, 17), (2, 9))
-narrow_param_ranges = ((14.2, 15.2), (4.2, 6.2))
+narrow_param_ranges = ((13.5, 15), (3.5, 5.5))
 
 
 def timestamp():
@@ -48,10 +49,24 @@ def plot_pygtc(chains, out_path, infer_type, true_param_median=()):
     plt.close(GTC)
 
 
-def plot_chainconsumer(chains, out_path, infer_type, true_param=[]):
+def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=None):
+    p50 = np.array((np.median(mc_pairs.T[0]), np.median(mc_pairs.T[1])))
+    p25 = np.array(
+        (
+            np.percentile(mc_pairs.T[0], 25),
+            np.percentile(mc_pairs.T[1], 25),
+        )
+    )
+    p75 = np.array(
+        (
+            np.percentile(mc_pairs.T[0], 75),
+            np.percentile(mc_pairs.T[1], 75),
+        )
+    )
+
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
-    # TODO: clean this up
-    if np.shape(chains[0])[1] > len(param_labels):
+    # TODO: do we need this?
+    if infer_type == "mcmc":
         chains[0] = np.delete(chains[0], 2, 1)
         chains[1] = np.delete(chains[1], 2, 1)
 
@@ -68,21 +83,22 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[]):
         tick_font_size=16,
         usetex=False,
         serif=False,
-        # sigmas=[2, 3],
-        sigmas=[1, 2],
+        sigmas=[2, 3],
+        # sigmas=[1, 2],
         shade_alpha=0.3,
     )
 
     # Manually plot the truth values
-    p25 = np.array(true_param[1])  # 25th percentile
-    p50 = np.array(true_param[0])  # median
-    p75 = np.array(true_param[2])  # 75th percentile
+    # p25 = np.array(true_param[1])  # 25th percentile
+    # p50 = np.array(true_param[0])  # median
+    # p75 = np.array(true_param[2])  # 75th percentile
 
     # Set the median as the truth value
     fig = cc.plotter.plot(
         truth=p50,
         parameters=param_labels,
-        extents=list(wide_param_ranges),
+        extents=list(narrow_param_ranges),
+        # extents=list(wide_param_ranges),
         figsize=(8, 8),
     )
 
@@ -125,6 +141,56 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[]):
         ha="center",
         va="center",
     )
+
+    # Main plot
+    sns.kdeplot(
+        x=mc_pairs[:, 0],
+        y=mc_pairs[:, 1],
+        color="black",
+        # levels that map to 2 sigmas included and 3 sigmas included
+        levels=[1 - 0.997, 1 - 0.95],
+        ax=fig.axes[2],
+        linestyles=["-", "--"],
+        # legend=True,
+    )
+    # Mass plot
+    sns.kdeplot(
+        x=mc_pairs[:, 0],
+        color="black",
+        ax=fig.axes[0],
+    )
+    # Conc plot
+    sns.kdeplot(
+        y=mc_pairs[:, 1],
+        color="black",
+        ax=fig.axes[3],
+    )
+
+    # hack to show the legend with correct line styles
+    true95 = Line2D([0], [0], color="black", lw=2, ls="-")
+    true997 = Line2D([0], [0], color="black", lw=2, ls="--")
+    # h, l = fig.axes[2].get_legend_handles_labels()
+    # fig.axes[2].legend(
+    #     h + [true95, true997], l + ["True M-C (99.7%)", "True M-C (95%)"]
+    # )
+    # plt.legend()
+    ax = fig.axes[2]  # Main plot
+    # keep ChainConsumer's legend
+    cc_leg = ax.get_legend()
+
+    # add a second legend for the true KDE
+    leg2 = ax.legend(
+        [
+            Line2D([], [], color="black", lw=2, ls="-"),
+            Line2D([], [], color="black", lw=2, ls="--"),
+        ],
+        ["True M–C (99.7%)", "True M–C (95%)"],
+        frameon=False,
+        loc="upper left",
+        bbox_to_anchor=(0.02, 0.98),
+        handlelength=2.6,
+    )
+    ax.add_artist(cc_leg)  # re-add CC legend so both show
 
     plt.savefig(os.path.join(out_path, f"{infer_type}_cc.png"))
     plt.savefig(os.path.join(out_path, f"{infer_type}_cc.pdf"))
@@ -169,7 +235,8 @@ def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]
     fig = cc.plotter.plot(
         truth=p50,
         parameters=param_labels,
-        extents=list(wide_param_ranges),
+        extents=list(narrow_param_ranges),
+        # extents=list(wide_param_ranges),
         figsize=(8, 8),
     )
 
@@ -212,123 +279,6 @@ def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]
     plt.close()
 
 
-def plot_chainconsumer_agg(chain, out_path, true_params=None):
-    """
-    Generate two contour plots from an aggregate SBI posterior:
-    1) All individual cluster posteriors overlaid in one plot
-    2) One combined posterior from pooling all samples
-
-    Args:
-        chain: ndarray of shape (n_samples, 2 * N_obs)
-        out_path: directory path to save plots
-        true_params: optional list of N_obs (m, c) tuples for ground truth
-    """
-    chain = np.asarray(chain)
-    nsamp, ndim = chain.shape
-    if ndim % 2:
-        raise ValueError(f"Expected even dims (2*N_obs), got {ndim}")
-    N_obs = ndim // 2
-
-    # labels for each (m,c)
-    unit_labels = ["log10 M", "c"]
-
-    truth_flat = None
-    if true_params is not None:
-        truth_flat = np.array([val for pair in true_params for val in pair])
-
-    # 1) Individual overlay plot
-    cc_ind = ChainConsumer()
-    for i in range(N_obs):
-        sub = chain[:, 2 * i : 2 * i + 2]
-        cc_ind.add_chain(sub, parameters=unit_labels, name=f"cluster_{i}")
-    cc_ind.configure(statistics="mean", summary=False, sigmas=[1], shade_alpha=0.2)
-    fig1 = cc_ind.plotter.plot(
-        truth=truth_flat,
-        figsize=(6, 6),
-        parameters=unit_labels,
-        extents=list(wide_param_ranges),
-    )
-    os.makedirs(out_path, exist_ok=True)
-    fig1.savefig(os.path.join(out_path, "sbi_agg_individual.png"))
-    fig1.savefig(os.path.join(out_path, "sbi_agg_individual.pdf"))
-    plt.close(fig1)
-
-    # 2) Combined-chain plot
-    pooled = np.vstack([chain[:, 2 * i : 2 * i + 2] for i in range(N_obs)])
-    cc_comb = ChainConsumer()
-    cc_comb.add_chain(pooled, parameters=unit_labels, name="combined")
-    cc_comb.configure(statistics="mean", summary=True, sigmas=[1, 2], shade_alpha=0.3)
-    fig2 = cc_comb.plotter.plot(
-        truth=truth_flat,
-        parameters=unit_labels,
-        figsize=(6, 6),
-        extents=list(wide_param_ranges),
-    )
-    fig2.savefig(os.path.join(out_path, "sbi_agg_combined.png"))
-    fig2.savefig(os.path.join(out_path, "sbi_agg_combined.pdf"))
-    plt.close(fig2)
-
-
-def plot_chainconsumer_agg2(chains, out_path, true_params):
-    """
-    chains: numpy array of shape (N,6)
-    true_params: list/tuple of three (mass,conc) pairs:
-       [ (m50,c50), (m25,c25), (m75,c75) ]  or however you have it stored
-    """
-    # Grab each percentile chain
-    chain_25 = chains[:, 0:2]
-    chain_50 = chains[:, 2:4]
-    chain_75 = chains[:, 4:6]
-
-    cc = ChainConsumer()
-    cc.add_chain(chain_50, parameters=param_labels, name="median (50%)")
-    cc.add_chain(chain_25, parameters=param_labels, name="25th percentile")
-    cc.add_chain(chain_75, parameters=param_labels, name="75th percentile")
-
-    cc.configure(
-        statistics="mean",
-        summary=True,
-        sigmas=[1, 2],
-        shade_alpha=0.3,
-    )
-
-    # true_params should be [(m50,c50), (m25,c25), (m75,c75)]
-    # we pass the median as 'truth'
-    truth = np.array(true_params[0])
-
-    # DEBUG
-    # 1) Verify shapes make sense
-    print("chains shape:", chains.shape)
-    chain_25, chain_50, chain_75 = chains[:, :2], chains[:, 2:4], chains[:, 4:6]
-    print("chain_50 shape:", chain_50.shape)
-
-    # 2) Check for NaN / Inf
-    for name, ch in [("25th", chain_25), ("50th", chain_50), ("75th", chain_75)]:
-        print(f"{name} has NaN/Inf?", not np.isfinite(ch).all())
-
-    # 3) Check for zero width
-    for name, ch in [("25th", chain_25), ("50th", chain_50), ("75th", chain_75)]:
-        mins, maxs = ch.min(axis=0), ch.max(axis=0)
-        print(
-            f"{name} mins/maxs:",
-            mins,
-            "/",
-            maxs,
-            "  zero‐width?",
-            np.allclose(mins, maxs),
-        )
-
-    fig = cc.plotter.plot(
-        truth=truth,
-        parameters=param_labels,
-        figsize=(6, 6),
-        extents=list(wide_param_ranges),
-    )
-
-    fig.savefig(os.path.join(out_path, "sbi_agg_cc.png"))
-    fig.savefig(os.path.join(out_path, "sbi_agg_cc.pdf"))
-
-
 ### DIAGNOSTICS PLOTTING BELOW ###
 
 
@@ -357,7 +307,7 @@ def plot_cc_diagnostic(chains, out_path, infer_type, true_param_median=[]):
     for chain in chains:
         # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
         # TODO: clean this up
-        if np.shape(chain)[1] > len(param_labels):
+        if infer_type == "mcmc":  # np.shape(chain)[1] > len(param_labels):
             chain = np.delete(chain, 2, 1)
 
         cc.add_chain(chain, parameters=param_labels)
@@ -405,6 +355,68 @@ def plot_mc_pairs(mc_pairs, out_path):
     plt.close()
 
 
+def plot_mcmc_nfw_profiles(
+    nfw_profiles,
+    sigmas,
+    out_path,
+    num_radial_bins,
+    min_richness,
+    max_richness,
+    z,
+    mcmc_chains=None,
+    mcmc_ftj_samplers=None,
+    mcmc_jtf_sampler=None,
+    true_param_median=None,
+):
+    plot_nfw_profiles(
+        nfw_profiles,
+        sigmas,
+        out_path,
+        num_radial_bins,
+        min_richness,
+        max_richness,
+        z,
+        is_noisy=True,
+        mcmc_chains=mcmc_chains,
+        mcmc_ftj_samplers=mcmc_ftj_samplers,
+        mcmc_jtf_sampler=mcmc_jtf_sampler,
+        true_param_median=true_param_median,
+    )
+
+
+def plot_sbi_nfw_profiles(
+    nfw_profiles,
+    sigmas,
+    out_path,
+    num_radial_bins,
+    min_richness,
+    max_richness,
+    z,
+    sbi_chains,
+    sbi_ftj_mc,
+    sbi_jtf_mc,
+    sbi_ftj_logprob,
+    sbi_jtf_logprob,
+    true_param_median,
+):
+    plot_nfw_profiles(
+        nfw_profiles,
+        sigmas,
+        out_path,
+        num_radial_bins,
+        min_richness,
+        max_richness,
+        z,
+        is_noisy=True,
+        sbi_chains=sbi_chains,
+        sbi_ftj_mc=sbi_ftj_mc,
+        sbi_jtf_mc=sbi_jtf_mc,
+        sbi_ftj_logprob=sbi_ftj_logprob,
+        sbi_jtf_logprob=sbi_jtf_logprob,
+        true_param_median=true_param_median,
+    )
+
+
 def plot_nfw_profiles(
     nfw_profiles,
     sigmas,
@@ -418,31 +430,41 @@ def plot_nfw_profiles(
     sbi_chains=None,
     mcmc_ftj_samplers=None,
     mcmc_jtf_sampler=None,
-    # sbi_posterior=None,
-    sbi_ftj_mcs=None,
+    sbi_ftj_mc=None,
     sbi_jtf_mc=None,
+    sbi_ftj_logprob=None,
+    sbi_jtf_logprob=None,
+    true_param_median=None,
 ):
     cosmo = cosmology.setCosmology("planck18")
 
     nfw_profiles = 10**nfw_profiles  # convert back from log space
 
     rbins = 10 ** np.arange(0, num_radial_bins / 10, 0.1)
-    plt.figure(figsize=(8, 8))
-    plt.loglog()
-    plt.xlabel("radius [kpc/h]", fontsize="xx-large")
-    plt.ylabel("$ \Delta \Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
-    plt.ylim(1e7, 1e10)
-    plt.xlim(min(rbins), max(rbins))
-    # yerr = sigmas
+    fig, (ax1, ax2) = plt.subplots(
+        2,
+        sharex=True,
+        figsize=(8, 10),
+        gridspec_kw={"height_ratios": [2, 1], "hspace": 0.05},
+    )
+    ax1.loglog()
+    ax1.set_xscale("log")
+    ax2.set_yscale("linear")
+
+    # plt.figure(figsize=(8, 8))
+    ax2.set_xlabel("radius [kpc/h]", fontsize="xx-large")
+    ax1.set_ylabel("$ \Delta \Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
+    ax1.set_ylim(1e7, 1e10)
+    ax1.set_xlim(min(rbins), max(rbins))
 
     for nfw_profile in nfw_profiles:
-        plt.plot(rbins, nfw_profile, "-", alpha=0.1, zorder=0, color="gray")
-    plt.plot(
+        ax1.plot(rbins, nfw_profile, "-", alpha=0.1, zorder=0, color="gray")
+    ax1.plot(
         rbins,
         np.median(nfw_profiles, axis=0),
         "k",
         linewidth=2.0,
-        label=f"Median Drawn NFW, {min_richness} < $\lambda$ < {max_richness}",
+        label=f"Median Drawn NFW, $\lambda \in$ [{min_richness}, {max_richness}]",
     )
     if is_noisy:
         upper_error = np.exp(
@@ -453,7 +475,7 @@ def plot_nfw_profiles(
         )
         yerr = [lower_error, upper_error]
 
-        plt.errorbar(
+        ax1.errorbar(
             rbins,
             np.median(nfw_profiles, axis=0),
             yerr=yerr,
@@ -476,88 +498,425 @@ def plot_nfw_profiles(
             z,
             method="map",
             log_probs=mcmc_ftj_samplers.get_log_prob(flat=True),
-            # np.concatenate([s.get_log_prob(flat=True) for s in mcmc_ftj_samplers]),
         )
-        plt.plot(
+
+        ax1.plot(
             rbins,
             mcmc_jtf_nfw,
-            # linestyle='dashed',
-            # linewidth=2.0,
             label=f"MCMC join-then-fit",
-            color="g",
+            color="blue",
         )
-        plt.plot(
+        ax1.plot(
             rbins,
             mcmc_ftj_nfw,
             linestyle="dashed",
-            # linewidth=2.0,
             label=f"MCMC fit-then-join",
-            color="g",
+            color="green",
         )
-        plt.ylim(
-            min(min(mcmc_jtf_nfw), min(mcmc_ftj_nfw)) * 0.8,
-            max(max(mcmc_jtf_nfw), max(mcmc_ftj_nfw)) * 1.2,
+
+        # Plot the range of drawn NFW profiles from MCMC chains
+        mcmc_jtf_nfw_range = sampled_nfw_profiles(
+            mcmc_chains[0],
+            z,
+            n_samples=200,
+            log_probs=mcmc_jtf_sampler.get_log_prob(flat=True),
         )
+        mcmc_jtf_lo = np.percentile(mcmc_jtf_nfw_range, 16, axis=0)
+        mcmc_jtf_hi = np.percentile(mcmc_jtf_nfw_range, 84, axis=0)
+
+        ax1.fill_between(
+            rbins,
+            mcmc_jtf_lo,
+            mcmc_jtf_hi,
+            alpha=0.3,
+            color="blue",
+            label="MCMC join-then-fit 68\% CI",
+        )
+
+        mcmc_ftj_nfw_range = sampled_nfw_profiles(
+            mcmc_chains[1],
+            z,
+            n_samples=200,
+            log_probs=mcmc_ftj_samplers.get_log_prob(flat=True),
+        )
+        mcmc_ftj_lo = np.percentile(mcmc_ftj_nfw_range, 16, axis=0)
+        mcmc_ftj_hi = np.percentile(mcmc_ftj_nfw_range, 84, axis=0)
+        ax1.fill_between(
+            rbins,
+            mcmc_ftj_lo,
+            mcmc_ftj_hi,
+            alpha=0.3,
+            color="green",
+            label="MCMC join-then-fit 68\% CI",
+        )
+        ax1.set_ylim(
+            min(
+                np.min(mcmc_jtf_nfw),
+                np.min(mcmc_ftj_nfw),
+                np.min(np.median(nfw_profiles, axis=0)),
+                # np.min(lo),  # include band
+            )
+            * 0.8,
+            max(
+                np.max(mcmc_jtf_nfw),
+                np.max(mcmc_ftj_nfw),
+                np.max(np.median(nfw_profiles, axis=0)),
+                # np.max(hi),  # include band
+            )
+            * 1.2,
+        )
+        # Rescale the axes
+        # ax = ax1.gca()
+        # ax.relim()
+        # ax.autoscale_view()
+
+        ideal_nfw = wlprofile.simulate_nfw(
+            float(true_param_median[0]), float(true_param_median[1]), z=z
+        )
+        mcmc_jtf_nfw_range_diff = mcmc_jtf_nfw_range / ideal_nfw - 1
+        mcmc_jtf_diff_lo = np.percentile(mcmc_jtf_nfw_range_diff, 16, axis=0)
+        mcmc_jtf_diff_hi = np.percentile(mcmc_jtf_nfw_range_diff, 84, axis=0)
+
+        mcmc_ftj_nfw_range_diff = mcmc_ftj_nfw_range / ideal_nfw - 1
+        mcmc_ftj_diff_lo = np.percentile(mcmc_ftj_nfw_range_diff, 16, axis=0)
+        mcmc_ftj_diff_hi = np.percentile(mcmc_ftj_nfw_range_diff, 84, axis=0)
+
+        # ax2.xlabel("radius [kpc/h]", fontsize="xx-large")
+        # ax2.title(
+        #     f"Fractional Diff with NFW from Median Drawn M-C $\lambda \in$ [{min_richness}, {max_richness}]",
+        #     fontsize="x-large",
+        # )
+        ax2.set_ylabel(
+            r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
+        )
+        ax2.axhline(
+            0, color="gray", linestyle="dotted", alpha=0.5
+        )  # , label='Median NFW Profile')
+        ax2.plot(
+            rbins,
+            # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+            (np.median(nfw_profiles, axis=0) / ideal_nfw) - 1,
+            color="gray",
+            alpha=0.5,
+            linestyle="-.",
+            label="Median Observed NFW",
+        )
+        ax2.plot(
+            rbins,
+            # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+            (mcmc_jtf_nfw / ideal_nfw) - 1,
+            color="blue",
+            # linestyle="-.",
+            label="MCMC join-then-fit",
+        )
+        ax2.plot(
+            rbins,
+            # (mcmc_ftj_nfw / np.median(nfw_profiles, axis=0)) - 1,
+            (mcmc_ftj_nfw / ideal_nfw) - 1,
+            color="green",
+            linestyle="--",
+            # linewidth=3,
+            label="MCMC fit-then-join",
+        )
+        ax2.fill_between(
+            rbins,
+            mcmc_jtf_diff_lo,
+            mcmc_jtf_diff_hi,
+            alpha=0.3,
+            color="blue",
+            label="MCMC join-then-fit 68\% CI",
+        )
+        ax2.fill_between(
+            rbins,
+            mcmc_ftj_diff_lo,
+            mcmc_ftj_diff_hi,
+            alpha=0.3,
+            color="green",
+            label="MCMC join-then-fit 68\% CI",
+        )
+
+        ax1.legend(fontsize="large")
+        ax2.legend(fontsize="large")
+
+        if is_noisy:
+            plt.savefig(os.path.join(out_path, f"mcmc_drawn_nfw_profiles.png"))
+            plt.savefig(os.path.join(out_path, f"mcmc_drawn_nfw_profiles.pdf"))
+        else:
+            plt.savefig(os.path.join(out_path, f"noiseless_drawn_nfw_profiles.png"))
+            plt.savefig(os.path.join(out_path, f"noiseless_drawn_nfw_profiles.pdf"))
+
     if sbi_chains:
-        if sbi_ftj_mcs is not None:
-            sbi_ftj_mc = np.median(sbi_ftj_mcs, axis=0)
-            sbi_ftj_nfw = wlprofile.simulate_nfw(sbi_ftj_mc[0], sbi_ftj_mc[1], z=z)
-            plt.plot(
-                rbins,
-                sbi_ftj_nfw,
-                linestyle="dashed",
-                label=f"SBI fit-then-join",
-                color="b",
-            )
-        if sbi_jtf_mc is not None:
-            sbi_jtf_nfw = wlprofile.simulate_nfw(
-                float(sbi_jtf_mc[0]), float(sbi_jtf_mc[1]), z=z
-            )
-            plt.plot(
-                rbins,
-                sbi_jtf_nfw,
-                label=f"SBI join-then-fit",
-                color="b",
-            )
-        plt.ylim(
+        sbi_jtf_nfw = inferred_nfw_from_chains(
+            sbi_chains[0],
+            z,
+            method="map",
+            log_probs=sbi_jtf_logprob.numpy(),
+        )
+        ax1.plot(
+            rbins,
+            sbi_jtf_nfw,
+            label=f"SBI join-then-fit",
+            color="blue",
+        )
+        sbi_ftj_nfw = inferred_nfw_from_chains(
+            sbi_chains[1],
+            z,
+            method="map",
+            log_probs=sbi_ftj_logprob.numpy(),
+        )
+        ax1.plot(
+            rbins,
+            sbi_ftj_nfw,
+            linestyle="dashed",
+            label=f"SBI fit-then-join",
+            color="green",
+        )
+        sbi_jtf_nfw_range = sampled_nfw_profiles(
+            sbi_chains[0],
+            z,
+            n_samples=200,
+            log_probs=sbi_jtf_logprob.numpy(),
+        )
+        sbi_jtf_lo = np.percentile(sbi_jtf_nfw_range, 16, axis=0)
+        sbi_jtf_hi = np.percentile(sbi_jtf_nfw_range, 84, axis=0)
+
+        ax1.fill_between(
+            rbins,
+            sbi_jtf_lo,
+            sbi_jtf_hi,
+            alpha=0.3,
+            color="blue",
+            label="SBI fit-then-join 68\% CI",
+        )
+
+        sbi_ftj_nfw_range = sampled_nfw_profiles(
+            sbi_chains[1],
+            z,
+            n_samples=200,
+            log_probs=sbi_ftj_logprob.numpy(),
+        )
+        sbi_ftj_lo = np.percentile(sbi_ftj_nfw_range, 16, axis=0)
+        sbi_ftj_hi = np.percentile(sbi_ftj_nfw_range, 84, axis=0)
+        ax1.fill_between(
+            rbins,
+            sbi_ftj_lo,
+            sbi_ftj_hi,
+            alpha=0.3,
+            color="green",
+            label="SBI join-then-fit 68\% CI",
+        )
+        ax1.set_ylim(
             min(
-                min(sbi_jtf_nfw), min(sbi_ftj_nfw), min(np.median(nfw_profiles, axis=0))
+                np.min(sbi_jtf_nfw),
+                np.min(sbi_ftj_nfw),
+                np.min(np.median(nfw_profiles, axis=0)),
+                # np.min(lo),  # include band
             )
             * 0.8,
             max(
-                max(sbi_jtf_nfw), max(sbi_ftj_nfw), max(np.median(nfw_profiles, axis=0))
+                np.max(sbi_jtf_nfw),
+                np.max(sbi_ftj_nfw),
+                np.max(np.median(nfw_profiles, axis=0)),
+                # np.max(hi),  # include band
             )
             * 1.2,
         )
 
-    if sbi_chains and mcmc_chains:
-        plt.ylim(
-            min(
-                min(min(sbi_jtf_nfw), min(sbi_ftj_nfw)),
-                min(min(mcmc_jtf_nfw), min(mcmc_ftj_nfw)),
-                min(np.median(nfw_profiles, axis=0)),
-            )
-            * 0.8,
-            max(
-                max(max(sbi_jtf_nfw), max(sbi_ftj_nfw)),
-                max(max(mcmc_jtf_nfw), max(mcmc_ftj_nfw)),
-                max(np.median(nfw_profiles, axis=0)),
-            )
-            * 1.2,
+        ideal_nfw = wlprofile.simulate_nfw(
+            float(true_param_median[0]), float(true_param_median[1]), z=z
+        )
+        sbi_jtf_nfw_range_diff = sbi_jtf_nfw_range / ideal_nfw - 1
+        sbi_jtf_diff_lo = np.percentile(sbi_jtf_nfw_range_diff, 16, axis=0)
+        sbi_jtf_diff_hi = np.percentile(sbi_jtf_nfw_range_diff, 84, axis=0)
+
+        sbi_ftj_nfw_range_diff = sbi_ftj_nfw_range / ideal_nfw - 1
+        sbi_ftj_diff_lo = np.percentile(sbi_ftj_nfw_range_diff, 16, axis=0)
+        sbi_ftj_diff_hi = np.percentile(sbi_ftj_nfw_range_diff, 84, axis=0)
+
+        # ax2.xlabel("radius [kpc/h]", fontsize="xx-large")
+        # ax2.title(
+        #     f"Fractional Diff with NFW from Median Drawn M-C $\lambda \in$ [{min_richness}, {max_richness}]",
+        #     fontsize="x-large",
+        # )
+        ax2.set_ylabel(
+            r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
+        )
+        ax2.axhline(
+            0, color="gray", linestyle="dotted", alpha=0.5
+        )  # , label='Median NFW Profile')
+        ax2.plot(
+            rbins,
+            # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+            (np.median(nfw_profiles, axis=0) / ideal_nfw) - 1,
+            color="gray",
+            alpha=0.5,
+            linestyle="-.",
+            label="Median Observed NFW",
+        )
+        ax2.plot(
+            rbins,
+            # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+            (sbi_jtf_nfw / ideal_nfw) - 1,
+            color="blue",
+            # linestyle="-.",
+            label="SBI join-then-fit",
+        )
+        ax2.plot(
+            rbins,
+            # (mcmc_ftj_nfw / np.median(nfw_profiles, axis=0)) - 1,
+            (sbi_ftj_nfw / ideal_nfw) - 1,
+            color="green",
+            linestyle="--",
+            # linewidth=3,
+            label="SBI fit-then-join",
+        )
+        ax2.fill_between(
+            rbins,
+            sbi_jtf_diff_lo,
+            sbi_jtf_diff_hi,
+            alpha=0.3,
+            color="blue",
+            label="SBI join-then-fit 68\% CI",
+        )
+        ax2.fill_between(
+            rbins,
+            sbi_ftj_diff_lo,
+            sbi_ftj_diff_hi,
+            alpha=0.3,
+            color="green",
+            label="SBI join-then-fit 68\% CI",
         )
 
-    # Rescale the axes
-    ax = plt.gca()
-    ax.relim()
-    ax.autoscale_view()
+        ax1.legend(fontsize="large")
+        ax2.legend(fontsize="large")
+
+        if is_noisy:
+            plt.savefig(os.path.join(out_path, f"sbi_drawn_nfw_profiles.png"))
+            plt.savefig(os.path.join(out_path, f"sbi_drawn_nfw_profiles.pdf"))
+        else:
+            plt.savefig(os.path.join(out_path, f"noiseless_drawn_nfw_profiles.png"))
+            plt.savefig(os.path.join(out_path, f"noiseless_drawn_nfw_profiles.pdf"))
+
+
+def plot_frac_diff(
+    nfw_profiles,
+    sigmas,
+    out_path,
+    num_radial_bins,
+    min_richness,
+    max_richness,
+    z,
+    mcmc_chains,
+    mcmc_jtf_sampler,
+    mcmc_ftj_samplers,
+    sbi_chains,
+    # sbi_ftj_mc,
+    # sbi_jtf_mc,
+    true_param_median,
+    sbi_ftj_logprob,
+    sbi_jtf_logprob,
+):
+    plt.figure(figsize=(8, 5))
+    plt.xscale("log")
+    plt.xlabel("radius [kpc/h]", fontsize="xx-large")
+    plt.title(
+        f"Fractional Diff with NFW from Median Drawn M-C $\lambda \in$ [{min_richness}, {max_richness}]",
+        fontsize="x-large",
+    )
+    plt.ylabel(
+        r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
+    )
+    nfw_profiles = 10**nfw_profiles
+
+    rbins = 10 ** np.arange(0, num_radial_bins / 10, 0.1)
+    ideal_nfw = wlprofile.simulate_nfw(
+        float(true_param_median[0]), float(true_param_median[1]), z=z
+    )
+    # sbi_ftj_nfw = wlprofile.simulate_nfw(
+    #     float(sbi_ftj_mc[0]), float(sbi_ftj_mc[1]), z=z
+    # )
+    # sbi_jtf_nfw = wlprofile.simulate_nfw(
+    #     float(sbi_jtf_mc[0]), float(sbi_jtf_mc[1]), z=z
+    # )
+    sbi_jtf_nfw = inferred_nfw_from_chains(
+        sbi_chains[0],
+        z,
+        method="map",
+        log_probs=sbi_jtf_logprob.numpy(),
+    )
+
+    sbi_ftj_nfw = inferred_nfw_from_chains(
+        sbi_chains[1],
+        z,
+        method="map",
+        log_probs=sbi_ftj_logprob.numpy(),
+    )
+
+    mcmc_jtf_nfw = inferred_nfw_from_chains(
+        mcmc_chains[0],
+        z,
+        method="map",
+        log_probs=mcmc_jtf_sampler.get_log_prob(flat=True),
+    )
+    mcmc_ftj_nfw = inferred_nfw_from_chains(
+        mcmc_chains[1],
+        z,
+        method="map",
+        log_probs=mcmc_ftj_samplers.get_log_prob(flat=True),
+    )
+
+    plt.axhline(
+        0, color="gray", linestyle="dotted", alpha=0.5
+    )  # , label='Median NFW Profile')
+    plt.plot(
+        rbins,
+        # (sbi_ftj_nfw / np.median(nfw_profiles, axis=0)) - 1,
+        (sbi_ftj_nfw / ideal_nfw) - 1,
+        color="blue",
+        linestyle="--",
+        # linewidth=3,
+        label="SBI fit-then-join",
+    )
+    plt.plot(
+        rbins,
+        # (sbi_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+        (sbi_jtf_nfw / ideal_nfw) - 1,
+        color="blue",
+        # linestyle="-.",
+        label="SBI join-then-fit",
+    )
+    plt.plot(
+        rbins,
+        # (mcmc_ftj_nfw / np.median(nfw_profiles, axis=0)) - 1,
+        (mcmc_ftj_nfw / ideal_nfw) - 1,
+        color="green",
+        linestyle="--",
+        # linewidth=3,
+        label="MCMC fit-then-join",
+    )
+    plt.plot(
+        rbins,
+        # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+        (mcmc_jtf_nfw / ideal_nfw) - 1,
+        color="green",
+        # linestyle="-.",
+        label="MCMC join-then-fit",
+    )
+    plt.plot(
+        rbins,
+        # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+        (np.median(nfw_profiles, axis=0) / ideal_nfw) - 1,
+        color="gray",
+        alpha=0.5,
+        linestyle="-.",
+        label="Median Observed NFW",
+    )
+
     plt.legend(fontsize="large")
-    if is_noisy:
-        plt.savefig(os.path.join(out_path, f"drawn_nfw_profiles.png"))
-        plt.savefig(os.path.join(out_path, f"drawn_nfw_profiles.pdf"))
-    else:
-        plt.savefig(os.path.join(out_path, f"noiseless_drawn_nfw_profiles.png"))
-        plt.savefig(os.path.join(out_path, f"noiseless_drawn_nfw_profiles.pdf"))
-    plt.close()
+    plt.xlim(min(rbins), max(rbins))
+    plt.savefig(os.path.join(out_path, f"frac_diff.png"))
+    plt.savefig(os.path.join(out_path, f"frac_diff.pdf"))
+    # plt.close()
 
 
 # From chains, let's see what the inferred mc pair is to compare with drawn mc pairs.
@@ -578,11 +937,49 @@ def inferred_mc_from_chains(
 
 
 # From chains, generate an NFW from the inferred m-c pair to compare with drawn NFWs.
-def inferred_nfw_from_chains(
-    chains, z, method="joint_median", log_probs=None, sbi_posterior=None
-):
-    inferred_mc_pair = inferred_mc_from_chains(chains, method, log_probs, sbi_posterior)
+def inferred_nfw_from_chains(chains, z, method="joint_median", log_probs=None):
+    inferred_mc_pair = inferred_mc_from_chains(chains, method, log_probs)
     return wlprofile.simulate_nfw(inferred_mc_pair[0], inferred_mc_pair[1], z=z)
+
+
+# Draw a bunch of m-c pairs from the chains and generate NFW profiles
+def sampled_nfw_profiles(chains, z, n_samples=200, log_probs=None):
+    # Randomly choose indices from chains
+    if log_probs is not None:
+        # convert to normalized probabilities
+        weights = np.exp(log_probs - np.max(log_probs))
+        weights /= weights.sum()
+        idxs = np.random.choice(len(chains), size=n_samples, replace=True, p=weights)
+    else:
+        idxs = np.random.choice(len(chains), size=n_samples, replace=False)
+    mc_samples = chains[idxs]
+
+    # print(np.shape(mc_samples))
+    if np.shape(mc_samples)[1] > 2:
+        mc_samples = mc_samples[:, :2]
+
+    profiles = []
+    for log10m, c in mc_samples:
+        prof = wlprofile.simulate_nfw(log10m, c, z=z)  # shape: (n_radii,)
+        profiles.append(prof)
+
+    return np.array(profiles)  # shape: (n_samples, n_radii)
+
+
+# Plot the range of drawn m-c pairs
+def plot_posterior_band(chains, z, radii, ax=None, color="C0", label=None):
+    profiles = sampled_nfw_profiles(chains, z)
+    median = np.median(profiles, axis=0)
+    lo = np.percentile(profiles, 16, axis=0)
+    hi = np.percentile(profiles, 84, axis=0)
+
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    # fill between 16th–84th
+    ax.fill_between(radii, lo, hi, color=color, alpha=0.3)
+    ax.plot(radii, median, color=color, label=label)
+    return ax
 
 
 def plot_ppc(

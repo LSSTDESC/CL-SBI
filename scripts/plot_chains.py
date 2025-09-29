@@ -20,6 +20,12 @@ args = parser.parse_args()
 
 script_dir = os.path.dirname(__file__)
 
+# Load observations
+obs_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}"
+obs_path = os.path.join(script_dir, obs_rel_path)
+drawn_mc_pairs_filename = os.path.join(obs_path, "drawn_mc_pairs.npy")
+drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
+
 # Load infer config
 infer_config_rel_path = "../configs/inference/"
 infer_config_path = os.path.join(script_dir, infer_config_rel_path)
@@ -31,14 +37,10 @@ with open(infer_config_filename, "r") as f:
 infer_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}"
 infer_path = os.path.join(script_dir, infer_rel_path)
 
-if "agg" not in infer_config:
-    with open(os.path.join(infer_path, "mcmc_chains.pickle"), "rb") as handle:
-        mcmc_chains = pickle.load(handle)
-    with open(os.path.join(infer_path, "sbi_chains.pickle"), "rb") as handle:
-        sbi_chains = pickle.load(handle)
-else:
-    with open(os.path.join(infer_path, "sbi_agg_chains.pickle"), "rb") as handle:
-        sbi_agg_chains = pickle.load(handle)
+with open(os.path.join(infer_path, "mcmc_chains.pickle"), "rb") as handle:
+    mcmc_chains = pickle.load(handle)
+with open(os.path.join(infer_path, "sbi_chains.pickle"), "rb") as handle:
+    sbi_chains = pickle.load(handle)
 
 true_param_median = np.load(os.path.join(infer_path, "true_param_median.npy"))
 true_param_25 = np.load(os.path.join(infer_path, "true_param_25th_percentile.npy"))
@@ -67,12 +69,20 @@ if "agg" not in infer_config:
     # TODO: add a wrapper function so we have a single interface with 'pygtc' or 'cc' as a param
     # plotutils.plot_pygtc(mcmc_chains, out_path, "mcmc", true_param_median)
     plotutils.plot_chainconsumer(
-        mcmc_chains, out_path, "mcmc", [true_param_median, true_param_25, true_param_75]
+        mcmc_chains,
+        out_path,
+        "mcmc",
+        [true_param_median, true_param_25, true_param_75],
+        drawn_mc_pairs,
     )
 
     # plotutils.plot_pygtc(sbi_chains, out_path, "sbi", true_param_median)
     plotutils.plot_chainconsumer(
-        sbi_chains, out_path, "sbi", [true_param_median, true_param_25, true_param_75]
+        sbi_chains,
+        out_path,
+        "sbi",
+        [true_param_median, true_param_25, true_param_75],
+        drawn_mc_pairs,
     )
 
     plotutils.plot_chainconsumer_combined(
@@ -81,10 +91,10 @@ if "agg" not in infer_config:
         out_path,
         [true_param_median, true_param_25, true_param_75],
     )
-else:
-    plotutils.plot_chainconsumer_agg(
-        sbi_agg_chains,
-        out_path,
-        # "sbi_agg",
-        [true_param_median, true_param_25, true_param_75],
-    )
+# else:
+#     plotutils.plot_chainconsumer_agg(
+#         sbi_agg_chains,
+#         out_path,
+#         # "sbi_agg",
+#         [true_param_median, true_param_25, true_param_75],
+#     )
