@@ -13,10 +13,19 @@ def sbi_config():
 
 
 # Create an inferrer with the priors from the inference config
-def gen_inferrer(priors):
+def gen_inferrer(priors, param_dim=2):
+    if param_dim % 2 != 0:
+        raise ValueError(
+            "Expected an even number of parameters (mass and concentration percentiles)."
+        )
+
+    n_mass = param_dim // 2
+    lower = [priors["min_log10mass"]] * n_mass + [priors["min_concentration"]] * n_mass
+    upper = [priors["max_log10mass"]] * n_mass + [priors["max_concentration"]] * n_mass
+
     prior = BoxUniform(
-        torch.as_tensor([priors["min_log10mass"], priors["min_concentration"]]),
-        torch.as_tensor([priors["max_log10mass"], priors["max_concentration"]]),
+        torch.as_tensor(lower, dtype=torch.float32),
+        torch.as_tensor(upper, dtype=torch.float32),
     )
     return SNPE(
         prior, density_estimator="mdn", device="cpu"
@@ -59,6 +68,7 @@ def gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles):
     )
 
     # Build posterior using trained density estimator and posterior sampling settings
+    # posterior = inferrer.build_posterior(density_estimator, sample_with="mcmc")
     posterior = inferrer.build_posterior(density_estimator)
 
     return posterior
@@ -69,8 +79,8 @@ def apply_observations(
     posterior, posterior_jtf, drawn_mc_pairs, drawn_nfw_profiles, err_dex=0.0
 ):
     from .sbiutils import (
-        create_fit_join_observation_nfw,
         create_join_fit_observation_nfw,
+        create_fit_join_observation_nfw,
     )
 
     # Join (take the median of) observations and then fit on that
@@ -91,8 +101,6 @@ def apply_observations(
         drawn_mc_pairs, drawn_nfw_profiles
     )
 
-    # print(np.shape(x_o_fj))
-
     samples_fj = posterior.sample((10000,), x=x_o_fj)
     logp_fj = posterior.log_prob(samples_fj, x=x_o_fj)
     idx_fj = torch.argmax(logp_fj)
@@ -101,8 +109,8 @@ def apply_observations(
     return (
         samples_jf.numpy(),
         samples_fj.numpy(),
-        map_mc_jf,
-        map_mc_fj,
+        map_mc_jf.numpy(),
+        map_mc_fj.numpy(),
         logp_fj,
         logp_jf,
     )

@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 
+PERCENTILE_LEVELS = [5, 16, 25, 50, 75, 84, 95]
+
 
 def create_observation_nfw(mc_pair, nfw_profile):
     """
@@ -25,9 +27,10 @@ def create_join_fit_observation_nfw(mc_pairs, nfw_profiles):
     Returns the parameters (input), and the observations (radial profile) as tensors
     """
 
-    median_mc_pair = np.median(mc_pairs, keepdims=True, axis=0)[0]
+    percentiles = np.percentile(mc_pairs, PERCENTILE_LEVELS, axis=0)
+    theta = np.concatenate((percentiles[:, 0], percentiles[:, 1]))
     median_nfw_profile = np.median(nfw_profiles, axis=0)
-    return create_observation_nfw(median_mc_pair, median_nfw_profile)
+    return create_observation_nfw(theta, median_nfw_profile)
 
 
 def create_fit_join_observation_nfw(mc_pairs, nfw_profiles):
@@ -37,8 +40,6 @@ def create_fit_join_observation_nfw(mc_pairs, nfw_profiles):
     Returns the parameters (input), and the observations (radial profile) as tensors
     """
 
-    median_mc_pair = np.median(mc_pairs, keepdims=True, axis=0)[0]
-    # print(np.shape(nfw_profiles))
-    # nfw_profiles = np.reshape(np.shape(nfw_profiles)[0], -1)
-    # print(np.shape(nfw_profiles))
-    return create_observation_nfw(median_mc_pair, nfw_profiles.flatten())
+    percentiles = np.percentile(mc_pairs, PERCENTILE_LEVELS, axis=0)
+    theta = np.concatenate((percentiles[:, 0], percentiles[:, 1]))
+    return create_observation_nfw(theta, nfw_profiles.flatten())

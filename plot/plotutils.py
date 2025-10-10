@@ -2,6 +2,7 @@ import pygtc
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.patches import Ellipse
 from chainconsumer import ChainConsumer
 import os
 from colossus.cosmology import cosmology
@@ -17,6 +18,111 @@ param_labels = ["log10mass", "concentration"]
 chain_labels = ["join_then_fit", "fit_then_join"]
 wide_param_ranges = ((12, 17), (2, 9))
 narrow_param_ranges = ((13.5, 15), (3.5, 5.5))
+
+QUARTILE_SIGMA = 0.6744897501960817  # z-score at 75th percentile for a normal
+Z_95 = 1.6448536269514722  # z-score at 95th percentile for a normal
+MIN_SIGMA = 1e-3
+PERCENTILE_LEVEL_SETS = {
+    3: [25, 50, 75],
+    7: [5, 16, 25, 50, 75, 84, 95],
+}
+
+
+def get_percentile_levels(num_levels):
+    return PERCENTILE_LEVEL_SETS.get(num_levels)
+
+
+def median_index(levels):
+    if 50 in levels:
+        return levels.index(50)
+    return len(levels) // 2
+
+
+def split_percentile_chain(chain):
+    if chain.shape[1] <= 2 or chain.shape[1] % 2 != 0:
+        return None
+    num_levels = chain.shape[1] // 2
+    levels = get_percentile_levels(num_levels)
+    if levels is None:
+        raise AssertionError(
+            f"Unsupported number of percentile levels in chain: {chain.shape[1]}"
+        )
+    mass_percentiles = chain[:, :num_levels]
+    conc_percentiles = chain[:, num_levels:]
+    return levels, mass_percentiles, conc_percentiles
+
+
+def compute_quantile_summary(samples, levels):
+    return {
+        level: float(np.median(samples[:, idx])) for idx, level in enumerate(levels)
+    }
+
+
+def estimate_sigma_from_quantiles(quantiles):
+    candidates = []
+    if 84 in quantiles and 16 in quantiles:
+        candidates.append((quantiles[84] - quantiles[16]) / 2.0)
+    if 75 in quantiles and 25 in quantiles:
+        candidates.append((quantiles[75] - quantiles[25]) / (2.0 * QUARTILE_SIGMA))
+    if 95 in quantiles and 5 in quantiles:
+        candidates.append((quantiles[95] - quantiles[5]) / (2.0 * Z_95))
+    candidates = [c for c in candidates if c > 0]
+    if not candidates:
+        return MIN_SIGMA
+    return max(candidates)
+
+
+def build_gaussian_summary_from_chain(chain):
+    chain = np.asarray(chain)
+    split = split_percentile_chain(chain)
+    if not split:
+        return None
+
+    levels, mass_percentiles, conc_percentiles = split
+    med_idx = median_index(levels)
+    mass_quantiles = compute_quantile_summary(mass_percentiles, levels)
+    conc_quantiles = compute_quantile_summary(conc_percentiles, levels)
+    mu_mass = mass_quantiles.get(50, float(np.median(mass_percentiles[:, med_idx])))
+    mu_conc = conc_quantiles.get(50, float(np.median(conc_percentiles[:, med_idx])))
+    sigma_mass = max(estimate_sigma_from_quantiles(mass_quantiles), MIN_SIGMA)
+    sigma_conc = max(estimate_sigma_from_quantiles(conc_quantiles), MIN_SIGMA)
+
+    return {
+        "levels": levels,
+        "median_index": med_idx,
+        "mass_percentiles": mass_percentiles,
+        "conc_percentiles": conc_percentiles,
+        "mass": {
+            "quantiles": mass_quantiles,
+            "mu": mu_mass,
+            "sigma": sigma_mass,
+        },
+        "concentration": {
+            "quantiles": conc_quantiles,
+            "mu": mu_conc,
+            "sigma": sigma_conc,
+        },
+    }
+
+
+def sample_gaussian_nfw_profiles(summary, z, n_samples=200, rng=None):
+    if summary is None:
+        return None
+
+    rng = np.random.default_rng() if rng is None else rng
+    mass_mu = summary["mass"]["mu"]
+    conc_mu = summary["concentration"]["mu"]
+    mass_sigma = summary["mass"]["sigma"]
+    conc_sigma = summary["concentration"]["sigma"]
+
+    mass_samples = rng.normal(mass_mu, mass_sigma, size=n_samples)
+    conc_samples = rng.normal(conc_mu, conc_sigma, size=n_samples)
+
+    profiles = [
+        wlprofile.simulate_nfw(float(m), float(c), z=z)
+        for m, c in zip(mass_samples, conc_samples)
+    ]
+    return np.asarray(profiles)
 
 
 def timestamp():
@@ -50,6 +156,28 @@ def plot_pygtc(chains, out_path, infer_type, true_param_median=()):
 
 
 def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=None):
+    chains = [np.array(chain, copy=True) for chain in chains]
+
+    gaussian_summary = None
+    for idx, chain in enumerate(chains):
+        summary = build_gaussian_summary_from_chain(chain)
+        if not summary:
+            continue
+
+        med_idx = summary["median_index"]
+        chains[idx] = np.column_stack(
+            (
+                summary["mass_percentiles"][:, med_idx],
+                summary["conc_percentiles"][:, med_idx],
+            )
+        )
+
+        if gaussian_summary is None:
+            gaussian_summary = {
+                "mass": summary["mass"],
+                "concentration": summary["concentration"],
+            }
+
     p50 = np.array((np.median(mc_pairs.T[0]), np.median(mc_pairs.T[1])))
     p25 = np.array(
         (
@@ -179,18 +307,82 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
     cc_leg = ax.get_legend()
 
     # add a second legend for the true KDE
+    legend_handles = [
+        Line2D([], [], color="black", lw=2, ls="-"),
+        Line2D([], [], color="black", lw=2, ls="--"),
+    ]
+    legend_labels = ["True M–C (99.7%)", "True M–C (95%)"]
+
+    if gaussian_summary is not None:
+        legend_handles.extend(
+            [
+                Line2D([], [], color="purple", lw=1.5, ls=":"),
+                Line2D([], [], color="purple", lw=1.5, ls="--"),
+            ]
+        )
+        legend_labels.extend(["SBI Pop Gaussian (1σ)", "SBI Pop Gaussian (2σ)"])
+
     leg2 = ax.legend(
-        [
-            Line2D([], [], color="black", lw=2, ls="-"),
-            Line2D([], [], color="black", lw=2, ls="--"),
-        ],
-        ["True M–C (99.7%)", "True M–C (95%)"],
+        legend_handles,
+        legend_labels,
         frameon=False,
         loc="upper left",
         bbox_to_anchor=(0.02, 0.98),
         handlelength=2.6,
     )
     ax.add_artist(cc_leg)  # re-add CC legend so both show
+
+    if gaussian_summary is not None:
+        mass_summary = gaussian_summary["mass"]
+        conc_summary = gaussian_summary["concentration"]
+        mu_mass = mass_summary["mu"]
+        mu_conc = conc_summary["mu"]
+        sigma_mass = max(mass_summary["sigma"], MIN_SIGMA)
+        sigma_conc = max(conc_summary["sigma"], MIN_SIGMA)
+
+        ellipse_levels = [(1.0, ":"), (2.0, "--")]
+        for scale, linestyle in ellipse_levels:
+            ellipse = Ellipse(
+                (mu_mass, mu_conc),
+                width=2 * scale * sigma_mass,
+                height=2 * scale * sigma_conc,
+                edgecolor="purple",
+                linestyle=linestyle,
+                linewidth=1.5,
+                fill=False,
+                alpha=0.7,
+            )
+            ax.add_patch(ellipse)
+
+        # Overlay 1D Gaussian marginals on the histograms
+        xs = np.linspace(mu_mass - 4 * sigma_mass, mu_mass + 4 * sigma_mass, 200)
+        mass_pdf = np.exp(-0.5 * ((xs - mu_mass) / sigma_mass) ** 2) / (
+            sigma_mass * np.sqrt(2 * np.pi)
+        )
+        ax_mass = fig.axes[0]
+        ax_mass.plot(xs, mass_pdf, color="purple", linestyle=":", linewidth=1.5)
+        # for offset, style in ((sigma_mass, ":"), (2 * sigma_mass, "--")):
+        #     ax_mass.axvline(
+        #         mu_mass - offset,
+        #         color="purple",
+        #         linestyle=style,
+        #         linewidth=1.2,
+        #         alpha=0.7,
+        #     )
+        #     ax_mass.axvline(
+        #         mu_mass + offset,
+        #         color="purple",
+        #         linestyle=style,
+        #         linewidth=1.2,
+        #         alpha=0.7,
+        #     )
+
+        ys = np.linspace(mu_conc - 4 * sigma_conc, mu_conc + 4 * sigma_conc, 200)
+        conc_pdf = np.exp(-0.5 * ((ys - mu_conc) / sigma_conc) ** 2) / (
+            sigma_conc * np.sqrt(2 * np.pi)
+        )
+        ax_conc = fig.axes[3]
+        ax_conc.plot(conc_pdf, ys, color="purple", linestyle=":", linewidth=1.5)
 
     plt.savefig(os.path.join(out_path, f"{infer_type}_cc.png"))
     plt.savefig(os.path.join(out_path, f"{infer_type}_cc.pdf"))
@@ -199,6 +391,19 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
 
 def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]):
     cc = ChainConsumer()
+
+    sbi_chains = [np.array(chain, copy=True) for chain in sbi_chains]
+    for idx, chain in enumerate(sbi_chains):
+        summary = build_gaussian_summary_from_chain(chain)
+        if not summary:
+            continue
+        med_idx = summary["median_index"]
+        sbi_chains[idx] = np.column_stack(
+            (
+                summary["mass_percentiles"][:, med_idx],
+                summary["conc_percentiles"][:, med_idx],
+            )
+        )
 
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
     # TODO: clean this up
@@ -486,6 +691,33 @@ def plot_nfw_profiles(
             zorder=1,
         )
 
+    gaussian_summary = None
+    if sbi_chains:
+        gaussian_summary = build_gaussian_summary_from_chain(sbi_chains[0])
+
+    ideal_nfw = None
+    if true_param_median is not None:
+        ideal_nfw = wlprofile.simulate_nfw(
+            float(true_param_median[0]), float(true_param_median[1]), z=z
+        )
+
+    gaussian_profiles = None
+    if gaussian_summary is not None:
+        gaussian_profiles = sample_gaussian_nfw_profiles(
+            gaussian_summary, z, n_samples=200
+        )
+        if gaussian_profiles is not None and gaussian_profiles.size:
+            gaussian_lo = np.percentile(gaussian_profiles, 16, axis=0)
+            gaussian_hi = np.percentile(gaussian_profiles, 84, axis=0)
+            ax1.fill_between(
+                rbins,
+                gaussian_lo,
+                gaussian_hi,
+                alpha=0.25,
+                color="purple",
+                label="SBI Pop Gaussian 68% CI",
+            )
+
     if mcmc_chains:
         mcmc_jtf_nfw = inferred_nfw_from_chains(
             mcmc_chains[0],
@@ -570,70 +802,81 @@ def plot_nfw_profiles(
         # ax.relim()
         # ax.autoscale_view()
 
-        ideal_nfw = wlprofile.simulate_nfw(
-            float(true_param_median[0]), float(true_param_median[1]), z=z
-        )
-        mcmc_jtf_nfw_range_diff = mcmc_jtf_nfw_range / ideal_nfw - 1
-        mcmc_jtf_diff_lo = np.percentile(mcmc_jtf_nfw_range_diff, 16, axis=0)
-        mcmc_jtf_diff_hi = np.percentile(mcmc_jtf_nfw_range_diff, 84, axis=0)
+        if ideal_nfw is not None:
+            mcmc_jtf_nfw_range_diff = mcmc_jtf_nfw_range / ideal_nfw - 1
+            mcmc_jtf_diff_lo = np.percentile(mcmc_jtf_nfw_range_diff, 16, axis=0)
+            mcmc_jtf_diff_hi = np.percentile(mcmc_jtf_nfw_range_diff, 84, axis=0)
 
-        mcmc_ftj_nfw_range_diff = mcmc_ftj_nfw_range / ideal_nfw - 1
-        mcmc_ftj_diff_lo = np.percentile(mcmc_ftj_nfw_range_diff, 16, axis=0)
-        mcmc_ftj_diff_hi = np.percentile(mcmc_ftj_nfw_range_diff, 84, axis=0)
+            mcmc_ftj_nfw_range_diff = mcmc_ftj_nfw_range / ideal_nfw - 1
+            mcmc_ftj_diff_lo = np.percentile(mcmc_ftj_nfw_range_diff, 16, axis=0)
+            mcmc_ftj_diff_hi = np.percentile(mcmc_ftj_nfw_range_diff, 84, axis=0)
 
-        # ax2.xlabel("radius [kpc/h]", fontsize="xx-large")
-        # ax2.title(
-        #     f"Fractional Diff with NFW from Median Drawn M-C $\lambda \in$ [{min_richness}, {max_richness}]",
-        #     fontsize="x-large",
-        # )
-        ax2.set_ylabel(
-            r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
-        )
-        ax2.axhline(
-            0, color="gray", linestyle="dotted", alpha=0.5
-        )  # , label='Median NFW Profile')
-        ax2.plot(
-            rbins,
-            # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
-            (np.median(nfw_profiles, axis=0) / ideal_nfw) - 1,
-            color="gray",
-            alpha=0.5,
-            linestyle="-.",
-            label="Median Observed NFW",
-        )
-        ax2.plot(
-            rbins,
-            # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
-            (mcmc_jtf_nfw / ideal_nfw) - 1,
-            color="blue",
-            # linestyle="-.",
-            label="MCMC join-then-fit",
-        )
-        ax2.plot(
-            rbins,
-            # (mcmc_ftj_nfw / np.median(nfw_profiles, axis=0)) - 1,
-            (mcmc_ftj_nfw / ideal_nfw) - 1,
-            color="green",
-            linestyle="--",
-            # linewidth=3,
-            label="MCMC fit-then-join",
-        )
-        ax2.fill_between(
-            rbins,
-            mcmc_jtf_diff_lo,
-            mcmc_jtf_diff_hi,
-            alpha=0.3,
-            color="blue",
-            label="MCMC join-then-fit 68\% CI",
-        )
-        ax2.fill_between(
-            rbins,
-            mcmc_ftj_diff_lo,
-            mcmc_ftj_diff_hi,
-            alpha=0.3,
-            color="green",
-            label="MCMC join-then-fit 68\% CI",
-        )
+        if ideal_nfw is not None:
+            # ax2.xlabel("radius [kpc/h]", fontsize="xx-large")
+            # ax2.title(
+            #     f"Fractional Diff with NFW from Median Drawn M-C $\lambda \in$ [{min_richness}, {max_richness}]",
+            #     fontsize="x-large",
+            # )
+            ax2.set_ylabel(
+                r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
+            )
+            ax2.axhline(
+                0, color="gray", linestyle="dotted", alpha=0.5
+            )  # , label='Median NFW Profile')
+            ax2.plot(
+                rbins,
+                # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+                (np.median(nfw_profiles, axis=0) / ideal_nfw) - 1,
+                color="gray",
+                alpha=0.5,
+                linestyle="-.",
+                label="Median Observed NFW",
+            )
+            ax2.plot(
+                rbins,
+                # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
+                (mcmc_jtf_nfw / ideal_nfw) - 1,
+                color="blue",
+                # linestyle="-.",
+                label="MCMC join-then-fit",
+            )
+            ax2.plot(
+                rbins,
+                # (mcmc_ftj_nfw / np.median(nfw_profiles, axis=0)) - 1,
+                (mcmc_ftj_nfw / ideal_nfw) - 1,
+                color="green",
+                linestyle="--",
+                # linewidth=3,
+                label="MCMC fit-then-join",
+            )
+            if gaussian_profiles is not None and gaussian_profiles.size:
+                gaussian_diff = gaussian_profiles / ideal_nfw[None, :] - 1
+                gaussian_diff_lo = np.percentile(gaussian_diff, 16, axis=0)
+                gaussian_diff_hi = np.percentile(gaussian_diff, 84, axis=0)
+                ax2.fill_between(
+                    rbins,
+                    gaussian_diff_lo,
+                    gaussian_diff_hi,
+                    alpha=0.25,
+                    color="purple",
+                    label="SBI Pop Gaussian 68% CI",
+                )
+            ax2.fill_between(
+                rbins,
+                mcmc_jtf_diff_lo,
+                mcmc_jtf_diff_hi,
+                alpha=0.3,
+                color="blue",
+                label="MCMC join-then-fit 68\% CI",
+            )
+            ax2.fill_between(
+                rbins,
+                mcmc_ftj_diff_lo,
+                mcmc_ftj_diff_hi,
+                alpha=0.3,
+                color="green",
+                label="MCMC join-then-fit 68\% CI",
+            )
 
         ax1.legend(fontsize="large")
         ax2.legend(fontsize="large")
@@ -722,70 +965,70 @@ def plot_nfw_profiles(
             * 1.2,
         )
 
-        ideal_nfw = wlprofile.simulate_nfw(
-            float(true_param_median[0]), float(true_param_median[1]), z=z
-        )
-        sbi_jtf_nfw_range_diff = sbi_jtf_nfw_range / ideal_nfw - 1
-        sbi_jtf_diff_lo = np.percentile(sbi_jtf_nfw_range_diff, 16, axis=0)
-        sbi_jtf_diff_hi = np.percentile(sbi_jtf_nfw_range_diff, 84, axis=0)
+        if ideal_nfw is not None:
+            sbi_jtf_nfw_range_diff = sbi_jtf_nfw_range / ideal_nfw - 1
+            sbi_jtf_diff_lo = np.percentile(sbi_jtf_nfw_range_diff, 16, axis=0)
+            sbi_jtf_diff_hi = np.percentile(sbi_jtf_nfw_range_diff, 84, axis=0)
 
-        sbi_ftj_nfw_range_diff = sbi_ftj_nfw_range / ideal_nfw - 1
-        sbi_ftj_diff_lo = np.percentile(sbi_ftj_nfw_range_diff, 16, axis=0)
-        sbi_ftj_diff_hi = np.percentile(sbi_ftj_nfw_range_diff, 84, axis=0)
+            sbi_ftj_nfw_range_diff = sbi_ftj_nfw_range / ideal_nfw - 1
+            sbi_ftj_diff_lo = np.percentile(sbi_ftj_nfw_range_diff, 16, axis=0)
+            sbi_ftj_diff_hi = np.percentile(sbi_ftj_nfw_range_diff, 84, axis=0)
 
-        # ax2.xlabel("radius [kpc/h]", fontsize="xx-large")
-        # ax2.title(
-        #     f"Fractional Diff with NFW from Median Drawn M-C $\lambda \in$ [{min_richness}, {max_richness}]",
-        #     fontsize="x-large",
-        # )
-        ax2.set_ylabel(
-            r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
-        )
-        ax2.axhline(
-            0, color="gray", linestyle="dotted", alpha=0.5
-        )  # , label='Median NFW Profile')
-        ax2.plot(
-            rbins,
-            # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
-            (np.median(nfw_profiles, axis=0) / ideal_nfw) - 1,
-            color="gray",
-            alpha=0.5,
-            linestyle="-.",
-            label="Median Observed NFW",
-        )
-        ax2.plot(
-            rbins,
-            # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
-            (sbi_jtf_nfw / ideal_nfw) - 1,
-            color="blue",
-            # linestyle="-.",
-            label="SBI join-then-fit",
-        )
-        ax2.plot(
-            rbins,
-            # (mcmc_ftj_nfw / np.median(nfw_profiles, axis=0)) - 1,
-            (sbi_ftj_nfw / ideal_nfw) - 1,
-            color="green",
-            linestyle="--",
-            # linewidth=3,
-            label="SBI fit-then-join",
-        )
-        ax2.fill_between(
-            rbins,
-            sbi_jtf_diff_lo,
-            sbi_jtf_diff_hi,
-            alpha=0.3,
-            color="blue",
-            label="SBI join-then-fit 68\% CI",
-        )
-        ax2.fill_between(
-            rbins,
-            sbi_ftj_diff_lo,
-            sbi_ftj_diff_hi,
-            alpha=0.3,
-            color="green",
-            label="SBI join-then-fit 68\% CI",
-        )
+            ax2.set_ylabel(
+                r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
+            )
+            ax2.axhline(
+                0, color="gray", linestyle="dotted", alpha=0.5
+            )  # , label='Median NFW Profile')
+            ax2.plot(
+                rbins,
+                (np.median(nfw_profiles, axis=0) / ideal_nfw) - 1,
+                color="gray",
+                alpha=0.5,
+                linestyle="-.",
+                label="Median Observed NFW",
+            )
+            ax2.plot(
+                rbins,
+                (sbi_jtf_nfw / ideal_nfw) - 1,
+                color="blue",
+                label="SBI join-then-fit",
+            )
+            ax2.plot(
+                rbins,
+                (sbi_ftj_nfw / ideal_nfw) - 1,
+                color="green",
+                linestyle="--",
+                label="SBI fit-then-join",
+            )
+            if gaussian_profiles is not None and gaussian_profiles.size:
+                gaussian_diff = gaussian_profiles / ideal_nfw[None, :] - 1
+                gaussian_diff_lo = np.percentile(gaussian_diff, 16, axis=0)
+                gaussian_diff_hi = np.percentile(gaussian_diff, 84, axis=0)
+                ax2.fill_between(
+                    rbins,
+                    gaussian_diff_lo,
+                    gaussian_diff_hi,
+                    alpha=0.25,
+                    color="purple",
+                    label="SBI Pop Gaussian 68% CI",
+                )
+            ax2.fill_between(
+                rbins,
+                sbi_jtf_diff_lo,
+                sbi_jtf_diff_hi,
+                alpha=0.3,
+                color="blue",
+                label="SBI join-then-fit 68\% CI",
+            )
+            ax2.fill_between(
+                rbins,
+                sbi_ftj_diff_lo,
+                sbi_ftj_diff_hi,
+                alpha=0.3,
+                color="green",
+                label="SBI join-then-fit 68\% CI",
+            )
 
         ax1.legend(fontsize="large")
         ax2.legend(fontsize="large")
@@ -923,17 +1166,37 @@ def plot_frac_diff(
 def inferred_mc_from_chains(
     chains, method="joint_median", log_probs=None, sbi_posterior=None
 ):
-    if method == "joint_median":
-        inferred_log10mass = np.median(chains[:, 0])
-        inferred_concentration = np.median(chains[:, 1])
-        return (inferred_log10mass, inferred_concentration)
-    elif method == "map" and log_probs is not None:
-        idx = np.argmax(log_probs)
-        return tuple(chains[idx])
+    split = split_percentile_chain(chains)
+
+    if split:
+        levels, mass_percentiles, conc_percentiles = split
+        med_idx = median_index(levels)
+
+        if method == "joint_median":
+            inferred_log10mass = np.median(mass_percentiles[:, med_idx])
+            inferred_concentration = np.median(conc_percentiles[:, med_idx])
+            return (inferred_log10mass, inferred_concentration)
+        elif method == "map" and log_probs is not None:
+            idx = np.argmax(log_probs)
+            return (
+                mass_percentiles[idx, med_idx],
+                conc_percentiles[idx, med_idx],
+            )
     else:
-        raise ValueError(
-            "Invalid method. Choose either 'joint_median' or 'map' with log_probs."
-        )
+        mass_samples = chains[:, 0]
+        conc_samples = chains[:, 1]
+
+        if method == "joint_median":
+            inferred_log10mass = np.median(mass_samples)
+            inferred_concentration = np.median(conc_samples)
+            return (inferred_log10mass, inferred_concentration)
+        elif method == "map" and log_probs is not None:
+            idx = np.argmax(log_probs)
+            return (chains[idx, 0], chains[idx, 1])
+
+    raise ValueError(
+        "Invalid method. Choose either 'joint_median' or 'map' with log_probs."
+    )
 
 
 # From chains, generate an NFW from the inferred m-c pair to compare with drawn NFWs.
@@ -954,8 +1217,14 @@ def sampled_nfw_profiles(chains, z, n_samples=200, log_probs=None):
         idxs = np.random.choice(len(chains), size=n_samples, replace=False)
     mc_samples = chains[idxs]
 
-    # print(np.shape(mc_samples))
-    if np.shape(mc_samples)[1] > 2:
+    split = split_percentile_chain(chains)
+    if split:
+        levels, mass_percentiles, conc_percentiles = split
+        med_idx = median_index(levels)
+        mc_samples = np.column_stack(
+            (mass_percentiles[idxs, med_idx], conc_percentiles[idxs, med_idx])
+        )
+    elif mc_samples.shape[1] > 2:
         mc_samples = mc_samples[:, :2]
 
     profiles = []

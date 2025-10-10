@@ -50,16 +50,31 @@ simulated_nfw_profiles_filename = os.path.join(sim_path, "simulated_nfw_profiles
 simulated_jtf_nfw_profiles_filename = os.path.join(
     sim_path, "simulated_jtf_nfw_profiles.npy"
 )
+sample_mc_percentiles_filename = os.path.join(sim_path, "sample_mc_percentiles.npy")
 sample_mc_pairs = np.load(sample_mc_pairs_filename)
-# sample_jtf_mc_pairs = np.load(sample_jtf_mc_pairs_filename)
+
+if sample_mc_pairs.ndim == 3:
+    sample_mc_pairs = np.concatenate(
+        (sample_mc_pairs[:, :, 0], sample_mc_pairs[:, :, 1]), axis=1
+    )
 simulated_nfw_profiles = np.load(simulated_nfw_profiles_filename)
 simulated_jtf_nfw_profiles = np.load(simulated_jtf_nfw_profiles_filename)
+if os.path.exists(sample_mc_percentiles_filename):
+    sample_jtf_mc_pairs = np.load(sample_mc_percentiles_filename)
+    if sample_jtf_mc_pairs.ndim == 3:
+        sample_jtf_mc_pairs = np.concatenate(
+            (sample_jtf_mc_pairs[:, :, 0], sample_jtf_mc_pairs[:, :, 1]), axis=1
+        )
+else:
+    # Backwards compatibility: older simulation outputs only store the stack
+    # medians, so reuse them when the new file is absent.
+    sample_jtf_mc_pairs = sample_mc_pairs
 
-inferrer = sbi_.gen_inferrer(infer_config["priors"])
+inferrer = sbi_.gen_inferrer(infer_config["priors"], sample_mc_pairs.shape[1])
 posterior = sbi_.gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles)
-inferrer = sbi_.gen_inferrer(infer_config["priors"])
+inferrer = sbi_.gen_inferrer(infer_config["priors"], sample_jtf_mc_pairs.shape[1])
 posterior_range = sbi_.gen_posterior(
-    inferrer, sample_mc_pairs, simulated_jtf_nfw_profiles
+    inferrer, sample_jtf_mc_pairs, simulated_jtf_nfw_profiles
 )
 
 # Pickle posterior
