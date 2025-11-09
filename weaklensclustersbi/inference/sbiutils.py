@@ -28,7 +28,11 @@ def create_join_fit_observation_nfw(mc_pairs, nfw_profiles):
     """
 
     percentiles = np.percentile(mc_pairs, PERCENTILE_LEVELS, axis=0)
-    theta = np.concatenate((percentiles[:, 0], percentiles[:, 1]))
+    corr = float(
+        np.nan_to_num(np.corrcoef(mc_pairs.T)[0, 1], nan=0.0, posinf=0.0, neginf=0.0)
+    )
+    corr = float(np.clip(corr, -0.99, 0.99))
+    theta = np.concatenate((percentiles[:, 0], percentiles[:, 1], [corr]))
     median_nfw_profile = np.median(nfw_profiles, axis=0)
     return create_observation_nfw(theta, median_nfw_profile)
 
@@ -41,5 +45,9 @@ def create_fit_join_observation_nfw(mc_pairs, nfw_profiles):
     """
 
     percentiles = np.percentile(mc_pairs, PERCENTILE_LEVELS, axis=0)
-    theta = np.concatenate((percentiles[:, 0], percentiles[:, 1]))
+    corr = float(
+        np.nan_to_num(np.corrcoef(mc_pairs.T)[0, 1], nan=0.0, posinf=0.0, neginf=0.0)
+    )
+    corr = float(np.clip(corr, -0.99, 0.99))
+    theta = np.concatenate((percentiles[:, 0], percentiles[:, 1], [corr]))
     return create_observation_nfw(theta, nfw_profiles.flatten())

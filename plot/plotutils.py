@@ -17,7 +17,7 @@ plt.style.use(os.path.join(script_dir, "mplstyle.txt"))
 param_labels = ["log10mass", "concentration"]
 chain_labels = ["join_then_fit", "fit_then_join"]
 wide_param_ranges = ((12, 17), (2, 9))
-narrow_param_ranges = ((13.5, 15), (3.5, 5.5))
+narrow_param_ranges = ((13.5, 15), (4, 6.2))
 
 QUARTILE_SIGMA = 0.6744897501960817  # z-score at 75th percentile for a normal
 Z_95 = 1.6448536269514722  # z-score at 95th percentile for a normal
@@ -39,17 +39,19 @@ def median_index(levels):
 
 
 def split_percentile_chain(chain):
-    if chain.shape[1] <= 2 or chain.shape[1] % 2 != 0:
+    if chain.shape[1] <= 2:
         return None
-    num_levels = chain.shape[1] // 2
+    has_correlation = chain.shape[1] % 2 == 1
+    num_levels = (chain.shape[1] - int(has_correlation)) // 2
     levels = get_percentile_levels(num_levels)
     if levels is None:
-        raise AssertionError(
-            f"Unsupported number of percentile levels in chain: {chain.shape[1]}"
-        )
+        return None
     mass_percentiles = chain[:, :num_levels]
-    conc_percentiles = chain[:, num_levels:]
-    return levels, mass_percentiles, conc_percentiles
+    conc_percentiles = chain[:, num_levels : 2 * num_levels]
+    correlation = None
+    if has_correlation:
+        correlation = chain[:, -1]
+    return levels, mass_percentiles, conc_percentiles, correlation
 
 
 def compute_quantile_summary(samples, levels):
@@ -78,7 +80,7 @@ def build_gaussian_summary_from_chain(chain):
     if not split:
         return None
 
-    levels, mass_percentiles, conc_percentiles = split
+    levels, mass_percentiles, conc_percentiles, correlations = split
     med_idx = median_index(levels)
     mass_quantiles = compute_quantile_summary(mass_percentiles, levels)
     conc_quantiles = compute_quantile_summary(conc_percentiles, levels)
@@ -86,12 +88,17 @@ def build_gaussian_summary_from_chain(chain):
     mu_conc = conc_quantiles.get(50, float(np.median(conc_percentiles[:, med_idx])))
     sigma_mass = max(estimate_sigma_from_quantiles(mass_quantiles), MIN_SIGMA)
     sigma_conc = max(estimate_sigma_from_quantiles(conc_quantiles), MIN_SIGMA)
+    if correlations is not None:
+        rho = float(np.median(np.clip(correlations, -0.99, 0.99)))
+    else:
+        rho = 0.0
 
     return {
         "levels": levels,
         "median_index": med_idx,
         "mass_percentiles": mass_percentiles,
         "conc_percentiles": conc_percentiles,
+        "correlation_samples": correlations,
         "mass": {
             "quantiles": mass_quantiles,
             "mu": mu_mass,
@@ -102,6 +109,7 @@ def build_gaussian_summary_from_chain(chain):
             "mu": mu_conc,
             "sigma": sigma_conc,
         },
+        "correlation": {"rho": rho},
     }
 
 
@@ -115,8 +123,25 @@ def sample_gaussian_nfw_profiles(summary, z, n_samples=200, rng=None):
     mass_sigma = summary["mass"]["sigma"]
     conc_sigma = summary["concentration"]["sigma"]
 
-    mass_samples = rng.normal(mass_mu, mass_sigma, size=n_samples)
-    conc_samples = rng.normal(conc_mu, conc_sigma, size=n_samples)
+    rho = summary.get("correlation", {}).get("rho", 0.0)
+    rho = float(np.clip(rho, -0.99, 0.99))
+    cov = np.array(
+        [
+            [mass_sigma**2, rho * mass_sigma * conc_sigma],
+            [rho * mass_sigma * conc_sigma, conc_sigma**2],
+        ]
+    )
+    try:
+        samples = rng.multivariate_normal(
+            mean=[mass_mu, conc_mu], cov=cov, size=n_samples
+        )
+    except np.linalg.LinAlgError:
+        samples = rng.multivariate_normal(
+            mean=[mass_mu, conc_mu],
+            cov=np.diag([sigma_mass**2, sigma_conc**2]),
+            size=n_samples,
+        )
+    mass_samples, conc_samples = samples[:, 0], samples[:, 1]
 
     profiles = [
         wlprofile.simulate_nfw(float(m), float(c), z=z)
@@ -173,10 +198,7 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
         )
 
         if gaussian_summary is None:
-            gaussian_summary = {
-                "mass": summary["mass"],
-                "concentration": summary["concentration"],
-            }
+            gaussian_summary = summary
 
     p50 = np.array((np.median(mc_pairs.T[0]), np.median(mc_pairs.T[1])))
     p25 = np.array(
@@ -320,7 +342,7 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
                 Line2D([], [], color="purple", lw=1.5, ls="--"),
             ]
         )
-        legend_labels.extend(["SBI Pop Gaussian (1σ)", "SBI Pop Gaussian (2σ)"])
+        legend_labels.extend(["SBI Pop Gaussian (2σ)", "SBI Pop Gaussian (3σ)"])
 
     leg2 = ax.legend(
         legend_handles,
@@ -339,18 +361,35 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
         mu_conc = conc_summary["mu"]
         sigma_mass = max(mass_summary["sigma"], MIN_SIGMA)
         sigma_conc = max(conc_summary["sigma"], MIN_SIGMA)
+        rho = float(
+            np.clip(
+                gaussian_summary.get("correlation", {}).get("rho", 0.0), -0.99, 0.99
+            )
+        )
+        cov = np.array(
+            [
+                [sigma_mass**2, rho * sigma_mass * sigma_conc],
+                [rho * sigma_mass * sigma_conc, sigma_conc**2],
+            ]
+        )
+        eigvals, eigvecs = np.linalg.eigh(cov)
+        order = np.argsort(eigvals)[::-1]
+        eigvals = eigvals[order]
+        eigvecs = eigvecs[:, order]
+        angle = np.degrees(np.arctan2(eigvecs[1, 0], eigvecs[0, 0]))
 
-        ellipse_levels = [(1.0, ":"), (2.0, "--")]
+        ellipse_levels = [(2.0, ":"), (3.0, "--")]
         for scale, linestyle in ellipse_levels:
             ellipse = Ellipse(
                 (mu_mass, mu_conc),
-                width=2 * scale * sigma_mass,
-                height=2 * scale * sigma_conc,
+                width=2 * scale * np.sqrt(max(eigvals[0], MIN_SIGMA**2)),
+                height=2 * scale * np.sqrt(max(eigvals[1], MIN_SIGMA**2)),
                 edgecolor="purple",
                 linestyle=linestyle,
                 linewidth=1.5,
                 fill=False,
                 alpha=0.7,
+                angle=angle,
             )
             ax.add_patch(ellipse)
 
@@ -361,21 +400,6 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
         )
         ax_mass = fig.axes[0]
         ax_mass.plot(xs, mass_pdf, color="purple", linestyle=":", linewidth=1.5)
-        # for offset, style in ((sigma_mass, ":"), (2 * sigma_mass, "--")):
-        #     ax_mass.axvline(
-        #         mu_mass - offset,
-        #         color="purple",
-        #         linestyle=style,
-        #         linewidth=1.2,
-        #         alpha=0.7,
-        #     )
-        #     ax_mass.axvline(
-        #         mu_mass + offset,
-        #         color="purple",
-        #         linestyle=style,
-        #         linewidth=1.2,
-        #         alpha=0.7,
-        #     )
 
         ys = np.linspace(mu_conc - 4 * sigma_conc, mu_conc + 4 * sigma_conc, 200)
         conc_pdf = np.exp(-0.5 * ((ys - mu_conc) / sigma_conc) ** 2) / (
@@ -1169,7 +1193,7 @@ def inferred_mc_from_chains(
     split = split_percentile_chain(chains)
 
     if split:
-        levels, mass_percentiles, conc_percentiles = split
+        levels, mass_percentiles, conc_percentiles, _ = split
         med_idx = median_index(levels)
 
         if method == "joint_median":
@@ -1219,7 +1243,7 @@ def sampled_nfw_profiles(chains, z, n_samples=200, log_probs=None):
 
     split = split_percentile_chain(chains)
     if split:
-        levels, mass_percentiles, conc_percentiles = split
+        levels, mass_percentiles, conc_percentiles, _ = split
         med_idx = median_index(levels)
         mc_samples = np.column_stack(
             (mass_percentiles[idxs, med_idx], conc_percentiles[idxs, med_idx])

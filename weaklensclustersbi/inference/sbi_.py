@@ -14,14 +14,17 @@ def sbi_config():
 
 # Create an inferrer with the priors from the inference config
 def gen_inferrer(priors, param_dim=2):
-    if param_dim % 2 != 0:
-        raise ValueError(
-            "Expected an even number of parameters (mass and concentration percentiles)."
-        )
+    if param_dim < 2 or param_dim % 2 not in (0, 1):
+        raise ValueError("Unexpected parameter dimensionality: expected percentiles plus optional correlation.")
 
-    n_mass = param_dim // 2
-    lower = [priors["min_log10mass"]] * n_mass + [priors["min_concentration"]] * n_mass
-    upper = [priors["max_log10mass"]] * n_mass + [priors["max_concentration"]] * n_mass
+    has_correlation = param_dim % 2 == 1
+    n_levels = (param_dim - int(has_correlation)) // 2
+    lower = [priors["min_log10mass"]] * n_levels + [priors["min_concentration"]] * n_levels
+    upper = [priors["max_log10mass"]] * n_levels + [priors["max_concentration"]] * n_levels
+
+    if has_correlation:
+        lower.append(-1.0)
+        upper.append(1.0)
 
     prior = BoxUniform(
         torch.as_tensor(lower, dtype=torch.float32),

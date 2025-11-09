@@ -51,20 +51,47 @@ simulated_jtf_nfw_profiles_filename = os.path.join(
     sim_path, "simulated_jtf_nfw_profiles.npy"
 )
 sample_mc_percentiles_filename = os.path.join(sim_path, "sample_mc_percentiles.npy")
+sample_mc_correlations_filename = os.path.join(sim_path, "sample_mc_correlations.npy")
 sample_mc_pairs = np.load(sample_mc_pairs_filename)
 
 if sample_mc_pairs.ndim == 3:
-    sample_mc_pairs = np.concatenate(
+    percentiles = np.concatenate(
         (sample_mc_pairs[:, :, 0], sample_mc_pairs[:, :, 1]), axis=1
     )
+    if os.path.exists(sample_mc_correlations_filename):
+        correlations = np.load(sample_mc_correlations_filename)
+    else:
+        correlations = np.array(
+            [
+                np.nan_to_num(
+                    np.corrcoef(block.T)[0, 1], nan=0.0, posinf=0.0, neginf=0.0
+                )
+                for block in sample_mc_pairs
+            ]
+        )
+    correlations = np.clip(correlations, -0.99, 0.99)
+    sample_mc_pairs = np.column_stack((percentiles, correlations))
 simulated_nfw_profiles = np.load(simulated_nfw_profiles_filename)
 simulated_jtf_nfw_profiles = np.load(simulated_jtf_nfw_profiles_filename)
 if os.path.exists(sample_mc_percentiles_filename):
     sample_jtf_mc_pairs = np.load(sample_mc_percentiles_filename)
     if sample_jtf_mc_pairs.ndim == 3:
-        sample_jtf_mc_pairs = np.concatenate(
+        percentiles = np.concatenate(
             (sample_jtf_mc_pairs[:, :, 0], sample_jtf_mc_pairs[:, :, 1]), axis=1
         )
+        if os.path.exists(sample_mc_correlations_filename):
+            correlations = np.load(sample_mc_correlations_filename)
+        else:
+            correlations = np.array(
+                [
+                    np.nan_to_num(
+                        np.corrcoef(block.T)[0, 1], nan=0.0, posinf=0.0, neginf=0.0
+                    )
+                    for block in sample_jtf_mc_pairs
+                ]
+            )
+        correlations = np.clip(correlations, -0.99, 0.99)
+        sample_jtf_mc_pairs = np.column_stack((percentiles, correlations))
 else:
     # Backwards compatibility: older simulation outputs only store the stack
     # medians, so reuse them when the new file is absent.

@@ -67,6 +67,7 @@ all_simulated_nfw_profiles = []
 all_non_noisy_simulated_nfw_profiles = []
 all_stack_percentile_arrays = []
 all_stack_percentile_vectors = []
+all_stack_correlations = []
 all_jtf_simulated_nfw_profiles = []
 # for min_z, max_z in z_bins:
 for min_lambda, max_lambda in lambda_bins:
@@ -117,7 +118,7 @@ for min_lambda, max_lambda in lambda_bins:
     # simulated_nfw_profiles_range = np.log10(simulated_nfw_profiles_range)
 
     for i in range(sims_per_bin // num_obs):
-        single_mc_pairs = sample_mc_pairs[i * num_obs : (i + 1) * num_obs]
+        single_mc_pairs = np.array(sample_mc_pairs[i * num_obs : (i + 1) * num_obs])
         single_simulated_nfw = simulated_nfw_profiles[i * num_obs : (i + 1) * num_obs]
 
         all_simulated_nfw_profiles.append(single_simulated_nfw)
@@ -133,10 +134,17 @@ for min_lambda, max_lambda in lambda_bins:
         )
 
         percentiles = np.percentile(single_mc_pairs, PERCENTILE_LEVELS, axis=0)
+        corr = float(
+            np.nan_to_num(
+                np.corrcoef(single_mc_pairs.T)[0, 1], nan=0.0, posinf=0.0, neginf=0.0
+            )
+        )
+        corr = float(np.clip(corr, -0.99, 0.99))
         all_stack_percentile_arrays.append(percentiles)
         all_stack_percentile_vectors.append(
-            np.concatenate((percentiles[:, 0], percentiles[:, 1]))
+            np.concatenate((percentiles[:, 0], percentiles[:, 1], [corr]))
         )
+        all_stack_correlations.append(corr)
 
 
 # Output to intermediate files in sim_dir to be read by inference example script
@@ -157,4 +165,8 @@ np.save(
 np.save(
     os.path.join(out_path, "sample_mc_percentiles.npy"),
     np.array(all_stack_percentile_arrays),
+)
+np.save(
+    os.path.join(out_path, "sample_mc_correlations.npy"),
+    np.array(all_stack_correlations),
 )
