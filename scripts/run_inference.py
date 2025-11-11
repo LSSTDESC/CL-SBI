@@ -5,10 +5,8 @@ import argparse
 import os
 import pickle
 import time
-import csv
-from datetime import datetime
-from zoneinfo import ZoneInfo  # Python 3.9+
 import multiprocessing
+from runtime_log import append_runtime_log
 
 
 def main():
@@ -23,6 +21,8 @@ def main():
     # If false or not set, skip posterior generation if they already exist from an earlier run.
     parser.add_argument("--regenerate", action="store_true")
     args = parser.parse_args()
+
+    script_start = time.perf_counter()
 
     script_dir = os.path.dirname(__file__)
     # Go to/create output directory
@@ -39,6 +39,17 @@ def main():
         else:
             print(
                 "Inference output already exists. If you want to regenerate, re-run with the --regenerate flag"
+            )
+            append_runtime_log(
+                stage="run_inference_total",
+                seconds=time.perf_counter() - script_start,
+                sim_id=args.sim_id,
+                infer_id=args.infer_id,
+                obs_id=args.obs_id,
+                num_sims=args.num_sims,
+                num_obs=args.num_obs,
+                details="existing inference",
+                status="skipped",
             )
             quit()
 
@@ -70,20 +81,21 @@ def main():
     drawn_nfw_profiles = np.load(drawn_nfw_profiles_filename)
     sigmas = np.load(sigmas_filename)
 
-    # Track inference time
-    LOGFILE = "../outputs/inference/infer_speed.csv"
-    # If it doesn’t exist, write header
-    if not os.path.exists(LOGFILE):
-        with open(LOGFILE, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["timestamp", "infer", "num_obs", "stack", "seconds"])
-
-    def log_time(technique, num_obs, stacking, secs):
-        ts = datetime.now(ZoneInfo("America/New_York")).isoformat()
-        with open(LOGFILE, "a", newline="") as f:
-            csv.writer(f).writerow([ts, technique, num_obs, stacking, f"{secs:.3f}"])
+    def log_stage(stage, seconds, details="", status="success"):
+        append_runtime_log(
+            stage=stage,
+            seconds=seconds,
+            sim_id=args.sim_id,
+            infer_id=args.infer_id,
+            obs_id=args.obs_id,
+            num_sims=args.num_sims,
+            num_obs=args.num_obs,
+            details=details,
+            status=status,
+        )
 
     # Run SBI inference
+    t0_total_sbi = time.perf_counter()
     t0 = time.perf_counter()
     (
         sbi_jtf_chains,
@@ -95,7 +107,8 @@ def main():
     ) = sbi_.apply_observations(
         posterior, posterior_jtf, drawn_mc_pairs, drawn_nfw_profiles
     )
-    log_time("SBI", args.num_obs, "both", time.perf_counter() - t0)
+    log_stage("sbi_apply_observations", time.perf_counter() - t0, details="stack=both")
+    log_stage("sbi_total", time.perf_counter() - t0_total_sbi)
 
     # Output SBI chains
     with open(os.path.join(out_path, "sbi_chains.pickle"), "wb") as handle:
@@ -118,19 +131,21 @@ def main():
         pickle.dump(sbi_ftj_logprob, handle, protocol=4)
 
     # Run MCMC inference
+    t0_total_mcmc = time.perf_counter()
     with multiprocessing.Pool() as pool:
         t0 = time.perf_counter()
         jtf_sigmas = np.sqrt(np.pi / 2) * sigmas / np.sqrt(int(args.num_obs))
         mcmc_jtf_chain, mcmc_jtf_sampler = mcmc.join_then_fit(
             drawn_nfw_profiles, jtf_sigmas, infer_config["priors"], pool=pool
         )
-        log_time("MCMC", args.num_obs, "jtf", time.perf_counter() - t0)
+        log_stage("mcmc_join_then_fit", time.perf_counter() - t0)
 
         t0 = time.perf_counter()
         mcmc_ftj_chains, mcmc_ftj_samplers = mcmc.fit_then_join(
             drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
         )
-        log_time("MCMC", args.num_obs, "ftj", time.perf_counter() - t0)
+        log_stage("mcmc_fit_then_join", time.perf_counter() - t0)
+    log_stage("mcmc_total", time.perf_counter() - t0_total_mcmc)
 
     # Output MCMC chains (pickling because diff sizes)
     with open(os.path.join(out_path, "mcmc_chains.pickle"), "wb") as handle:
@@ -158,6 +173,8 @@ def main():
     np.save(os.path.join(out_path, "true_param_median.npy"), true_param_median)
     np.save(os.path.join(out_path, "true_param_25th_percentile.npy"), true_param_25)
     np.save(os.path.join(out_path, "true_param_75th_percentile.npy"), true_param_75)
+
+    log_stage("run_inference_total", time.perf_counter() - script_start)
 
 
 if __name__ == "__main__":

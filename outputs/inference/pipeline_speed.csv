@@ -1,0 +1,215 @@
+timestamp,stage,sim_id,infer_id,obs_id,num_sims,num_obs,details,seconds,status
+2025-11-10T15:59:16,gen_simulations,sim_z1,,,10000,10,,93.063873,success
+2025-11-10T15:59:23,gen_observations,,,obs_z1_lambda5,,10,,0.012669,success
+2025-11-10T16:01:16,gen_posterior,sim_z1,infer_z1,,10000,10,,106.212749,success
+2025-11-10T16:01:23,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5,10000,10,stack=both,0.547448,success
+2025-11-10T16:01:23,sbi_total,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,0.547825,success
+2025-11-10T16:02:03,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,39.416071,success
+2025-11-10T16:02:43,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,40.474231,success
+2025-11-10T16:02:43,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,80.198807,success
+2025-11-10T16:02:43,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,80.761910,success
+2025-11-10T16:02:52,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,1.811753,success
+2025-11-10T16:03:03,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,4.099284,success
+2025-11-10T16:04:43,gen_simulations,sim_z1_high_noise,,,10000,10,,94.094907,success
+2025-11-10T16:04:49,gen_observations,,,obs_z1_lambda5_high_noise,,10,,0.012230,success
+2025-11-10T16:07:03,gen_posterior,sim_z1_high_noise,infer_z1,,10000,10,,128.458833,success
+2025-11-10T16:07:11,sbi_apply_observations,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,stack=both,0.617592,success
+2025-11-10T16:07:11,sbi_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,0.617951,success
+2025-11-10T16:07:54,mcmc_join_then_fit,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,42.782427,success
+2025-11-10T16:08:39,mcmc_fit_then_join,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,45.007113,success
+2025-11-10T16:08:39,mcmc_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,88.079214,success
+2025-11-10T16:08:39,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,88.713714,success
+2025-11-10T16:08:48,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,2.104353,success
+2025-11-10T16:08:58,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,3.660300,success
+2025-11-10T17:10:22,gen_simulations,sim_z1,,,10000,376,,3677.907028,success
+2025-11-10T17:10:31,gen_observations,,,obs_z1_lambda5,,376,,0.354868,success
+2025-11-10T17:15:21,gen_posterior,sim_z1,infer_z1,,10000,376,,283.996350,success
+2025-11-10T17:15:29,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5,10000,376,stack=both,1.314083,success
+2025-11-10T17:15:29,sbi_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,1.314543,success
+2025-11-10T17:16:09,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,39.619078,success
+2025-11-10T17:24:05,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,475.638488,success
+2025-11-10T17:24:05,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,515.487073,success
+2025-11-10T17:24:05,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,516.821103,success
+2025-11-10T17:24:17,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,2.438650,success
+2025-11-10T17:24:29,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,5.918335,success
+2025-11-10T17:25:28,gen_simulations,sim_z1,,,10000,10,existing simulations,0.000048,skipped
+2025-11-10T17:25:34,gen_observations,,,obs_z1_lambda5,,10,existing observations,0.000025,skipped
+2025-11-10T17:25:40,gen_posterior,sim_z1,infer_z1,,10000,10,existing posterior,0.000186,skipped
+2025-11-10T17:25:45,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,10,existing inference,0.000027,skipped
+2025-11-10T17:25:52,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,1.635413,success
+2025-11-10T17:26:01,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,3.236308,success
+2025-11-10T17:26:07,gen_simulations,sim_z1_high_noise,,,10000,10,existing simulations,0.000025,skipped
+2025-11-10T17:26:12,gen_observations,,,obs_z1_lambda5_high_noise,,10,existing observations,0.000034,skipped
+2025-11-10T17:26:17,gen_posterior,sim_z1_high_noise,infer_z1,,10000,10,existing posterior,0.000028,skipped
+2025-11-10T17:26:23,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,existing inference,0.000033,skipped
+2025-11-10T17:26:31,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,1.856064,success
+2025-11-10T17:26:40,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,3.379981,success
+2025-11-10T17:26:45,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000026,skipped
+2025-11-10T17:26:51,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000026,skipped
+2025-11-10T17:26:57,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000027,skipped
+2025-11-10T17:27:02,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,existing inference,0.000029,skipped
+2025-11-10T17:27:09,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,1.793531,success
+2025-11-10T17:27:20,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,4.831810,success
+2025-11-10T17:32:14,gen_simulations,sim_z1,,,10000,10,existing simulations,0.000026,skipped
+2025-11-10T17:32:20,gen_observations,,,obs_z1_lambda5,,10,existing observations,0.000027,skipped
+2025-11-10T17:32:27,gen_posterior,sim_z1,infer_z1,,10000,10,existing posterior,0.000032,skipped
+2025-11-10T17:32:34,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,10,existing inference,0.000029,skipped
+2025-11-10T17:32:41,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,1.682991,success
+2025-11-10T17:32:50,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,3.236465,success
+2025-11-10T17:32:56,gen_simulations,sim_z1_high_noise,,,10000,10,existing simulations,0.000030,skipped
+2025-11-10T17:33:03,gen_observations,,,obs_z1_lambda5_high_noise,,10,existing observations,0.000025,skipped
+2025-11-10T17:33:08,gen_posterior,sim_z1_high_noise,infer_z1,,10000,10,existing posterior,0.000027,skipped
+2025-11-10T17:33:14,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,existing inference,0.000027,skipped
+2025-11-10T17:33:22,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,1.686927,success
+2025-11-10T17:33:31,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,3.525573,success
+2025-11-10T17:33:36,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000026,skipped
+2025-11-10T17:33:42,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000026,skipped
+2025-11-10T17:33:47,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000029,skipped
+2025-11-10T17:33:53,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,existing inference,0.000030,skipped
+2025-11-10T17:34:00,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,1.691760,success
+2025-11-10T17:34:10,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,4.423824,success
+2025-11-10T17:37:43,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000028,skipped
+2025-11-10T17:37:50,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000025,skipped
+2025-11-10T17:37:56,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000030,skipped
+2025-11-10T17:38:02,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,existing inference,0.000027,skipped
+2025-11-10T17:38:09,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,1.705637,success
+2025-11-10T17:38:20,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,4.534918,success
+2025-11-10T17:39:00,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000029,skipped
+2025-11-10T17:39:06,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000025,skipped
+2025-11-10T17:39:11,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000027,skipped
+2025-11-10T17:39:17,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,existing inference,0.000029,skipped
+2025-11-10T17:39:24,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,1.772309,success
+2025-11-10T17:39:34,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,4.514583,success
+2025-11-10T17:40:53,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000029,skipped
+2025-11-10T17:40:59,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000030,skipped
+2025-11-10T17:41:05,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000031,skipped
+2025-11-10T17:41:11,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,existing inference,0.000029,skipped
+2025-11-10T17:41:18,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,1.736205,success
+2025-11-10T17:41:29,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,4.986656,success
+2025-11-10T17:42:56,gen_simulations,sim_z1,,,10000,10,existing simulations,0.000032,skipped
+2025-11-10T17:43:02,gen_observations,,,obs_z1_lambda5,,10,existing observations,0.000031,skipped
+2025-11-10T17:43:08,gen_posterior,sim_z1,infer_z1,,10000,10,existing posterior,0.000028,skipped
+2025-11-10T17:43:13,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,10,existing inference,0.000028,skipped
+2025-11-10T17:43:20,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,1.649482,success
+2025-11-10T17:43:29,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,3.271662,success
+2025-11-10T17:43:35,gen_simulations,sim_z1_high_noise,,,10000,10,existing simulations,0.000028,skipped
+2025-11-10T17:43:40,gen_observations,,,obs_z1_lambda5_high_noise,,10,existing observations,0.000028,skipped
+2025-11-10T17:43:46,gen_posterior,sim_z1_high_noise,infer_z1,,10000,10,existing posterior,0.000029,skipped
+2025-11-10T17:43:51,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,existing inference,0.000026,skipped
+2025-11-10T17:43:58,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,1.691830,success
+2025-11-10T17:44:07,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,3.329901,success
+2025-11-10T17:44:12,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000028,skipped
+2025-11-10T17:44:18,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000026,skipped
+2025-11-10T17:44:24,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000031,skipped
+2025-11-10T17:44:30,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,existing inference,0.000029,skipped
+2025-11-10T17:44:37,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,1.740342,success
+2025-11-10T17:44:47,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,4.671255,success
+2025-11-10T18:43:36,gen_simulations,sim_z1_high_mc_scatter,,,10000,376,,3523.305798,success
+2025-11-10T18:43:45,gen_observations,,,obs_z1_lambda5_high_mc_scatter,,376,,0.357856,success
+2025-11-10T18:46:45,gen_posterior,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,,10000,376,,174.754777,success
+2025-11-10T18:46:53,sbi_apply_observations,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,stack=both,0.796692,success
+2025-11-10T18:46:53,sbi_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,0.797024,success
+2025-11-10T18:47:23,mcmc_join_then_fit,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,30.184320,success
+2025-11-10T18:52:51,mcmc_fit_then_join,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,328.286193,success
+2025-11-10T18:52:51,mcmc_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,358.667090,success
+2025-11-10T18:52:51,run_inference_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,359.476123,success
+2025-11-10T18:53:00,plot_chains,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,1.783762,success
+2025-11-10T18:53:10,plot_diagnostics,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,4.450188,success
+2025-11-10T19:50:58,gen_simulations,sim_z1_high_noise,,,10000,376,,3462.816021,success
+2025-11-10T19:51:08,gen_observations,,,obs_z1_lambda5_high_noise,,376,,0.366967,success
+2025-11-10T19:54:07,gen_posterior,sim_z1_high_noise,infer_z1,,10000,376,,172.432251,success
+2025-11-10T19:54:15,sbi_apply_observations,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,stack=both,1.188297,success
+2025-11-10T19:54:15,sbi_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,1.188999,success
+2025-11-10T19:55:00,mcmc_join_then_fit,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,45.060754,success
+2025-11-10T20:02:23,mcmc_fit_then_join,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,442.733622,success
+2025-11-10T20:02:23,mcmc_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,488.075992,success
+2025-11-10T20:02:23,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,489.283851,success
+2025-11-10T20:02:34,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,2.061418,success
+2025-11-10T20:02:47,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,6.890440,success
+2025-11-10T20:02:54,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000027,skipped
+2025-11-10T20:03:00,gen_observations,,,obs_z1_lambda5_high_noise,,376,existing observations,0.000027,skipped
+2025-11-10T20:03:06,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000028,skipped
+2025-11-10T20:03:14,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,stack=both,1.272833,success
+2025-11-10T20:03:14,sbi_total,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,1.273265,success
+2025-11-10T20:03:59,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,45.472410,success
+2025-11-10T20:23:18,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,436.513027,success
+2025-11-10T20:23:18,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,482.116254,success
+2025-11-10T20:23:19,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,483.437591,success
+2025-11-10T20:23:32,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,1.779843,success
+2025-11-10T20:24:24,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,7.308517,success
+2025-11-10T20:24:32,gen_simulations,sim_z1_high_noise,,,10000,376,existing simulations,0.000187,skipped
+2025-11-10T20:26:14,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000048,skipped
+2025-11-10T20:26:21,gen_posterior,sim_z1_high_noise,infer_z1,,10000,376,existing posterior,0.000030,skipped
+2025-11-10T20:26:28,sbi_apply_observations,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,stack=both,1.468879,success
+2025-11-10T20:26:28,sbi_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,1.470685,success
+2025-11-10T20:27:05,mcmc_join_then_fit,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,36.624243,success
+2025-11-10T20:49:03,mcmc_fit_then_join,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,335.562404,success
+2025-11-10T20:49:03,mcmc_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,372.390985,success
+2025-11-10T20:49:03,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,373.895879,success
+2025-11-10T20:49:13,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,1.777938,success
+2025-11-10T21:02:21,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,4.955418,success
+2025-11-10T21:09:08,gen_simulations,sim_z1,,,10000,10,existing simulations,0.000046,skipped
+2025-11-10T21:09:15,gen_observations,,,obs_z1_lambda5,,10,existing observations,0.000037,skipped
+2025-11-10T21:09:21,gen_posterior,sim_z1,infer_z1,,10000,10,existing posterior,0.000191,skipped
+2025-11-10T21:09:27,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,10,existing inference,0.000031,skipped
+2025-11-10T21:09:33,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,10,existing plots,0.004446,skipped
+2025-11-10T21:09:43,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,3.711387,success
+2025-11-10T21:09:50,gen_simulations,sim_z1_high_noise,,,10000,10,existing simulations,0.000052,skipped
+2025-11-10T21:09:56,gen_observations,,,obs_z1_lambda5_high_noise,,10,existing observations,0.000039,skipped
+2025-11-10T21:10:02,gen_posterior,sim_z1_high_noise,infer_z1,,10000,10,existing posterior,0.000042,skipped
+2025-11-10T21:10:08,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,existing inference,0.000028,skipped
+2025-11-10T21:10:14,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,existing plots,0.005437,skipped
+2025-11-10T21:10:24,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,10,,3.724833,success
+2025-11-10T21:10:30,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000042,skipped
+2025-11-10T21:10:36,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000031,skipped
+2025-11-10T21:10:42,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000032,skipped
+2025-11-10T21:10:48,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,existing inference,0.000030,skipped
+2025-11-10T21:10:54,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,existing plots,0.005913,skipped
+2025-11-10T21:11:05,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,5.256654,success
+2025-11-10T21:11:12,gen_simulations,sim_z1_high_mc_scatter,,,10000,376,existing simulations,0.000036,skipped
+2025-11-10T21:11:18,gen_observations,,,obs_z1_lambda5_high_mc_scatter,,376,existing observations,0.000037,skipped
+2025-11-10T21:11:23,gen_posterior,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,,10000,376,existing posterior,0.000047,skipped
+2025-11-10T21:11:29,run_inference_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,existing inference,0.000194,skipped
+2025-11-10T21:11:34,plot_chains,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,existing plots,0.004415,skipped
+2025-11-10T21:11:44,plot_diagnostics,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,4.732762,success
+2025-11-10T21:11:51,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000026,skipped
+2025-11-10T21:11:57,gen_observations,,,obs_z1_lambda5_high_mc_scatter,,376,existing observations,0.000030,skipped
+2025-11-10T21:14:38,gen_posterior,sim_z1,infer_z1_high_mc_scatter,,10000,376,,155.262052,success
+2025-11-10T21:14:46,sbi_apply_observations,sim_z1,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,stack=both,0.852920,success
+2025-11-10T21:14:46,sbi_total,sim_z1,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,0.853308,success
+2025-11-10T21:15:14,mcmc_join_then_fit,sim_z1,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,28.428447,success
+2025-11-10T21:20:27,mcmc_fit_then_join,sim_z1,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,313.027131,success
+2025-11-10T21:20:27,mcmc_total,sim_z1,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,341.689217,success
+2025-11-10T21:20:27,run_inference_total,sim_z1,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,342.558215,success
+2025-11-10T21:20:37,plot_chains,sim_z1,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,1.898446,success
+2025-11-10T21:20:47,plot_diagnostics,sim_z1,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,4.724734,success
+2025-11-10T21:20:53,gen_simulations,sim_z1_high_noise,,,10000,376,existing simulations,0.000028,skipped
+2025-11-10T21:20:58,gen_observations,,,obs_z1_lambda5_high_noise,,376,existing observations,0.000030,skipped
+2025-11-10T21:21:04,gen_posterior,sim_z1_high_noise,infer_z1,,10000,376,existing posterior,0.000028,skipped
+2025-11-10T21:21:10,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,existing inference,0.000026,skipped
+2025-11-10T21:21:15,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,existing plots,0.005526,skipped
+2025-11-10T21:21:26,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,5.792440,success
+2025-11-10T21:21:33,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000028,skipped
+2025-11-10T21:21:40,gen_observations,,,obs_z1_lambda5_high_noise,,376,existing observations,0.000029,skipped
+2025-11-10T21:21:45,gen_posterior,sim_z1,infer_z1,,10000,376,existing posterior,0.000032,skipped
+2025-11-10T21:21:51,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,existing inference,0.000204,skipped
+2025-11-10T21:21:56,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,existing plots,0.007814,skipped
+2025-11-10T21:22:08,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,5.798201,success
+2025-11-10T21:22:14,gen_simulations,sim_z1_high_noise,,,10000,376,existing simulations,0.000027,skipped
+2025-11-10T21:22:21,gen_observations,,,obs_z1_lambda5,,376,existing observations,0.000024,skipped
+2025-11-10T21:22:26,gen_posterior,sim_z1_high_noise,infer_z1,,10000,376,existing posterior,0.000032,skipped
+2025-11-10T21:22:32,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,existing inference,0.000033,skipped
+2025-11-10T21:22:37,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,existing plots,0.004664,skipped
+2025-11-10T21:22:47,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,4.700879,success
+2025-11-10T23:04:00,gen_simulations,sim_z1,,,10000,10,existing simulations,0.000291,skipped
+2025-11-10T23:04:06,gen_observations,,,obs_z1_lambda5,,10,existing observations,0.000034,skipped
+2025-11-10T23:04:13,gen_posterior,sim_z1,infer_z1,,10000,10,existing posterior,0.000030,skipped
+2025-11-10T23:04:19,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,10,existing inference,0.000034,skipped
+2025-11-10T23:04:26,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,10,existing plots,0.003850,skipped
+2025-11-10T23:04:36,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,10,,3.601999,success
+2025-11-10T23:06:19,gen_simulations,sim_z1_high_mc_scatter,,,10000,10,,95.897878,success
+2025-11-10T23:06:26,gen_observations,,,obs_z1_lambda5_high_mc_scatter,,10,,0.012155,success
+2025-11-10T23:10:49,gen_posterior,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,,10000,10,,257.105680,success
+2025-11-10T23:10:59,sbi_apply_observations,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,10,stack=both,0.712524,success
+2025-11-10T23:10:59,sbi_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,10,,0.712984,success
+2025-11-10T23:11:55,mcmc_join_then_fit,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,10,,56.572594,success

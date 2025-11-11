@@ -15,12 +15,18 @@ def sbi_config():
 # Create an inferrer with the priors from the inference config
 def gen_inferrer(priors, param_dim=2):
     if param_dim < 2 or param_dim % 2 not in (0, 1):
-        raise ValueError("Unexpected parameter dimensionality: expected percentiles plus optional correlation.")
+        raise ValueError(
+            "Unexpected parameter dimensionality: expected percentiles plus optional correlation."
+        )
 
     has_correlation = param_dim % 2 == 1
     n_levels = (param_dim - int(has_correlation)) // 2
-    lower = [priors["min_log10mass"]] * n_levels + [priors["min_concentration"]] * n_levels
-    upper = [priors["max_log10mass"]] * n_levels + [priors["max_concentration"]] * n_levels
+    lower = [priors["min_log10mass"]] * n_levels + [
+        priors["min_concentration"]
+    ] * n_levels
+    upper = [priors["max_log10mass"]] * n_levels + [
+        priors["max_concentration"]
+    ] * n_levels
 
     if has_correlation:
         lower.append(-1.0)
@@ -85,6 +91,7 @@ def apply_observations(
         create_join_fit_observation_nfw,
         create_fit_join_observation_nfw,
     )
+    from .sbiutils import PERCENTILE_LEVELS
 
     # Join (take the median of) observations and then fit on that
     theta_o_jf, x_o_jf = create_join_fit_observation_nfw(
@@ -109,11 +116,22 @@ def apply_observations(
     idx_fj = torch.argmax(logp_fj)
     map_mc_fj = samples_fj[idx_fj]
 
+    def collapse_map(vec):
+        dim = vec.ndim if hasattr(vec, "ndim") else vec.dim()
+        if dim == 1 and vec.shape[0] >= 2 * len(PERCENTILE_LEVELS):
+            med_idx = PERCENTILE_LEVELS.index(50)
+            levels = len(PERCENTILE_LEVELS)
+            return torch.stack((vec[med_idx], vec[levels + med_idx]))
+        return vec
+
+    map_mc_jf = collapse_map(map_mc_jf)
+    map_mc_fj = collapse_map(map_mc_fj)
+
     return (
         samples_jf.numpy(),
         samples_fj.numpy(),
         map_mc_jf.numpy(),
         map_mc_fj.numpy(),
-        logp_fj,
         logp_jf,
+        logp_fj,
     )

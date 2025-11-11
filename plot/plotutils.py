@@ -28,6 +28,17 @@ PERCENTILE_LEVEL_SETS = {
 }
 
 
+def logprob_to_numpy(logprob):
+    if logprob is None:
+        return None
+    if hasattr(logprob, "detach"):
+        tensor = logprob.detach()
+        if tensor.device.type != "cpu":
+            tensor = tensor.cpu()
+        return tensor.numpy()
+    return np.asarray(logprob)
+
+
 def get_percentile_levels(num_levels):
     return PERCENTILE_LEVEL_SETS.get(num_levels)
 
@@ -131,16 +142,7 @@ def sample_gaussian_nfw_profiles(summary, z, n_samples=200, rng=None):
             [rho * mass_sigma * conc_sigma, conc_sigma**2],
         ]
     )
-    try:
-        samples = rng.multivariate_normal(
-            mean=[mass_mu, conc_mu], cov=cov, size=n_samples
-        )
-    except np.linalg.LinAlgError:
-        samples = rng.multivariate_normal(
-            mean=[mass_mu, conc_mu],
-            cov=np.diag([sigma_mass**2, sigma_conc**2]),
-            size=n_samples,
-        )
+    samples = rng.multivariate_normal(mean=[mass_mu, conc_mu], cov=cov, size=n_samples)
     mass_samples, conc_samples = samples[:, 0], samples[:, 1]
 
     profiles = [
@@ -200,19 +202,26 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
         if gaussian_summary is None:
             gaussian_summary = summary
 
+    if gaussian_summary is not None:
+        mass_summary = gaussian_summary["mass"]
+        conc_summary = gaussian_summary["concentration"]
+        mu_mass = mass_summary["mu"]
+        mu_conc = conc_summary["mu"]
+        sigma_mass = max(mass_summary["sigma"], MIN_SIGMA)
+        sigma_conc = max(conc_summary["sigma"], MIN_SIGMA)
+        rho = float(
+            np.clip(
+                gaussian_summary.get("correlation", {}).get("rho", 0.0), -0.99, 0.99
+            )
+        )
+        cov = np.array(
+            [
+                [sigma_mass**2, rho * sigma_mass * sigma_conc],
+                [rho * sigma_mass * sigma_conc, sigma_conc**2],
+            ]
+        )
+
     p50 = np.array((np.median(mc_pairs.T[0]), np.median(mc_pairs.T[1])))
-    p25 = np.array(
-        (
-            np.percentile(mc_pairs.T[0], 25),
-            np.percentile(mc_pairs.T[1], 25),
-        )
-    )
-    p75 = np.array(
-        (
-            np.percentile(mc_pairs.T[0], 75),
-            np.percentile(mc_pairs.T[1], 75),
-        )
-    )
 
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
     # TODO: do we need this?
@@ -223,9 +232,25 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
     cc = ChainConsumer()
 
     cc.add_chain(chains[0], parameters=param_labels, name=chain_labels[0])
-    cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
-    # cc.add_chain(Chain(samples=chains[0], name=chain_labels[0]))
-    # cc.add_chain(Chain(samples=chains[1], name=chain_labels[1]))
+
+    if gaussian_summary is not None:
+        rng = np.random.default_rng()
+        gauss_chain = rng.multivariate_normal(
+            mean=[
+                mu_mass,
+                mu_conc,
+            ],
+            cov=cov,
+            size=np.shape(chains[0])[0],
+        )
+        cc.add_chain(
+            gauss_chain,
+            parameters=param_labels,
+            name=chain_labels[1],
+        )
+    else:
+        cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
+
     cc.configure(
         statistics="mean",
         summary=True,
@@ -237,11 +262,6 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
         # sigmas=[1, 2],
         shade_alpha=0.3,
     )
-
-    # Manually plot the truth values
-    # p25 = np.array(true_param[1])  # 25th percentile
-    # p50 = np.array(true_param[0])  # median
-    # p75 = np.array(true_param[2])  # 75th percentile
 
     # Set the median as the truth value
     fig = cc.plotter.plot(
@@ -255,31 +275,6 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
     # These are your actual data extents
     mass_range = wide_param_ranges[0]
     conc_range = wide_param_ranges[1]
-
-    # TODO: there has to be a cleaner solution than this to plotting 25 and 75 percentiles
-    def is_close_range(r1, r2, tol=0.1):
-        return abs(r1[0] - r2[0]) < tol and abs(r1[1] - r2[1]) < tol
-
-    for ax in fig.get_axes():
-        xlim = ax.get_xlim()
-        ylim = ax.get_ylim()
-
-        # Top histogram: log10mass only
-        if is_close_range(xlim, mass_range) and ylim[1] < 5:
-            ax.axvline(p25[0], color="gray", linestyle="--", linewidth=1, alpha=0.5)
-            ax.axvline(p75[0], color="gray", linestyle="--", linewidth=1, alpha=0.5)
-
-        # Right histogram: concentration only
-        elif is_close_range(ylim, conc_range) and xlim[1] < 6:
-            ax.axhline(p25[1], color="gray", linestyle="--", linewidth=1, alpha=0.5)
-            ax.axhline(p75[1], color="gray", linestyle="--", linewidth=1, alpha=0.5)
-
-        # Bottom-left 2D plot: both mass and concentration
-        elif is_close_range(xlim, mass_range) and is_close_range(ylim, conc_range):
-            ax.axvline(p25[0], color="gray", linestyle="--", linewidth=1, alpha=0.5)
-            ax.axvline(p75[0], color="gray", linestyle="--", linewidth=1, alpha=0.5)
-            ax.axhline(p25[1], color="gray", linestyle="--", linewidth=1, alpha=0.5)
-            ax.axhline(p75[1], color="gray", linestyle="--", linewidth=1, alpha=0.5)
 
     # Add a large text label in the top-right empty space
     fig.text(
@@ -319,11 +314,6 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
     # hack to show the legend with correct line styles
     true95 = Line2D([0], [0], color="black", lw=2, ls="-")
     true997 = Line2D([0], [0], color="black", lw=2, ls="--")
-    # h, l = fig.axes[2].get_legend_handles_labels()
-    # fig.axes[2].legend(
-    #     h + [true95, true997], l + ["True M-C (99.7%)", "True M-C (95%)"]
-    # )
-    # plt.legend()
     ax = fig.axes[2]  # Main plot
     # keep ChainConsumer's legend
     cc_leg = ax.get_legend()
@@ -335,15 +325,6 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
     ]
     legend_labels = ["True M–C (99.7%)", "True M–C (95%)"]
 
-    if gaussian_summary is not None:
-        legend_handles.extend(
-            [
-                Line2D([], [], color="purple", lw=1.5, ls=":"),
-                Line2D([], [], color="purple", lw=1.5, ls="--"),
-            ]
-        )
-        legend_labels.extend(["SBI Pop Gaussian (2σ)", "SBI Pop Gaussian (3σ)"])
-
     leg2 = ax.legend(
         legend_handles,
         legend_labels,
@@ -353,60 +334,6 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
         handlelength=2.6,
     )
     ax.add_artist(cc_leg)  # re-add CC legend so both show
-
-    if gaussian_summary is not None:
-        mass_summary = gaussian_summary["mass"]
-        conc_summary = gaussian_summary["concentration"]
-        mu_mass = mass_summary["mu"]
-        mu_conc = conc_summary["mu"]
-        sigma_mass = max(mass_summary["sigma"], MIN_SIGMA)
-        sigma_conc = max(conc_summary["sigma"], MIN_SIGMA)
-        rho = float(
-            np.clip(
-                gaussian_summary.get("correlation", {}).get("rho", 0.0), -0.99, 0.99
-            )
-        )
-        cov = np.array(
-            [
-                [sigma_mass**2, rho * sigma_mass * sigma_conc],
-                [rho * sigma_mass * sigma_conc, sigma_conc**2],
-            ]
-        )
-        eigvals, eigvecs = np.linalg.eigh(cov)
-        order = np.argsort(eigvals)[::-1]
-        eigvals = eigvals[order]
-        eigvecs = eigvecs[:, order]
-        angle = np.degrees(np.arctan2(eigvecs[1, 0], eigvecs[0, 0]))
-
-        ellipse_levels = [(2.0, ":"), (3.0, "--")]
-        for scale, linestyle in ellipse_levels:
-            ellipse = Ellipse(
-                (mu_mass, mu_conc),
-                width=2 * scale * np.sqrt(max(eigvals[0], MIN_SIGMA**2)),
-                height=2 * scale * np.sqrt(max(eigvals[1], MIN_SIGMA**2)),
-                edgecolor="purple",
-                linestyle=linestyle,
-                linewidth=1.5,
-                fill=False,
-                alpha=0.7,
-                angle=angle,
-            )
-            ax.add_patch(ellipse)
-
-        # Overlay 1D Gaussian marginals on the histograms
-        xs = np.linspace(mu_mass - 4 * sigma_mass, mu_mass + 4 * sigma_mass, 200)
-        mass_pdf = np.exp(-0.5 * ((xs - mu_mass) / sigma_mass) ** 2) / (
-            sigma_mass * np.sqrt(2 * np.pi)
-        )
-        ax_mass = fig.axes[0]
-        ax_mass.plot(xs, mass_pdf, color="purple", linestyle=":", linewidth=1.5)
-
-        ys = np.linspace(mu_conc - 4 * sigma_conc, mu_conc + 4 * sigma_conc, 200)
-        conc_pdf = np.exp(-0.5 * ((ys - mu_conc) / sigma_conc) ** 2) / (
-            sigma_conc * np.sqrt(2 * np.pi)
-        )
-        ax_conc = fig.axes[3]
-        ax_conc.plot(conc_pdf, ys, color="purple", linestyle=":", linewidth=1.5)
 
     plt.savefig(os.path.join(out_path, f"{infer_type}_cc.png"))
     plt.savefig(os.path.join(out_path, f"{infer_type}_cc.pdf"))
@@ -439,12 +366,7 @@ def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]
     cc.add_chain(sbi_chains[0], parameters=param_labels, name="sbi_jtf")
     cc.add_chain(mcmc_chains[1], parameters=param_labels, name="mcmc_ftj")
     cc.add_chain(sbi_chains[1], parameters=param_labels, name="sbi_ftj")
-    # cc.add_chain(Chain(samples=mcmc_chains[0], name='mcmc_jtf'))
-    # cc.add_chain(Chain(samples=sbi_chains[0], name='sbi_jtf'))
-    # cc.add_chain(Chain(samples=mcmc_chains[1], name='mcmc_ftj'))
-    # cc.add_chain(Chain(samples=sbi_chains[1], name='sbi_ftj'))
 
-    # cc.add_chain(chains[1], parameters=param_labels, name=chain_labels[1])
     cc.configure(
         statistics="mean",
         summary=True,
@@ -715,9 +637,15 @@ def plot_nfw_profiles(
             zorder=1,
         )
 
-    gaussian_summary = None
+    gaussian_summary_ftj = None
+    gaussian_summary_jtf = None
     if sbi_chains:
-        gaussian_summary = build_gaussian_summary_from_chain(sbi_chains[0])
+        sbi_jtf_chains = sbi_chains[0]
+        sbi_ftj_chains = sbi_chains[1]
+        # Fit-then-join SBI
+        gaussian_summary_ftj = build_gaussian_summary_from_chain(sbi_ftj_chains)
+        # Join-then-fit SBI
+        gaussian_summary_jtf = build_gaussian_summary_from_chain(sbi_jtf_chains)
 
     ideal_nfw = None
     if true_param_median is not None:
@@ -726,9 +654,9 @@ def plot_nfw_profiles(
         )
 
     gaussian_profiles = None
-    if gaussian_summary is not None:
+    if gaussian_summary_ftj is not None:
         gaussian_profiles = sample_gaussian_nfw_profiles(
-            gaussian_summary, z, n_samples=200
+            gaussian_summary_ftj, z, n_samples=len(nfw_profiles)  # * int(1e4)
         )
         if gaussian_profiles is not None and gaussian_profiles.size:
             gaussian_lo = np.percentile(gaussian_profiles, 16, axis=0)
@@ -739,20 +667,20 @@ def plot_nfw_profiles(
                 gaussian_hi,
                 alpha=0.25,
                 color="purple",
-                label="SBI Pop Gaussian 68% CI",
+                label="SBI fit-then-join 68\% CI",
             )
 
     if mcmc_chains:
         mcmc_jtf_nfw = inferred_nfw_from_chains(
             mcmc_chains[0],
             z,
-            method="map",
+            # method="map",
             log_probs=mcmc_jtf_sampler.get_log_prob(flat=True),
         )
         mcmc_ftj_nfw = inferred_nfw_from_chains(
             mcmc_chains[1],
             z,
-            method="map",
+            # method="map",
             log_probs=mcmc_ftj_samplers.get_log_prob(flat=True),
         )
 
@@ -760,21 +688,21 @@ def plot_nfw_profiles(
             rbins,
             mcmc_jtf_nfw,
             label=f"MCMC join-then-fit",
-            color="blue",
+            color="orange",
         )
         ax1.plot(
             rbins,
             mcmc_ftj_nfw,
             linestyle="dashed",
             label=f"MCMC fit-then-join",
-            color="green",
+            color="purple",
         )
 
         # Plot the range of drawn NFW profiles from MCMC chains
         mcmc_jtf_nfw_range = sampled_nfw_profiles(
             mcmc_chains[0],
             z,
-            n_samples=200,
+            n_samples=len(nfw_profiles),  # * int(1e4),
             log_probs=mcmc_jtf_sampler.get_log_prob(flat=True),
         )
         mcmc_jtf_lo = np.percentile(mcmc_jtf_nfw_range, 16, axis=0)
@@ -785,14 +713,14 @@ def plot_nfw_profiles(
             mcmc_jtf_lo,
             mcmc_jtf_hi,
             alpha=0.3,
-            color="blue",
+            color="orange",
             label="MCMC join-then-fit 68\% CI",
         )
 
         mcmc_ftj_nfw_range = sampled_nfw_profiles(
             mcmc_chains[1],
             z,
-            n_samples=200,
+            n_samples=len(nfw_profiles),  # * int(1e4),
             log_probs=mcmc_ftj_samplers.get_log_prob(flat=True),
         )
         mcmc_ftj_lo = np.percentile(mcmc_ftj_nfw_range, 16, axis=0)
@@ -802,8 +730,8 @@ def plot_nfw_profiles(
             mcmc_ftj_lo,
             mcmc_ftj_hi,
             alpha=0.3,
-            color="green",
-            label="MCMC join-then-fit 68\% CI",
+            color="purple",
+            label="MCMC fit-then-join 68\% CI",
         )
         ax1.set_ylim(
             min(
@@ -860,7 +788,7 @@ def plot_nfw_profiles(
                 rbins,
                 # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
                 (mcmc_jtf_nfw / ideal_nfw) - 1,
-                color="blue",
+                color="orange",
                 # linestyle="-.",
                 label="MCMC join-then-fit",
             )
@@ -868,7 +796,7 @@ def plot_nfw_profiles(
                 rbins,
                 # (mcmc_ftj_nfw / np.median(nfw_profiles, axis=0)) - 1,
                 (mcmc_ftj_nfw / ideal_nfw) - 1,
-                color="green",
+                color="purple",
                 linestyle="--",
                 # linewidth=3,
                 label="MCMC fit-then-join",
@@ -883,14 +811,14 @@ def plot_nfw_profiles(
                     gaussian_diff_hi,
                     alpha=0.25,
                     color="purple",
-                    label="SBI Pop Gaussian 68% CI",
+                    label="SBI fit-then-join 68% CI",
                 )
             ax2.fill_between(
                 rbins,
                 mcmc_jtf_diff_lo,
                 mcmc_jtf_diff_hi,
                 alpha=0.3,
-                color="blue",
+                color="orange",
                 label="MCMC join-then-fit 68\% CI",
             )
             ax2.fill_between(
@@ -898,8 +826,8 @@ def plot_nfw_profiles(
                 mcmc_ftj_diff_lo,
                 mcmc_ftj_diff_hi,
                 alpha=0.3,
-                color="green",
-                label="MCMC join-then-fit 68\% CI",
+                color="purple",
+                label="MCMC fit-then-join 68\% CI",
             )
 
         ax1.legend(fontsize="large")
@@ -913,36 +841,45 @@ def plot_nfw_profiles(
             plt.savefig(os.path.join(out_path, f"noiseless_drawn_nfw_profiles.pdf"))
 
     if sbi_chains:
-        sbi_jtf_nfw = inferred_nfw_from_chains(
-            sbi_chains[0],
-            z,
-            method="map",
-            log_probs=sbi_jtf_logprob.numpy(),
-        )
+        sbi_jtf_chains = sbi_chains[0]
+        sbi_ftj_chains = sbi_chains[1]
+        if sbi_jtf_mc is not None:
+            sbi_jtf_nfw = wlprofile.simulate_nfw(
+                float(sbi_jtf_mc[0]), float(sbi_jtf_mc[1]), z=z
+            )
+            jtf_logprob_np = None
+        else:
+            jtf_logprob_np = logprob_to_numpy(sbi_jtf_logprob)
+            sbi_jtf_nfw = inferred_nfw_from_chains(
+                sbi_jtf_chains,
+                z,
+                # method="map",
+                log_probs=jtf_logprob_np,
+            )
         ax1.plot(
             rbins,
             sbi_jtf_nfw,
             label=f"SBI join-then-fit",
-            color="blue",
+            color="orange",
         )
         sbi_ftj_nfw = inferred_nfw_from_chains(
-            sbi_chains[1],
+            sbi_ftj_chains,
             z,
-            method="map",
-            log_probs=sbi_ftj_logprob.numpy(),
+            # method="map",
+            log_probs=logprob_to_numpy(sbi_ftj_logprob),
         )
         ax1.plot(
             rbins,
             sbi_ftj_nfw,
             linestyle="dashed",
             label=f"SBI fit-then-join",
-            color="green",
+            color="purple",
         )
         sbi_jtf_nfw_range = sampled_nfw_profiles(
-            sbi_chains[0],
+            sbi_jtf_chains,
             z,
-            n_samples=200,
-            log_probs=sbi_jtf_logprob.numpy(),
+            n_samples=len(nfw_profiles),
+            log_probs=jtf_logprob_np,
         )
         sbi_jtf_lo = np.percentile(sbi_jtf_nfw_range, 16, axis=0)
         sbi_jtf_hi = np.percentile(sbi_jtf_nfw_range, 84, axis=0)
@@ -952,26 +889,18 @@ def plot_nfw_profiles(
             sbi_jtf_lo,
             sbi_jtf_hi,
             alpha=0.3,
-            color="blue",
-            label="SBI fit-then-join 68\% CI",
+            color="orange",
+            label="SBI join-then-fit 68\% CI",
         )
 
         sbi_ftj_nfw_range = sampled_nfw_profiles(
             sbi_chains[1],
             z,
             n_samples=200,
-            log_probs=sbi_ftj_logprob.numpy(),
+            log_probs=logprob_to_numpy(sbi_ftj_logprob),
         )
         sbi_ftj_lo = np.percentile(sbi_ftj_nfw_range, 16, axis=0)
         sbi_ftj_hi = np.percentile(sbi_ftj_nfw_range, 84, axis=0)
-        ax1.fill_between(
-            rbins,
-            sbi_ftj_lo,
-            sbi_ftj_hi,
-            alpha=0.3,
-            color="green",
-            label="SBI join-then-fit 68\% CI",
-        )
         ax1.set_ylim(
             min(
                 np.min(sbi_jtf_nfw),
@@ -995,8 +924,8 @@ def plot_nfw_profiles(
             sbi_jtf_diff_hi = np.percentile(sbi_jtf_nfw_range_diff, 84, axis=0)
 
             sbi_ftj_nfw_range_diff = sbi_ftj_nfw_range / ideal_nfw - 1
-            sbi_ftj_diff_lo = np.percentile(sbi_ftj_nfw_range_diff, 16, axis=0)
-            sbi_ftj_diff_hi = np.percentile(sbi_ftj_nfw_range_diff, 84, axis=0)
+            # sbi_ftj_diff_lo = np.percentile(sbi_ftj_nfw_range_diff, 16, axis=0)
+            # sbi_ftj_diff_hi = np.percentile(sbi_ftj_nfw_range_diff, 84, axis=0)
 
             ax2.set_ylabel(
                 r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
@@ -1015,13 +944,13 @@ def plot_nfw_profiles(
             ax2.plot(
                 rbins,
                 (sbi_jtf_nfw / ideal_nfw) - 1,
-                color="blue",
+                color="orange",
                 label="SBI join-then-fit",
             )
             ax2.plot(
                 rbins,
                 (sbi_ftj_nfw / ideal_nfw) - 1,
-                color="green",
+                color="purple",
                 linestyle="--",
                 label="SBI fit-then-join",
             )
@@ -1035,22 +964,14 @@ def plot_nfw_profiles(
                     gaussian_diff_hi,
                     alpha=0.25,
                     color="purple",
-                    label="SBI Pop Gaussian 68% CI",
+                    label="SBI fit-then-join 68\% CI",
                 )
             ax2.fill_between(
                 rbins,
                 sbi_jtf_diff_lo,
                 sbi_jtf_diff_hi,
                 alpha=0.3,
-                color="blue",
-                label="SBI join-then-fit 68\% CI",
-            )
-            ax2.fill_between(
-                rbins,
-                sbi_ftj_diff_lo,
-                sbi_ftj_diff_hi,
-                alpha=0.3,
-                color="green",
+                color="orange",
                 label="SBI join-then-fit 68\% CI",
             )
 
@@ -1099,36 +1020,32 @@ def plot_frac_diff(
     ideal_nfw = wlprofile.simulate_nfw(
         float(true_param_median[0]), float(true_param_median[1]), z=z
     )
-    # sbi_ftj_nfw = wlprofile.simulate_nfw(
-    #     float(sbi_ftj_mc[0]), float(sbi_ftj_mc[1]), z=z
-    # )
-    # sbi_jtf_nfw = wlprofile.simulate_nfw(
-    #     float(sbi_jtf_mc[0]), float(sbi_jtf_mc[1]), z=z
-    # )
+    sbi_jtf_chains = sbi_chains[0]
+    sbi_ftj_chains = sbi_chains[1]
     sbi_jtf_nfw = inferred_nfw_from_chains(
-        sbi_chains[0],
+        sbi_jtf_chains,
         z,
-        method="map",
+        # method="map",
         log_probs=sbi_jtf_logprob.numpy(),
     )
 
     sbi_ftj_nfw = inferred_nfw_from_chains(
-        sbi_chains[1],
+        sbi_ftj_chains,
         z,
-        method="map",
+        # method="map",
         log_probs=sbi_ftj_logprob.numpy(),
     )
 
     mcmc_jtf_nfw = inferred_nfw_from_chains(
         mcmc_chains[0],
         z,
-        method="map",
+        # method="map",
         log_probs=mcmc_jtf_sampler.get_log_prob(flat=True),
     )
     mcmc_ftj_nfw = inferred_nfw_from_chains(
         mcmc_chains[1],
         z,
-        method="map",
+        # method="map",
         log_probs=mcmc_ftj_samplers.get_log_prob(flat=True),
     )
 

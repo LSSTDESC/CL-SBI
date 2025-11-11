@@ -7,6 +7,8 @@ import numpy as np
 import json
 import os
 import argparse
+import time
+from runtime_log import append_runtime_log
 
 # Define a richness band from which we draw masses with some noise, and the
 # concentration that scatters about that theoretical prediction
@@ -21,6 +23,20 @@ parser.add_argument("--num_obs")
 # If false or not set, skip simulation generation if they already exist from an earlier run.
 parser.add_argument("--regenerate", action="store_true")
 args = parser.parse_args()
+
+script_start = time.perf_counter()
+
+
+def log_runtime(status="success", details=""):
+    append_runtime_log(
+        stage="gen_simulations",
+        seconds=time.perf_counter() - script_start,
+        sim_id=args.sim_id,
+        num_sims=args.num_sims,
+        num_obs=args.num_obs,
+        details=details,
+        status=status,
+    )
 
 # Open the copy of sim_config with the specified sim_id
 script_dir = os.path.dirname(__file__)
@@ -41,6 +57,7 @@ if os.path.isfile(os.path.join(out_path, "simulated_nfw_profiles.npy")):
         print(
             "Simulations already exist. If you want to regenerate, re-run with the --regenerate flag"
         )
+        log_runtime(status="skipped", details="existing simulations")
         quit()
 
 # Open the copy of sim_config in sim_dir
@@ -170,3 +187,5 @@ np.save(
     os.path.join(out_path, "sample_mc_correlations.npy"),
     np.array(all_stack_correlations),
 )
+
+log_runtime()

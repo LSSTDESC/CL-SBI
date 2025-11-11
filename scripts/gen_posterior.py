@@ -4,6 +4,8 @@ import json
 import argparse
 import os
 import pickle
+import time
+from runtime_log import append_runtime_log
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
@@ -16,6 +18,21 @@ parser.add_argument("--num_obs")
 # If false or not set, skip posterior generation if they already exist from an earlier run.
 parser.add_argument("--regenerate", action="store_true")
 args = parser.parse_args()
+
+script_start = time.perf_counter()
+
+
+def log_runtime(status="success", details=""):
+    append_runtime_log(
+        stage="gen_posterior",
+        seconds=time.perf_counter() - script_start,
+        sim_id=args.sim_id,
+        infer_id=args.infer_id,
+        num_sims=args.num_sims,
+        num_obs=args.num_obs,
+        details=details,
+        status=status,
+    )
 
 script_dir = os.path.dirname(__file__)
 out_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}"
@@ -32,6 +49,7 @@ if os.path.isfile(os.path.join(out_path, "posterior.pickle")):
         print(
             "Posterior already exists. If you want to regenerate, re-run with the --regenerate flag"
         )
+        log_runtime(status="skipped", details="existing posterior")
         quit()
 
 # Open the copy of infer_config with the specified infer_id
@@ -107,3 +125,5 @@ posterior_range = sbi_.gen_posterior(
 # Pickle posterior
 pickle.dump(posterior, open(os.path.join(out_path, "posterior.pickle"), "wb"))
 pickle.dump(posterior_range, open(os.path.join(out_path, "posterior_jtf.pickle"), "wb"))
+
+log_runtime()

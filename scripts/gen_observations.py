@@ -7,6 +7,8 @@ import numpy as np
 import json
 import os
 import argparse
+import time
+from runtime_log import append_runtime_log
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
@@ -17,6 +19,20 @@ parser.add_argument("--num_obs")
 # If false or not set, skip observation generation if they already exist from an earlier run.
 parser.add_argument("--regenerate", action="store_true")
 args = parser.parse_args()
+
+script_start = time.perf_counter()
+
+
+def log_runtime(status="success", details=""):
+    append_runtime_log(
+        stage="gen_observations",
+        seconds=time.perf_counter() - script_start,
+        obs_id=args.obs_id,
+        num_obs=args.num_obs,
+        details=details,
+        status=status,
+    )
+
 
 # Open the copy of obs_config with the specified obs_id
 script_dir = os.path.dirname(__file__)
@@ -37,6 +53,7 @@ if os.path.isfile(os.path.join(out_path, "drawn_nfw_profiles.npy")):
         print(
             "Observations already exist. If you want to regenerate, re-run with the --regenerate flag"
         )
+        log_runtime(status="skipped", details="existing observations")
         quit()
 
 # Open the copy of obs_config in obs_dir
@@ -91,3 +108,5 @@ np.save(os.path.join(out_path, "drawn_nfw_profiles.npy"), drawn_nfw_profiles)
 np.save(os.path.join(out_path, "drawn_mc_pairs.npy"), drawn_mc_pairs)
 # np.save(os.path.join(out_path, "sigmas.npy"), sigmas)
 np.save(os.path.join(out_path, "sigmas.npy"), log_sigmas)
+
+log_runtime()

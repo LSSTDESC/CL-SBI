@@ -4,6 +4,8 @@ import argparse
 import os
 import pickle
 import json
+import time
+from runtime_log import append_runtime_log
 
 # Read command line arguments for the directory with the infer_config
 parser = argparse.ArgumentParser()
@@ -17,6 +19,22 @@ parser.add_argument("--num_obs")
 # If false or not set, skip plot generation if they already exist from an earlier run.
 parser.add_argument("--regenerate", action="store_true")
 args = parser.parse_args()
+
+script_start = time.perf_counter()
+
+
+def log_runtime(status="success", details=""):
+    append_runtime_log(
+        stage="plot_chains",
+        seconds=time.perf_counter() - script_start,
+        sim_id=args.sim_id,
+        infer_id=args.infer_id,
+        obs_id=args.obs_id,
+        num_sims=args.num_sims,
+        num_obs=args.num_obs,
+        details=details,
+        status=status,
+    )
 
 script_dir = os.path.dirname(__file__)
 
@@ -62,6 +80,7 @@ if os.path.isfile(os.path.join(out_path, "sbi_cc.pdf")) or os.path.isfile(
         print(
             "Plots already exist. If you want to regenerate, re-run with the --regenerate flag"
         )
+        log_runtime(status="skipped", details="existing plots")
         quit()
 
 
@@ -98,3 +117,5 @@ if "agg" not in infer_config:
 #         # "sbi_agg",
 #         [true_param_median, true_param_25, true_param_75],
 #     )
+
+log_runtime()
