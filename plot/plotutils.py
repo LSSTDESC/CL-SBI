@@ -199,7 +199,8 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
             )
         )
 
-        if gaussian_summary is None:
+        # if gaussian_summary is None:
+        if idx == 1:
             gaussian_summary = summary
 
     if gaussian_summary is not None:
@@ -241,7 +242,7 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
                 mu_conc,
             ],
             cov=cov,
-            size=np.shape(chains[0])[0],
+            size=int(1e7),
         )
         cc.add_chain(
             gauss_chain,
