@@ -73,6 +73,8 @@ drawn_mc_pairs = population.gen_mc_pairs_in_richness_bin(
     rm_scatter=obs_config["rm_scatter"],
     min_z=obs_config["min_z"],
     max_z=obs_config["max_z"],
+    richness_leak_frac=obs_config.get("richness_leak_frac", 0.0),
+    lambda_min_leak=obs_config.get("min_richness_leak", None),
 )
 
 z_sample = np.random.uniform(

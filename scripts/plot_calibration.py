@@ -63,6 +63,8 @@ def sample_truth_ftj(
         rm_scatter=obs_config["rm_scatter"],
         min_z=obs_config["min_z"],
         max_z=obs_config["max_z"],
+        richness_leak_frac=obs_config.get("richness_leak_frac", 0.0),
+        lambda_min_leak=obs_config.get("min_richness_leak", None),
     )
     return np.asarray(mc_pairs)
 
@@ -164,24 +166,9 @@ def plot_calibration(
     plt.savefig(os.path.join(output_dir, f"calibration_{suffix}.pdf"))
     plt.close()
 
-    # # Also produce combined plot when both FTJ and JTF are present
-    # combined_path_png = os.path.join(output_dir, "calibration.png")
-    # combined_path_pdf = os.path.join(output_dir, "calibration.pdf")
-    # if suffix == "combined":  # assume FTJ was plotted first
-    #     # plt.figure(figsize=(6, 6))
-    #     x = CONF_LEVELS
-    #     for key, cover_dict in aggregates.items():
-    #         y = [cover_dict.get(p, np.nan) for p in x]
-    #         plt.plot(x, y, label=METHOD_LABELS[key])
-    #     plt.plot(x, x, color="black", linestyle="--", label="Ideal")
-    #     # plt.fill_between(x, x, 1, color="gray", alpha=0.1)
-    #     plt.xlabel("Estimated Confidence Level")
-    #     plt.ylabel("Fraction of Truth Covered")
-    #     plt.legend()
-    #     plt.tight_layout()
-    #     plt.savefig(combined_path_png)
-    #     plt.savefig(combined_path_pdf)
-    #     plt.close()
+    # also save the raw data
+    with open(os.path.join(output_dir, f"calibration_{suffix}.pickle"), "wb") as handle:
+        pickle.dump(aggregates, handle)
 
 
 def main():

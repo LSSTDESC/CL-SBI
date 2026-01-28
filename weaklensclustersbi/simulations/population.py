@@ -219,6 +219,9 @@ def gen_mc_pairs_in_richness_bin(
     mdef="200m",
     model="tinker08",
     cosmo="planck18",
+    # richness leak experiment params
+    richness_leak_frac=0,
+    lambda_min_leak=None,
 ):
     """
     For a given richness bin, generate {num_obs} mass-concentration samples with some user-specified noise
@@ -234,18 +237,21 @@ def gen_mc_pairs_in_richness_bin(
     Returns:
         mc_pairs: a numpy array of size num_obs of tupes of (log10mass, concentration)
     """
+    leak_size = int(num_samples * richness_leak_frac)
+    non_leak_size = num_samples - leak_size
+
     _, log10mass_sample = draw_masses_in_richness_bin(
         lambda_min,
         lambda_max,
         rm_relation=rm_relation,
-        num_samples=num_samples,
+        num_samples=non_leak_size,
         rm_scatter=rm_scatter,
         z=(min_z + max_z) / 2,
         mdef=mdef,
         model=model,
         cosmo=cosmo,
     )
-    z_sample = np.random.uniform(min_z, max_z, size=num_samples)
+    z_sample = np.random.uniform(min_z, max_z, size=non_leak_size)
     concentration_sample = generate_concentration_for_sample(
         log10mass_sample,
         mc_scatter=mc_scatter,
@@ -253,6 +259,29 @@ def gen_mc_pairs_in_richness_bin(
         zs=z_sample,
     )
     mc_pairs = list(zip(log10mass_sample, concentration_sample))
+
+    # Allow for some observations to "leak" up from a lower richness bin
+    if leak_size != 0 and lambda_min_leak is not None:
+        _, log10mass_leak_sample = draw_masses_in_richness_bin(
+            lambda_min_leak,
+            lambda_min,
+            rm_relation=rm_relation,
+            num_samples=leak_size,
+            rm_scatter=rm_scatter,
+            z=(min_z + max_z) / 2,
+            mdef=mdef,
+            model=model,
+            cosmo=cosmo,
+        )
+        z_leak_sample = np.random.uniform(min_z, max_z, size=leak_size)
+        concentration_leak_sample = generate_concentration_for_sample(
+            log10mass_leak_sample,
+            mc_scatter=mc_scatter,
+            mc_relation=mc_relation,
+            zs=z_leak_sample,
+        )
+        mc_pairs_leak = list(zip(log10mass_leak_sample, concentration_leak_sample))
+        mc_pairs.extend(mc_pairs_leak)
     return mc_pairs
 
 
