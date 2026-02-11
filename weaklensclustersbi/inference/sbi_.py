@@ -1,19 +1,50 @@
+"""
+SBI (Simulation-Based Inference) module for weak lensing cluster analysis.
+
+This module provides neural posterior estimation using SNPE (Sequential Neural
+Posterior Estimation) for inferring mass and concentration parameters from
+weak lensing observations.
+
+The workflow is:
+1. Create an inferrer with priors using gen_inferrer()
+2. Train the posterior using train_inferrer() with simulated data
+3. Apply observations using apply_observations() to sample from the posterior
+"""
+
+from typing import Any
 import numpy as np
-import sbi
-import sbi.utils as utils
+from numpy.typing import NDArray
 from sbi.utils import BoxUniform
-from sbi.inference import prepare_for_sbi, simulate_for_sbi, SNPE, SNLE, SNRE
-from sbi.analysis import pairplot
+from sbi.inference import SNPE
 import torch
-from torch import zeros, ones
+from torch import Tensor
+
+from ..types import PriorConfig
 
 
-def sbi_config():
-    pass
+def gen_inferrer(priors: PriorConfig, param_dim: int = 2) -> SNPE:
+    """
+    Create an SNPE inferrer with the priors from the inference config.
 
+    Parameters
+    ----------
+    priors : PriorConfig
+        Prior configuration dictionary containing min/max values for
+        log10mass and concentration.
+    param_dim : int, optional
+        Parameter dimensionality. Default is 2 (mass, concentration).
+        For percentile-based inference, use 2*n_levels + 1 (with correlation).
 
-# Create an inferrer with the priors from the inference config
-def gen_inferrer(priors, param_dim=2):
+    Returns
+    -------
+    SNPE
+        An SNPE inferrer ready for training.
+
+    Raises
+    ------
+    ValueError
+        If param_dim is less than 2 or has unexpected parity.
+    """
     if param_dim < 2 or param_dim % 2 not in (0, 1):
         raise ValueError(
             "Unexpected parameter dimensionality: expected percentiles plus optional correlation."
@@ -36,30 +67,39 @@ def gen_inferrer(priors, param_dim=2):
         torch.as_tensor(lower, dtype=torch.float32),
         torch.as_tensor(upper, dtype=torch.float32),
     )
-    return SNPE(
-        prior, density_estimator="mdn", device="cpu"
-    )  # SNLE, SNRE are other options
+    return SNPE(prior, density_estimator="mdn", device="cpu")
 
 
-# Train the inferrer with the simulations. We'll pickle this posterior for future use.
-# In a later step, we'll add observations to this (un)pickled posterior and then sample from that.
-def gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles):
-    # Define our data in terms of parameters, theta, and data
+def train_inferrer(
+    inferrer: SNPE,
+    sample_mc_pairs: NDArray[np.floating],
+    simulated_nfw_profiles: NDArray[np.floating],
+) -> Any:
+    """
+    Train the inferrer with simulations and build a posterior.
+
+    Parameters
+    ----------
+    inferrer : SNPE
+        The SNPE inferrer created by gen_inferrer().
+    sample_mc_pairs : NDArray[np.floating]
+        Array of (log10mass, concentration) pairs used for training.
+    simulated_nfw_profiles : NDArray[np.floating]
+        Array of simulated NFW profiles corresponding to the mc_pairs.
+
+    Returns
+    -------
+    DirectPosterior
+        A trained posterior ready for sampling given observations.
+    """
     theta_np = np.array(sample_mc_pairs.T).T
-    # x_np = simulated_nfw_profiles
     x_np = simulated_nfw_profiles.reshape(simulated_nfw_profiles.shape[0], -1)
 
-    # print(np.shape(theta_np))
-    # print(np.shape(x_np))
-
-    # turn into tensors
     theta = torch.as_tensor(theta_np, dtype=torch.float32)
     x = torch.as_tensor(x_np, dtype=torch.float32)
 
-    # Append training data
     inferrer = inferrer.append_simulations(theta, x)
 
-    # Train  (note: Lots of training settings.)
     density_estimator = inferrer.train(
         num_atoms=4,
         training_batch_size=50,
@@ -76,37 +116,63 @@ def gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles):
         dataloader_kwargs=None,
     )
 
-    # Build posterior using trained density estimator and posterior sampling settings
-    # posterior = inferrer.build_posterior(density_estimator, sample_with="mcmc")
     posterior = inferrer.build_posterior(density_estimator)
-
     return posterior
 
 
-# Apply observations to the (un)pickled posterior and sample from the posterior
 def apply_observations(
-    posterior, posterior_jtf, drawn_mc_pairs, drawn_nfw_profiles, err_dex=0.0
-):
+    posterior: Any,
+    posterior_jtf: Any,
+    drawn_mc_pairs: NDArray[np.floating],
+    drawn_nfw_profiles: NDArray[np.floating],
+    err_dex: float = 0.0,
+) -> tuple[
+    NDArray[np.floating],
+    NDArray[np.floating],
+    NDArray[np.floating],
+    NDArray[np.floating],
+    Tensor,
+    Tensor,
+]:
+    """
+    Apply observations to trained posteriors and sample.
+
+    Parameters
+    ----------
+    posterior : DirectPosterior
+        Trained posterior for fit-then-join inference.
+    posterior_jtf : DirectPosterior
+        Trained posterior for join-then-fit inference.
+    drawn_mc_pairs : NDArray[np.floating]
+        Observed mass-concentration pairs.
+    drawn_nfw_profiles : NDArray[np.floating]
+        Observed NFW profiles.
+    err_dex : float, optional
+        Error in dex (not currently used). Default is 0.0.
+
+    Returns
+    -------
+    tuple
+        (samples_jtf, samples_ftj, map_mc_jtf, map_mc_ftj, logp_jtf, logp_ftj)
+        Samples and MAP estimates for both inference strategies.
+    """
     from .sbiutils import (
         create_join_fit_observation_nfw,
         create_fit_join_observation_nfw,
+        PERCENTILE_LEVELS,
     )
-    from .sbiutils import PERCENTILE_LEVELS
 
-    # Join (take the median of) observations and then fit on that
+    # Join-then-fit: take median of observations then fit
     theta_o_jf, x_o_jf = create_join_fit_observation_nfw(
         drawn_mc_pairs, drawn_nfw_profiles
     )
 
-    # Obtain samples of the posterior given the observation
     samples_jf = posterior_jtf.sample((10000,), x=x_o_jf)
-
-    # Calculate the log-probability of the samples given the observation to find the maximum a posteriori (MAP) estimate
     logp_jf = posterior_jtf.log_prob(samples_jf, x=x_o_jf)
     idx_jf = torch.argmax(logp_jf)
     map_mc_jf = samples_jf[idx_jf]
 
-    # Fit each observation and join them (stack the chains) at the end
+    # Fit-then-join: fit each observation then combine
     theta_o_fj, x_o_fj = create_fit_join_observation_nfw(
         drawn_mc_pairs, drawn_nfw_profiles
     )
@@ -116,7 +182,7 @@ def apply_observations(
     idx_fj = torch.argmax(logp_fj)
     map_mc_fj = samples_fj[idx_fj]
 
-    def collapse_map(vec):
+    def collapse_map(vec: Tensor) -> Tensor:
         dim = vec.ndim if hasattr(vec, "ndim") else vec.dim()
         if dim == 1 and vec.shape[0] >= 2 * len(PERCENTILE_LEVELS):
             med_idx = PERCENTILE_LEVELS.index(50)

@@ -1,4 +1,9 @@
-from context import sbi_
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from weaklensclustersbi.inference import sbi_
 import numpy as np
 import json
 import argparse
@@ -24,7 +29,7 @@ script_start = time.perf_counter()
 
 def log_runtime(status="success", details=""):
     append_runtime_log(
-        stage="gen_posterior",
+        stage="train_inferrer",
         seconds=time.perf_counter() - script_start,
         sim_id=args.sim_id,
         infer_id=args.infer_id,
@@ -33,6 +38,7 @@ def log_runtime(status="success", details=""):
         details=details,
         status=status,
     )
+
 
 script_dir = os.path.dirname(__file__)
 out_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}"
@@ -116,9 +122,9 @@ else:
     sample_jtf_mc_pairs = sample_mc_pairs
 
 inferrer = sbi_.gen_inferrer(infer_config["priors"], sample_mc_pairs.shape[1])
-posterior = sbi_.gen_posterior(inferrer, sample_mc_pairs, simulated_nfw_profiles)
+posterior = sbi_.train_inferrer(inferrer, sample_mc_pairs, simulated_nfw_profiles)
 inferrer = sbi_.gen_inferrer(infer_config["priors"], sample_jtf_mc_pairs.shape[1])
-posterior_range = sbi_.gen_posterior(
+posterior_range = sbi_.train_inferrer(
     inferrer, sample_jtf_mc_pairs, simulated_jtf_nfw_profiles
 )
 

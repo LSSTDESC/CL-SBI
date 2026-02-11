@@ -2,11 +2,10 @@ import pygtc
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib.patches import Ellipse
 from chainconsumer import ChainConsumer
 import os
 from colossus.cosmology import cosmology
-from context import wlprofile
+from weaklensclustersbi.simulations import wlprofile
 import seaborn as sns
 
 script_dir = os.path.dirname(__file__)
@@ -609,8 +608,8 @@ def plot_nfw_profiles(
     ax1.set_ylim(1e7, 1e10)
     ax1.set_xlim(min(rbins), max(rbins))
 
-    for nfw_profile in nfw_profiles:
-        ax1.plot(rbins, nfw_profile, "-", alpha=0.1, zorder=0, color="gray")
+    # for nfw_profile in nfw_profiles:
+    #     ax1.plot(rbins, nfw_profile, "-", alpha=0.1, zorder=0, color="gray")
     ax1.plot(
         rbins,
         np.median(nfw_profiles, axis=0),
@@ -619,24 +618,67 @@ def plot_nfw_profiles(
         label=f"Median Drawn NFW, $\lambda \in$ [{min_richness}, {max_richness}]",
     )
     if is_noisy:
-        upper_error = np.exp(
-            np.log(np.median(nfw_profiles, axis=0)) + sigmas
-        ) - np.median(nfw_profiles, axis=0)
-        lower_error = np.median(nfw_profiles, axis=0) - np.exp(
-            np.log(np.median(nfw_profiles, axis=0)) - sigmas
-        )
-        yerr = [lower_error, upper_error]
+        if sigmas is not None:
+            upper_error = np.exp(
+                np.log(np.median(nfw_profiles, axis=0)) + sigmas
+            ) - np.median(nfw_profiles, axis=0)
+            lower_error = np.median(nfw_profiles, axis=0) - np.exp(
+                np.log(np.median(nfw_profiles, axis=0)) - sigmas
+            )
+            yerr = [lower_error, upper_error]
 
-        ax1.errorbar(
+        # nfw_profiles: shape (Ndraws, Nbins)
+        y_med = np.median(nfw_profiles, axis=0)
+
+        # percentile bands (pick what you want)
+        p_lo_68, p_hi_68 = np.percentile(nfw_profiles, [16, 84], axis=0)
+        p_lo_95, p_hi_95 = np.percentile(nfw_profiles, [2.5, 97.5], axis=0)
+        p_lo_997, p_hi_997 = np.percentile(
+            nfw_profiles, [0.15, 99.85], axis=0
+        )  # ~99.7%
+
+        # choose widths (relative to your x bin spacing)
+        dx = np.diff(rbins)
+        dx = np.r_[dx[0], dx]  # same length as rbins
+        w68, w95, w997 = 0.45 * dx, 0.30 * dx, 0.18 * dx
+
+        # draw widest interval first (so narrower ones sit on top)
+        ax1.bar(
             rbins,
-            np.median(nfw_profiles, axis=0),
-            yerr=yerr,
-            fmt="k",
-            capsize=3.0,
-            linewidth=4,
-            elinewidth=1,
+            p_hi_997 - p_lo_997,
+            bottom=p_lo_997,
+            width=w997,
+            align="center",
+            color="k",
+            alpha=0.20,
+            linewidth=0,
             zorder=1,
         )
+        ax1.bar(
+            rbins,
+            p_hi_95 - p_lo_95,
+            bottom=p_lo_95,
+            width=w95,
+            align="center",
+            color="k",
+            alpha=0.30,
+            linewidth=0,
+            zorder=2,
+        )
+        ax1.bar(
+            rbins,
+            p_hi_68 - p_lo_68,
+            bottom=p_lo_68,
+            width=w68,
+            align="center",
+            color="k",
+            alpha=0.45,
+            linewidth=0,
+            zorder=3,
+        )
+
+        # median line on top
+        ax1.plot(rbins, y_med, color="k", lw=2.5, zorder=4)
 
     gaussian_summary_ftj = None
     gaussian_summary_jtf = None
@@ -776,6 +818,49 @@ def plot_nfw_profiles(
             ax2.axhline(
                 0, color="gray", linestyle="dotted", alpha=0.5
             )  # , label='Median NFW Profile')
+
+            # Add percentile bars for observed profiles (as fractional difference)
+            frac_diff_lo_68 = (p_lo_68 / ideal_nfw) - 1
+            frac_diff_hi_68 = (p_hi_68 / ideal_nfw) - 1
+            # frac_diff_lo_95 = (p_lo_95 / ideal_nfw) - 1
+            # frac_diff_hi_95 = (p_hi_95 / ideal_nfw) - 1
+            # frac_diff_lo_997 = (p_lo_997 / ideal_nfw) - 1
+            # frac_diff_hi_997 = (p_hi_997 / ideal_nfw) - 1
+
+            # ax2.bar(
+            #     rbins,
+            #     frac_diff_hi_997 - frac_diff_lo_997,
+            #     bottom=frac_diff_lo_997,
+            #     width=w997,
+            #     align="center",
+            #     color="k",
+            #     alpha=0.20,
+            #     linewidth=0,
+            #     zorder=1,
+            # )
+            # ax2.bar(
+            #     rbins,
+            #     frac_diff_hi_95 - frac_diff_lo_95,
+            #     bottom=frac_diff_lo_95,
+            #     width=w95,
+            #     align="center",
+            #     color="k",
+            #     alpha=0.30,
+            #     linewidth=0,
+            #     zorder=2,
+            # )
+            ax2.bar(
+                rbins,
+                frac_diff_hi_68 - frac_diff_lo_68,
+                bottom=frac_diff_lo_68,
+                width=w68,
+                align="center",
+                color="k",
+                alpha=0.45,
+                linewidth=0,
+                zorder=3,
+            )
+
             ax2.plot(
                 rbins,
                 # (mcmc_jtf_nfw / np.median(nfw_profiles, axis=0)) - 1,
@@ -934,6 +1019,49 @@ def plot_nfw_profiles(
             ax2.axhline(
                 0, color="gray", linestyle="dotted", alpha=0.5
             )  # , label='Median NFW Profile')
+
+            # Add percentile bars for observed profiles (as fractional difference)
+            frac_diff_lo_68 = (p_lo_68 / ideal_nfw) - 1
+            frac_diff_hi_68 = (p_hi_68 / ideal_nfw) - 1
+            # frac_diff_lo_95 = (p_lo_95 / ideal_nfw) - 1
+            # frac_diff_hi_95 = (p_hi_95 / ideal_nfw) - 1
+            # frac_diff_lo_997 = (p_lo_997 / ideal_nfw) - 1
+            # frac_diff_hi_997 = (p_hi_997 / ideal_nfw) - 1
+
+            # ax2.bar(
+            #     rbins,
+            #     frac_diff_hi_997 - frac_diff_lo_997,
+            #     bottom=frac_diff_lo_997,
+            #     width=w997,
+            #     align="center",
+            #     color="k",
+            #     alpha=0.20,
+            #     linewidth=0,
+            #     zorder=1,
+            # )
+            # ax2.bar(
+            #     rbins,
+            #     frac_diff_hi_95 - frac_diff_lo_95,
+            #     bottom=frac_diff_lo_95,
+            #     width=w95,
+            #     align="center",
+            #     color="k",
+            #     alpha=0.30,
+            #     linewidth=0,
+            #     zorder=2,
+            # )
+            ax2.bar(
+                rbins,
+                frac_diff_hi_68 - frac_diff_lo_68,
+                bottom=frac_diff_lo_68,
+                width=w68,
+                align="center",
+                color="k",
+                alpha=0.45,
+                linewidth=0,
+                zorder=3,
+            )
+
             ax2.plot(
                 rbins,
                 (np.median(nfw_profiles, axis=0) / ideal_nfw) - 1,

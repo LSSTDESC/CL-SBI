@@ -2,7 +2,11 @@
 Example script to simulate a weak lensing profile using modules
 """
 
-from context import population, wlprofile
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from weaklensclustersbi.simulations import population, wlprofile
 import numpy as np
 import json
 import os

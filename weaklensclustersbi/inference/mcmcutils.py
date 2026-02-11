@@ -1,7 +1,8 @@
 import emcee
 import numpy as np
-from context import wlprofile, populationutils, population
 import scipy.stats
+
+from weaklensclustersbi.simulations import wlprofile, populationutils, population
 
 
 def logprior(params, priors):

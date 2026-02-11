@@ -1,4 +1,8 @@
-from context import plotutils
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from plot import plotutils
 import numpy as np
 import argparse
 import os
@@ -166,8 +170,8 @@ plotutils.plot_nfw_profiles(
 # )
 
 plotutils.plot_mcmc_nfw_profiles(
-    drawn_nfw_profiles,
-    sigmas,
+    noiseless_drawn_nfw_profiles,
+    None,
     out_path,
     obs_config["num_radial_bins"],
     obs_config["min_richness"],
@@ -180,8 +184,8 @@ plotutils.plot_mcmc_nfw_profiles(
 )
 
 plotutils.plot_sbi_nfw_profiles(
-    drawn_nfw_profiles,
-    sigmas,
+    noiseless_drawn_nfw_profiles,
+    None,
     out_path,
     obs_config["num_radial_bins"],
     obs_config["min_richness"],
@@ -196,8 +200,8 @@ plotutils.plot_sbi_nfw_profiles(
 )
 
 plotutils.plot_frac_diff(
-    drawn_nfw_profiles,
-    sigmas,
+    noiseless_drawn_nfw_profiles,
+    None,
     out_path,
     obs_config["num_radial_bins"],
     obs_config["min_richness"],

@@ -1,4 +1,8 @@
-from context import plotutils
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from plot import plotutils
 import numpy as np
 import argparse
 import os

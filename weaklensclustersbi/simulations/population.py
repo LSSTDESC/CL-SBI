@@ -19,7 +19,7 @@ def random_mass_conc(
     max_log10mass,
     num_sims,
     mc_scatter=0,
-    mc_relation="murata17",
+    mc_relation="child18",
     min_z=0,
     max_z=0,
 ):
@@ -54,6 +54,28 @@ def random_mass_conc(
     return list(zip(log10mass_sample, concentration_sample))
 
 
+def _generate_property_for_sample(log10masses, property_fn, scatter):
+    """
+    Generic function to generate a property for a sample of masses with scatter.
+
+    Parameters
+    ----------
+    log10masses : array-like
+        Array of log10 masses.
+    property_fn : callable
+        Function that takes log10mass and returns the property value.
+    scatter : float
+        Standard deviation of Gaussian scatter to apply.
+
+    Returns
+    -------
+    np.ndarray
+        Property values with scatter applied.
+    """
+    non_noisy_values = np.array([property_fn(m) for m in log10masses])
+    return np.random.normal(non_noisy_values, scatter, np.shape(log10masses))
+
+
 def generate_concentration_for_sample(
     log10masses, zs, mc_relation="child18", mc_scatter=0
 ):
@@ -64,31 +86,23 @@ def generate_concentration_for_sample(
 
     Args:
         log10masses: a numpy array of masses, e.g. np.random.uniform(13,15,size=10000)
-        z : redshift, default: 0.0
+        zs : array of redshifts corresponding to each mass
         mc_relation : string that is a key to the model name of the M-c relation from colossus, default: child18
+        mc_scatter : scatter in concentration at fixed mass
 
     Returns:
         concentrations : a numpy array of concentration values
 
     """
-
     from .populationutils import get_concentration
 
-    # non_noisy_concentrations = get_concentration(log10masses,
-    #                                              z=z,
-    #                                              model=mc_relation)
     non_noisy_concentrations = np.array(
         [
             get_concentration(log10mass, model=mc_relation, z=z)
             for log10mass, z in zip(log10masses, zs)
         ]
     )
-    # Note: May want to later generalize the distribution of concentration about the mean relation that is not random normal
-    concentrations = np.random.normal(
-        non_noisy_concentrations, mc_scatter, np.shape(log10masses)
-    )
-
-    return concentrations
+    return np.random.normal(non_noisy_concentrations, mc_scatter, np.shape(log10masses))
 
 
 def generate_richness_for_sample(
@@ -103,6 +117,7 @@ def generate_richness_for_sample(
         log10masses: a numpy array of masses, e.g. np.random.uniform(13,15,size=10000)
         z : redshift, default: 0.0
         rm_relation : string that is a key to the model name of the richness-mass relation from colossus, default: murata17
+        rm_scatter : scatter in richness at fixed mass
 
     Returns:
         richnesses : a numpy array of richness values
@@ -110,14 +125,9 @@ def generate_richness_for_sample(
     """
     from .populationutils import get_richness
 
-    non_noisy_richnesses = np.array(
-        [get_richness(log10mass, z=z, model=rm_relation) for log10mass in log10masses]
+    return _generate_property_for_sample(
+        log10masses, lambda m: get_richness(m, z=z, model=rm_relation), rm_scatter
     )
-    richnesses = np.random.normal(
-        non_noisy_richnesses, rm_scatter, np.shape(log10masses)
-    )
-
-    return richnesses
 
 
 def draw_masses_in_richness_bin(
@@ -150,18 +160,6 @@ def draw_masses_in_richness_bin(
 
     from .populationutils import get_log10mass_from_richness
 
-    # lambdas = np.random.rand(num_obs) * (lambda_max - lambda_min) + lambda_min
-    # non_noisy_log10masses = np.array([
-    #     get_log10mass_from_richness(lambda_, model=rm_relation)
-    #     for lambda_ in lambdas
-    # ])
-    # log10masses = np.random.normal(non_noisy_log10masses, rm_scatter,
-    #                                np.shape(lambdas))
-    # if not return_pairs:
-    #     return log10masses
-    # else:
-    #     return list(zip(lambdas, log10masses))
-
     grid_size = 1000
     lambdas = np.random.rand(grid_size) * (lambda_max - lambda_min) + lambda_min
     log10masses = np.array(
@@ -171,10 +169,6 @@ def draw_masses_in_richness_bin(
         ]
     )
     log10masses = np.random.normal(log10masses, rm_scatter, np.shape(lambdas))
-
-    # min_log10mass = get_log10mass_from_richness(lambda_min, model=rm_relation)
-    # max_log10mass = get_log10mass_from_richness(lambda_max, model=rm_relation)
-    # log10masses = np.linspace(min_log10mass, max_log10mass, grid_size)
 
     cosmo = cosmology.setCosmology(cosmo)
 
@@ -194,14 +188,6 @@ def draw_masses_in_richness_bin(
     # pick num_obs indices with replacement from the PDF
     idx = np.random.choice(grid_size, size=num_samples, replace=True, p=pdf)
 
-    # us = np.random.rand(num_obs)
-    # sampled_log10m = np.interp(us, cdf, log10masses)
-
-    # get lambdas by finding the ids of sampled_log10m in log10masses
-    # sampled_lambdas = np.array(
-    #     [np.where(log10masses == sampled_log10m[i])[0][0] for i in range(num_obs)]
-    # )
-
     return lambdas[idx], log10masses[idx]
 
 
@@ -219,9 +205,9 @@ def gen_mc_pairs_in_richness_bin(
     mdef="200m",
     model="tinker08",
     cosmo="planck18",
-    # richness leak experiment params
-    richness_leak_frac=0,
-    lambda_min_leak=None,
+    # richness contam experiment params
+    richness_contam_frac=0,
+    lambda_min_contam=None,
 ):
     """
     For a given richness bin, generate {num_obs} mass-concentration samples with some user-specified noise
@@ -237,21 +223,21 @@ def gen_mc_pairs_in_richness_bin(
     Returns:
         mc_pairs: a numpy array of size num_obs of tupes of (log10mass, concentration)
     """
-    leak_size = int(num_samples * richness_leak_frac)
-    non_leak_size = num_samples - leak_size
+    contam_size = int(num_samples * richness_contam_frac)
+    non_contam_size = num_samples - contam_size
 
     _, log10mass_sample = draw_masses_in_richness_bin(
         lambda_min,
         lambda_max,
         rm_relation=rm_relation,
-        num_samples=non_leak_size,
+        num_samples=non_contam_size,
         rm_scatter=rm_scatter,
         z=(min_z + max_z) / 2,
         mdef=mdef,
         model=model,
         cosmo=cosmo,
     )
-    z_sample = np.random.uniform(min_z, max_z, size=non_leak_size)
+    z_sample = np.random.uniform(min_z, max_z, size=non_contam_size)
     concentration_sample = generate_concentration_for_sample(
         log10mass_sample,
         mc_scatter=mc_scatter,
@@ -260,28 +246,30 @@ def gen_mc_pairs_in_richness_bin(
     )
     mc_pairs = list(zip(log10mass_sample, concentration_sample))
 
-    # Allow for some observations to "leak" up from a lower richness bin
-    if leak_size != 0 and lambda_min_leak is not None:
-        _, log10mass_leak_sample = draw_masses_in_richness_bin(
-            lambda_min_leak,
+    # Allow for some observations to "contam" up from a lower richness bin
+    if contam_size != 0 and lambda_min_contam is not None:
+        _, log10mass_contam_sample = draw_masses_in_richness_bin(
+            lambda_min_contam,
             lambda_min,
             rm_relation=rm_relation,
-            num_samples=leak_size,
+            num_samples=contam_size,
             rm_scatter=rm_scatter,
             z=(min_z + max_z) / 2,
             mdef=mdef,
             model=model,
             cosmo=cosmo,
         )
-        z_leak_sample = np.random.uniform(min_z, max_z, size=leak_size)
-        concentration_leak_sample = generate_concentration_for_sample(
-            log10mass_leak_sample,
+        z_contam_sample = np.random.uniform(min_z, max_z, size=contam_size)
+        concentration_contam_sample = generate_concentration_for_sample(
+            log10mass_contam_sample,
             mc_scatter=mc_scatter,
             mc_relation=mc_relation,
-            zs=z_leak_sample,
+            zs=z_contam_sample,
         )
-        mc_pairs_leak = list(zip(log10mass_leak_sample, concentration_leak_sample))
-        mc_pairs.extend(mc_pairs_leak)
+        mc_pairs_contam = list(
+            zip(log10mass_contam_sample, concentration_contam_sample)
+        )
+        mc_pairs.extend(mc_pairs_contam)
     return mc_pairs
 
 

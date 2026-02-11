@@ -30,7 +30,7 @@ Running instructions:
 3) Create an inference config in the ``configs/inference`` directory
 
 4) Generate a posterior using the following script: 
-	``python scripts/gen_posterior.py --sim_id {SIM_ID} --infer_id {INFER_ID} --num_sims {NUM_SIMS}``.
+	``python scripts/train_inferrer.py --sim_id {SIM_ID} --infer_id {INFER_ID} --num_sims {NUM_SIMS}``.
 	
 	This will output to the ``outputs/posteriors/{SIM_ID}.{INFER_ID}.{NUM_SIMS}`` directory
 

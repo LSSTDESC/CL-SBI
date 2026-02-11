@@ -4,23 +4,69 @@ Utilities for defining and working with a sample of simulated clusters
 Copyright 2022-2023, LSST-DESC
 """
 
-from colossus.halo import concentration
-import numpy as np
+from typing import Literal
 import warnings
+import numpy as np
+from colossus.halo import concentration
 
 
-def get_concentration(log10mass, mdef="vir", z=0.0, model="child18"):
+def get_concentration(
+    log10mass: float,
+    mdef: str = "vir",
+    z: float = 0.0,
+    model: str = "child18",
+) -> float:
     """
-    Return the concentration for a halo of a given mass assuming a model of child18
-    at the present day (redshift 0.0), defined with respect to the virial radius.
-    """
+    Return the concentration for a halo of a given mass.
 
+    Parameters
+    ----------
+    log10mass : float
+        Log10 of the halo mass in solar masses.
+    mdef : str, optional
+        Mass definition. Default is "vir" (virial).
+    z : float, optional
+        Redshift. Default is 0.0.
+    model : str, optional
+        Mass-concentration relation model from colossus. Default is "child18".
+
+    Returns
+    -------
+    float
+        Halo concentration.
+    """
     return concentration.concentration(10**log10mass, mdef, z, model=model)
 
 
-def get_richness(log10mass, z=0.0, model="murata17", strict=False):
+def get_richness(
+    log10mass: float,
+    z: float = 0.0,
+    model: Literal["murata17", "mcclintock18"] = "murata17",
+    strict: bool = False,
+) -> float:
     """
-    Return the optical richness for a halo of a given mass assuming the model of murata17. Note that this relation only holds if the lambda is between 20 and 100.
+    Return the optical richness for a halo of a given mass.
+
+    Parameters
+    ----------
+    log10mass : float
+        Log10 of the halo mass in solar masses.
+    z : float, optional
+        Redshift. Default is 0.0.
+    model : {"murata17", "mcclintock18"}, optional
+        Richness-mass relation model. Default is "murata17".
+    strict : bool, optional
+        If True, warn when richness is outside the valid range for the model.
+        Default is False.
+
+    Returns
+    -------
+    float
+        Optical richness (lambda).
+
+    Notes
+    -----
+    The murata17 relation is only valid for lambda between 20 and 100.
     """
     if model == "murata17":
         a, b, mass_pivot = _get_murata2017_parameters()
@@ -38,9 +84,35 @@ def get_richness(log10mass, z=0.0, model="murata17", strict=False):
     return 0
 
 
-def get_log10mass_from_richness(lambda_, z=0.0, model="murata17", strict=False):
+def get_log10mass_from_richness(
+    lambda_: float,
+    z: float = 0.0,
+    model: Literal["murata17", "mcclintock18"] = "murata17",
+    strict: bool = False,
+) -> float:
     """
-    Return the mass for a halo of a given optical richness assuming the model of murata17. Note that this relation only holds if the lambda is between 20 and 100.
+    Return the mass for a halo of a given optical richness.
+
+    Parameters
+    ----------
+    lambda_ : float
+        Optical richness.
+    z : float, optional
+        Redshift. Default is 0.0.
+    model : {"murata17", "mcclintock18"}, optional
+        Richness-mass relation model. Default is "murata17".
+    strict : bool, optional
+        If True, warn when richness is outside the valid range for the model.
+        Default is False.
+
+    Returns
+    -------
+    float
+        Log10 of the halo mass in solar masses.
+
+    Notes
+    -----
+    The murata17 relation is only valid for lambda between 20 and 100.
     """
     if model == "murata17":
         if strict and (lambda_ < 20 or lambda_ > 100):
@@ -56,9 +128,14 @@ def get_log10mass_from_richness(lambda_, z=0.0, model="murata17", strict=False):
     return 0
 
 
-def _get_murata2017_parameters():
+def _get_murata2017_parameters() -> tuple[float, float, float]:
     """
-    Fetching parameters that are used in the murata17 richness-mass relation
+    Return parameters for the Murata et al. 2017 richness-mass relation.
+
+    Returns
+    -------
+    tuple[float, float, float]
+        (a, b, mass_pivot) parameters.
     """
     a = 3.207
     b = 0.993
@@ -66,9 +143,14 @@ def _get_murata2017_parameters():
     return a, b, mass_pivot
 
 
-def _get_mcclintock18_parameters():
+def _get_mcclintock18_parameters() -> tuple[float, float, float]:
     """
-    Fetching parameters that are used in the murata17 richness-mass relation
+    Return parameters for the McClintock et al. 2018 richness-mass relation.
+
+    Returns
+    -------
+    tuple[float, float, float]
+        (m0, G, F) parameters.
     """
     m0 = 3.081e14
     G = -0.3

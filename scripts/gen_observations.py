@@ -2,7 +2,12 @@
 Generate observations upon which we will run inference
 """
 
-from context import population, wlprofile
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from weaklensclustersbi.simulations import population, wlprofile
 import numpy as np
 import json
 import os
@@ -73,8 +78,8 @@ drawn_mc_pairs = population.gen_mc_pairs_in_richness_bin(
     rm_scatter=obs_config["rm_scatter"],
     min_z=obs_config["min_z"],
     max_z=obs_config["max_z"],
-    richness_leak_frac=obs_config.get("richness_leak_frac", 0.0),
-    lambda_min_leak=obs_config.get("min_richness_leak", None),
+    richness_contam_frac=obs_config.get("richness_contam_frac", 0.0),
+    lambda_min_contam=obs_config.get("min_richness_contam", None),
 )
 
 z_sample = np.random.uniform(

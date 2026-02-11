@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Generate calibration (coverage) plots for a single experiment."""
 import argparse
+import sys
 import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +13,8 @@ import pickle
 import time
 from typing import Dict, Tuple
 
-from context import plotutils, population
+from plot import plotutils
+from weaklensclustersbi.simulations import population
 from runtime_log import append_runtime_log
 
 CONF_LEVELS = np.linspace(0, 1, 20)
@@ -63,8 +68,8 @@ def sample_truth_ftj(
         rm_scatter=obs_config["rm_scatter"],
         min_z=obs_config["min_z"],
         max_z=obs_config["max_z"],
-        richness_leak_frac=obs_config.get("richness_leak_frac", 0.0),
-        lambda_min_leak=obs_config.get("min_richness_leak", None),
+        richness_contam_frac=obs_config.get("richness_contam_frac", 0.0),
+        lambda_min_contam=obs_config.get("min_richness_contam", None),
     )
     return np.asarray(mc_pairs)
 
