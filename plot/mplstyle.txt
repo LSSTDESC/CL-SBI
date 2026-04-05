@@ -20,6 +20,6 @@ xtick.labelsize : 12
 ytick.labelsize : 12
 legend.fontsize : 12
 legend.frameon : False
-text.usetex : True
+text.usetex : False
 
 

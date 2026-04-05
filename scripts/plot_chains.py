@@ -114,6 +114,50 @@ if "agg" not in infer_config:
         out_path,
         [true_param_median, true_param_25, true_param_75],
     )
+
+    # Load and plot two-stage FTJ comparison if available
+    population_samples_file = os.path.join(infer_path, "mcmc_ftj_population_samples.pickle")
+    population_params_file = os.path.join(infer_path, "mcmc_ftj_population_params.pickle")
+    individual_samplers_file = os.path.join(infer_path, "mcmc_ftj_individual_samplers.pickle")
+    if os.path.exists(population_samples_file):
+        with open(population_samples_file, "rb") as handle:
+            mcmc_ftj_population_samples = pickle.load(handle)
+
+        # Load population params for displaying fitted values
+        population_params = None
+        if os.path.exists(population_params_file):
+            with open(population_params_file, "rb") as handle:
+                population_params = pickle.load(handle)
+
+        # Load individual samplers and create naive stacked samples
+        mcmc_ftj_naive_samples = None
+        if os.path.exists(individual_samplers_file):
+            with open(individual_samplers_file, "rb") as handle:
+                individual_samplers = pickle.load(handle)
+            # Concatenate flatchain from each individual sampler (only M, c columns)
+            naive_chains = [s.flatchain[:, :2] for s in individual_samplers]
+            mcmc_ftj_naive_samples = np.concatenate(naive_chains, axis=0)
+
+        plotutils.plot_chainconsumer_ftj_comparison(
+            mcmc_chains[1],  # FTJ joint likelihood chain
+            mcmc_ftj_population_samples,  # FTJ two-stage population samples
+            out_path,
+            [true_param_median, true_param_25, true_param_75],
+            drawn_mc_pairs,
+            population_params=population_params,
+            mcmc_ftj_naive_samples=mcmc_ftj_naive_samples,
+        )
+
+        # Plot all MCMC methods comparison (JTF, FTJ joint likelihood, FTJ two-stage, naive stacking)
+        plotutils.plot_chainconsumer_mcmc_all_methods(
+            mcmc_chains[0],  # JTF chain
+            mcmc_chains[1],  # FTJ joint likelihood chain
+            mcmc_ftj_population_samples,  # FTJ two-stage population samples
+            out_path,
+            [true_param_median, true_param_25, true_param_75],
+            drawn_mc_pairs,
+            mcmc_ftj_naive_samples=mcmc_ftj_naive_samples,
+        )
 # else:
 #     plotutils.plot_chainconsumer_agg(
 #         sbi_agg_chains,

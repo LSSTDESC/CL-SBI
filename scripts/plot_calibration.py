@@ -23,6 +23,8 @@ POSTERIOR_SAMPLE_SIZE = 5000
 METHOD_LABELS = {
     ("mcmc", "jtf"): "MCMC join-then-fit",
     ("mcmc", "ftj"): "MCMC fit-then-join",
+    ("mcmc", "ftj_twostage"): "MCMC fit-then-join (two-stage)",
+    ("mcmc", "ftj_naive"): "MCMC fit-then-join (naive stacking)",
     ("sbi", "jtf"): "SBI join-then-fit",
     ("sbi", "ftj"): "SBI fit-then-join",
 }
@@ -142,9 +144,33 @@ def aggregate_coverage(
         ("sbi", "jtf"): draw_posterior_samples(sbi_jtf, POSTERIOR_SAMPLE_SIZE),
         ("sbi", "ftj"): draw_posterior_samples(sbi_ftj, POSTERIOR_SAMPLE_SIZE),
     }
+
+    # Load two-stage FTJ population samples if available
+    population_file = os.path.join(run_path, "mcmc_ftj_population_samples.pickle")
+    if os.path.exists(population_file):
+        with open(population_file, "rb") as handle:
+            mcmc_ftj_population = pickle.load(handle)
+        chains[("mcmc", "ftj_twostage")] = draw_posterior_samples(
+            mcmc_ftj_population, POSTERIOR_SAMPLE_SIZE
+        )
+
+    # Load naive stacking samples if available (from individual samplers)
+    individual_samplers_file = os.path.join(run_path, "mcmc_ftj_individual_samplers.pickle")
+    if os.path.exists(individual_samplers_file):
+        with open(individual_samplers_file, "rb") as handle:
+            individual_samplers = pickle.load(handle)
+        # Concatenate flatchain from each individual sampler (only M, c columns)
+        naive_chains = [s.flatchain[:, :2] for s in individual_samplers]
+        mcmc_ftj_naive = np.concatenate(naive_chains, axis=0)
+        chains[("mcmc", "ftj_naive")] = draw_posterior_samples(
+            mcmc_ftj_naive, POSTERIOR_SAMPLE_SIZE
+        )
+
     for key, samples in chains.items():
         branch = key[1]
-        aggregates[key] = compute_coverage(samples, truth_map[branch])
+        # Map ftj_twostage and ftj_naive to ftj truth for comparison
+        truth_key = "ftj" if branch in ("ftj_twostage", "ftj_naive") else branch
+        aggregates[key] = compute_coverage(samples, truth_map[truth_key])
     return aggregates
 
 
@@ -233,7 +259,8 @@ def main():
 
     try:
         aggregates = aggregate_coverage(run_path, truth_map)
-        ftj_only = {k: v for k, v in aggregates.items() if k[1] == "ftj"}
+        # Include ftj, ftj_twostage, and ftj_naive in FTJ comparison
+        ftj_only = {k: v for k, v in aggregates.items() if k[1] in ("ftj", "ftj_twostage", "ftj_naive")}
         jtf_only = {k: v for k, v in aggregates.items() if k[1] == "jtf"}
         plot_calibration(ftj_only, out_dir, "ftj")
         plot_calibration(jtf_only, out_dir, "jtf")

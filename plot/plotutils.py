@@ -16,6 +16,8 @@ plt.style.use(os.path.join(script_dir, "mplstyle.txt"))
 param_labels = ["log10mass", "concentration"]
 chain_labels = ["join_then_fit", "fit_then_join"]
 wide_param_ranges = ((12, 17), (2, 9))
+# high m_mc scatter experiment range
+# wide_param_ranges = ((13.5, 15), (2, 7.5))
 narrow_param_ranges = ((13.5, 15), (4, 6.2))
 
 QUARTILE_SIGMA = 0.6744897501960817  # z-score at 75th percentile for a normal
@@ -430,6 +432,284 @@ def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]
     plt.close()
 
 
+def plot_chainconsumer_ftj_comparison(
+    mcmc_ftj_joint_chain,
+    mcmc_ftj_population_samples,
+    out_path,
+    true_param,
+    mc_pairs,
+    population_params=None,
+    mcmc_ftj_naive_samples=None,
+):
+    """
+    Plot comparison of FTJ methods: joint likelihood vs two-stage population inference.
+
+    Parameters
+    ----------
+    mcmc_ftj_joint_chain : ndarray
+        Chain from joint likelihood MCMC FTJ (existing method).
+    mcmc_ftj_population_samples : ndarray
+        Samples from fitted population distribution (two-stage method).
+    out_path : str
+        Output directory for plots.
+    true_param : list
+        List of [median, 25th percentile, 75th percentile] for true parameters.
+    mc_pairs : ndarray
+        Array of drawn (mass, concentration) pairs for KDE overlay.
+    population_params : dict, optional
+        Fitted population parameters (mu, cov, etc.) for display.
+    mcmc_ftj_naive_samples : ndarray, optional
+        Concatenated samples from individual MCMCs (naive stacking).
+    """
+    # Remove the error parameter (3rd column) from MCMC joint chain
+    if mcmc_ftj_joint_chain.shape[1] > 2:
+        mcmc_ftj_joint_chain = mcmc_ftj_joint_chain[:, :2]
+    # Population samples should already be 2D (M, c only)
+    if mcmc_ftj_population_samples.shape[1] > 2:
+        mcmc_ftj_population_samples = mcmc_ftj_population_samples[:, :2]
+
+    p50 = np.array((np.median(mc_pairs.T[0]), np.median(mc_pairs.T[1])))
+    p25 = np.array(true_param[1])
+    p75 = np.array(true_param[2])
+
+    cc = ChainConsumer()
+
+    cc.add_chain(
+        mcmc_ftj_joint_chain,
+        parameters=param_labels,
+        name="FTJ Joint Likelihood",
+    )
+    cc.add_chain(
+        mcmc_ftj_population_samples,
+        parameters=param_labels,
+        name="FTJ Two-Stage",
+    )
+    if mcmc_ftj_naive_samples is not None:
+        cc.add_chain(
+            mcmc_ftj_naive_samples,
+            parameters=param_labels,
+            name="FTJ Naive Stacking",
+        )
+
+    cc.configure(
+        statistics="mean",
+        summary=True,
+        label_font_size=20,
+        tick_font_size=16,
+        usetex=False,
+        serif=False,
+        sigmas=[2, 3],
+        shade_alpha=0.3,
+    )
+
+    fig = cc.plotter.plot(
+        truth=p50,
+        parameters=param_labels,
+        extents=list(narrow_param_ranges),
+        figsize=(8, 8),
+    )
+
+    # Add label in top-right
+    fig.text(
+        0.85,
+        0.85,
+        "MCMC FTJ",
+        fontsize=24,
+        weight="bold",
+        ha="center",
+        va="center",
+    )
+
+    # Overlay KDE of true population
+    # Main 2D plot
+    sns.kdeplot(
+        x=mc_pairs[:, 0],
+        y=mc_pairs[:, 1],
+        color="black",
+        levels=[1 - 0.997, 1 - 0.95],
+        ax=fig.axes[2],
+        linestyles=["-", "--"],
+    )
+    # Mass marginal
+    sns.kdeplot(
+        x=mc_pairs[:, 0],
+        color="black",
+        ax=fig.axes[0],
+    )
+    # Concentration marginal
+    sns.kdeplot(
+        y=mc_pairs[:, 1],
+        color="black",
+        ax=fig.axes[3],
+    )
+
+    # Add legend for true KDE
+    ax = fig.axes[2]
+    cc_leg = ax.get_legend()
+
+    legend_handles = [
+        Line2D([], [], color="black", lw=2, ls="-"),
+        Line2D([], [], color="black", lw=2, ls="--"),
+    ]
+    legend_labels = ["True M–C (99.7%)", "True M–C (95%)"]
+
+    leg2 = ax.legend(
+        legend_handles,
+        legend_labels,
+        frameon=False,
+        loc="upper left",
+        bbox_to_anchor=(0.02, 0.98),
+        handlelength=2.6,
+    )
+    ax.add_artist(cc_leg)
+
+    plt.savefig(os.path.join(out_path, "mcmc_ftj_comparison.png"))
+    plt.savefig(os.path.join(out_path, "mcmc_ftj_comparison.pdf"))
+    plt.close()
+
+
+def plot_chainconsumer_mcmc_all_methods(
+    mcmc_jtf_chain,
+    mcmc_ftj_joint_chain,
+    mcmc_ftj_population_samples,
+    out_path,
+    true_param,
+    mc_pairs,
+    mcmc_ftj_naive_samples=None,
+):
+    """
+    Plot comparison of all MCMC methods: JTF, FTJ joint likelihood, FTJ two-stage, and naive stacking.
+
+    Parameters
+    ----------
+    mcmc_jtf_chain : ndarray
+        Chain from join-then-fit MCMC.
+    mcmc_ftj_joint_chain : ndarray
+        Chain from joint likelihood MCMC FTJ.
+    mcmc_ftj_population_samples : ndarray
+        Samples from fitted population distribution (two-stage method).
+    out_path : str
+        Output directory for plots.
+    true_param : list
+        List of [median, 25th percentile, 75th percentile] for true parameters.
+    mc_pairs : ndarray
+        Array of drawn (mass, concentration) pairs for KDE overlay.
+    mcmc_ftj_naive_samples : ndarray, optional
+        Concatenated samples from individual MCMCs (naive stacking).
+    """
+    # Remove error parameter (3rd column) from MCMC chains if present
+    if mcmc_jtf_chain.shape[1] > 2:
+        mcmc_jtf_chain = mcmc_jtf_chain[:, :2]
+    if mcmc_ftj_joint_chain.shape[1] > 2:
+        mcmc_ftj_joint_chain = mcmc_ftj_joint_chain[:, :2]
+    if mcmc_ftj_population_samples.shape[1] > 2:
+        mcmc_ftj_population_samples = mcmc_ftj_population_samples[:, :2]
+
+    p50 = np.array((np.median(mc_pairs.T[0]), np.median(mc_pairs.T[1])))
+    p25 = np.array(true_param[1])
+    p75 = np.array(true_param[2])
+
+    cc = ChainConsumer()
+
+    cc.add_chain(
+        mcmc_jtf_chain,
+        parameters=param_labels,
+        name="JTF",
+    )
+    cc.add_chain(
+        mcmc_ftj_joint_chain,
+        parameters=param_labels,
+        name="FTJ Joint Likelihood",
+    )
+    cc.add_chain(
+        mcmc_ftj_population_samples,
+        parameters=param_labels,
+        name="FTJ Two-Stage",
+    )
+    if mcmc_ftj_naive_samples is not None:
+        cc.add_chain(
+            mcmc_ftj_naive_samples,
+            parameters=param_labels,
+            name="FTJ Naive Stacking",
+        )
+
+    cc.configure(
+        statistics="mean",
+        summary=True,
+        label_font_size=20,
+        tick_font_size=16,
+        usetex=False,
+        serif=False,
+        sigmas=[2, 3],
+        shade_alpha=0.3,
+    )
+
+    fig = cc.plotter.plot(
+        truth=p50,
+        parameters=param_labels,
+        extents=list(wide_param_ranges),
+        figsize=(8, 8),
+    )
+
+    # Add label in top-right
+    fig.text(
+        0.85,
+        0.85,
+        "MCMC",
+        fontsize=24,
+        weight="bold",
+        ha="center",
+        va="center",
+    )
+
+    # Overlay KDE of true population
+    # Main 2D plot
+    sns.kdeplot(
+        x=mc_pairs[:, 0],
+        y=mc_pairs[:, 1],
+        color="black",
+        levels=[1 - 0.997, 1 - 0.95],
+        ax=fig.axes[2],
+        linestyles=["-", "--"],
+    )
+    # Mass marginal
+    sns.kdeplot(
+        x=mc_pairs[:, 0],
+        color="black",
+        ax=fig.axes[0],
+    )
+    # Concentration marginal
+    sns.kdeplot(
+        y=mc_pairs[:, 1],
+        color="black",
+        ax=fig.axes[3],
+    )
+
+    # Add legend for true KDE
+    ax = fig.axes[2]
+    cc_leg = ax.get_legend()
+
+    legend_handles = [
+        Line2D([], [], color="black", lw=2, ls="-"),
+        Line2D([], [], color="black", lw=2, ls="--"),
+    ]
+    legend_labels = ["True M–C (99.7%)", "True M–C (95%)"]
+
+    leg2 = ax.legend(
+        legend_handles,
+        legend_labels,
+        frameon=False,
+        loc="upper left",
+        bbox_to_anchor=(0.02, 0.98),
+        handlelength=2.6,
+    )
+    ax.add_artist(cc_leg)
+
+    plt.savefig(os.path.join(out_path, "mcmc_all_methods.png"))
+    plt.savefig(os.path.join(out_path, "mcmc_all_methods.pdf"))
+    plt.close()
+
+
 ### DIAGNOSTICS PLOTTING BELOW ###
 
 
@@ -604,7 +884,7 @@ def plot_nfw_profiles(
 
     # plt.figure(figsize=(8, 8))
     ax2.set_xlabel("radius [kpc/h]", fontsize="xx-large")
-    ax1.set_ylabel("$ \Delta \Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
+    ax1.set_ylabel("$\Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
     ax1.set_ylim(1e7, 1e10)
     ax1.set_xlim(min(rbins), max(rbins))
 
@@ -710,7 +990,7 @@ def plot_nfw_profiles(
                 gaussian_hi,
                 alpha=0.25,
                 color="purple",
-                label="SBI fit-then-join 68\% CI",
+                label="SBI fit-then-join 68% CI",
             )
 
     if mcmc_chains:
@@ -757,7 +1037,7 @@ def plot_nfw_profiles(
             mcmc_jtf_hi,
             alpha=0.3,
             color="orange",
-            label="MCMC join-then-fit 68\% CI",
+            label="MCMC join-then-fit 68% CI",
         )
 
         mcmc_ftj_nfw_range = sampled_nfw_profiles(
@@ -774,7 +1054,7 @@ def plot_nfw_profiles(
             mcmc_ftj_hi,
             alpha=0.3,
             color="purple",
-            label="MCMC fit-then-join 68\% CI",
+            label="MCMC fit-then-join 68% CI",
         )
         ax1.set_ylim(
             min(
@@ -813,7 +1093,7 @@ def plot_nfw_profiles(
             #     fontsize="x-large",
             # )
             ax2.set_ylabel(
-                r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
+                r"$\frac{\Sigma_{model} - \Sigma_{median}}{\Sigma_{median}}$",
             )
             ax2.axhline(
                 0, color="gray", linestyle="dotted", alpha=0.5
@@ -876,7 +1156,6 @@ def plot_nfw_profiles(
                 (mcmc_jtf_nfw / ideal_nfw) - 1,
                 color="orange",
                 # linestyle="-.",
-                label="MCMC join-then-fit",
             )
             ax2.plot(
                 rbins,
@@ -885,7 +1164,6 @@ def plot_nfw_profiles(
                 color="purple",
                 linestyle="--",
                 # linewidth=3,
-                label="MCMC fit-then-join",
             )
             if gaussian_profiles is not None and gaussian_profiles.size:
                 gaussian_diff = gaussian_profiles / ideal_nfw[None, :] - 1
@@ -897,7 +1175,6 @@ def plot_nfw_profiles(
                     gaussian_diff_hi,
                     alpha=0.25,
                     color="purple",
-                    label="SBI fit-then-join 68% CI",
                 )
             ax2.fill_between(
                 rbins,
@@ -905,7 +1182,6 @@ def plot_nfw_profiles(
                 mcmc_jtf_diff_hi,
                 alpha=0.3,
                 color="orange",
-                label="MCMC join-then-fit 68\% CI",
             )
             ax2.fill_between(
                 rbins,
@@ -913,11 +1189,21 @@ def plot_nfw_profiles(
                 mcmc_ftj_diff_hi,
                 alpha=0.3,
                 color="purple",
-                label="MCMC fit-then-join 68\% CI",
             )
 
         ax1.legend(fontsize="large")
-        ax2.legend(fontsize="large")
+        ax2.legend(fontsize="medium", loc="upper right")
+        # Add MCMC label in top corner
+        ax1.text(
+            0.98,
+            0.98,
+            "MCMC",
+            transform=ax1.transAxes,
+            fontsize="xx-large",
+            fontweight="bold",
+            ha="right",
+            va="top",
+        )
 
         if is_noisy:
             plt.savefig(os.path.join(out_path, f"mcmc_drawn_nfw_profiles.png"))
@@ -976,7 +1262,7 @@ def plot_nfw_profiles(
             sbi_jtf_hi,
             alpha=0.3,
             color="orange",
-            label="SBI join-then-fit 68\% CI",
+            label="SBI join-then-fit 68% CI",
         )
 
         sbi_ftj_nfw_range = sampled_nfw_profiles(
@@ -1014,7 +1300,7 @@ def plot_nfw_profiles(
             # sbi_ftj_diff_hi = np.percentile(sbi_ftj_nfw_range_diff, 84, axis=0)
 
             ax2.set_ylabel(
-                r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
+                r"$\frac{\Sigma_{model} - \Sigma_{median}}{\Sigma_{median}}$",
             )
             ax2.axhline(
                 0, color="gray", linestyle="dotted", alpha=0.5
@@ -1074,14 +1360,12 @@ def plot_nfw_profiles(
                 rbins,
                 (sbi_jtf_nfw / ideal_nfw) - 1,
                 color="orange",
-                label="SBI join-then-fit",
             )
             ax2.plot(
                 rbins,
                 (sbi_ftj_nfw / ideal_nfw) - 1,
                 color="purple",
                 linestyle="--",
-                label="SBI fit-then-join",
             )
             if gaussian_profiles is not None and gaussian_profiles.size:
                 gaussian_diff = gaussian_profiles / ideal_nfw[None, :] - 1
@@ -1093,7 +1377,6 @@ def plot_nfw_profiles(
                     gaussian_diff_hi,
                     alpha=0.25,
                     color="purple",
-                    label="SBI fit-then-join 68\% CI",
                 )
             ax2.fill_between(
                 rbins,
@@ -1101,11 +1384,21 @@ def plot_nfw_profiles(
                 sbi_jtf_diff_hi,
                 alpha=0.3,
                 color="orange",
-                label="SBI join-then-fit 68\% CI",
             )
 
         ax1.legend(fontsize="large")
-        ax2.legend(fontsize="large")
+        ax2.legend(fontsize="medium", loc="upper right")
+        # Add SBI label in top corner
+        ax1.text(
+            0.98,
+            0.98,
+            "SBI",
+            transform=ax1.transAxes,
+            fontsize="xx-large",
+            fontweight="bold",
+            ha="right",
+            va="top",
+        )
 
         if is_noisy:
             plt.savefig(os.path.join(out_path, f"sbi_drawn_nfw_profiles.png"))
@@ -1141,7 +1434,7 @@ def plot_frac_diff(
         fontsize="x-large",
     )
     plt.ylabel(
-        r"$\frac{\Delta \Sigma_{model} - \Delta \Sigma_{median}}{\Delta \Sigma_{median}}$",
+        r"$\frac{\Sigma_{model} - \Sigma_{median}}{\Sigma_{median}}$",
     )
     nfw_profiles = 10**nfw_profiles
 
@@ -1359,7 +1652,7 @@ def plot_ppc(
     # 3 - Compare with the median observed NFW profile
     plt.loglog()
     plt.xlabel("radius [kpc/h]", fontsize="xx-large")
-    plt.ylabel("$\Delta\Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
+    plt.ylabel("$\Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
 
     # Setting upper and lower bounds for 1,2,3 sigma
     sig_1_high = np.percentile(nfw_samples, 68.3, axis=0)
@@ -1430,7 +1723,7 @@ def plot_ppc(
     # Doing the same thing for the prior
     plt.loglog()
     plt.xlabel("radius [kpc/h]", fontsize="xx-large")
-    plt.ylabel("$\Delta\Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
+    plt.ylabel("$\Sigma$ [$M_\odot h / kpc^2$]", fontsize="xx-large")
     plt.fill_between(
         rbins,
         prior_sig_3_low,
@@ -1487,7 +1780,7 @@ def plot_ppc(
     plt.savefig(f"{out_path}/PPC/prior_nfw.pdf", bbox_inches="tight")
     plt.close()
 
-    # 4 - For a given radial bin, compare the delta sigma values from observation vs from the generated values
+    # 4 - For a given radial bin, compare the surface density values from observation vs from the generated values
     nfw_samples_norm = nfw_samples - np.median(nfw_samples, axis=0)
     sigmas_diff = []
     upper_sigmas_diff = []
@@ -1495,7 +1788,7 @@ def plot_ppc(
     for rbin in range(num_radial_bins):
         # plt.figure()
         sns.kdeplot(nfw_samples[:, rbin], label="NFW Profiles Sampled from Posterior")
-        plt.xlabel("$\Delta\Sigma$ [$M_\odot h / kpc^2$]")
+        plt.xlabel("$\Sigma$ [$M_\odot h / kpc^2$]")
         plt.ylabel("Frequency")
         plt.axvline(median_obs[rbin], color="k", linestyle="--", label="Observation")
         plt.axvspan(

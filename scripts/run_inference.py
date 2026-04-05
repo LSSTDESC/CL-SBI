@@ -149,6 +149,12 @@ def main():
             drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
         )
         log_stage("mcmc_fit_then_join", time.perf_counter() - t0)
+
+        t0 = time.perf_counter()
+        mcmc_ftj_population_samples, mcmc_ftj_stacked_samplers, mcmc_ftj_population_params = mcmc.fit_then_join_stacked(
+            drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
+        )
+        log_stage("mcmc_fit_then_join_stacked", time.perf_counter() - t0)
     log_stage("mcmc_total", time.perf_counter() - t0_total_mcmc)
 
     # Output MCMC chains (pickling because diff sizes)
@@ -162,6 +168,18 @@ def main():
     # Output MCMC fit-then-join samplers (for diagnostics)
     with open(os.path.join(out_path, "mcmc_ftj_samplers.pickle"), "wb") as handle:
         pickle.dump(mcmc_ftj_samplers, handle, protocol=4)
+
+    # Output MCMC fit-then-join population samples (from fitted 2D Gaussian)
+    with open(os.path.join(out_path, "mcmc_ftj_population_samples.pickle"), "wb") as handle:
+        pickle.dump(mcmc_ftj_population_samples, handle, protocol=4)
+
+    # Output MCMC fit-then-join population parameters (mu, cov, MAP estimates)
+    with open(os.path.join(out_path, "mcmc_ftj_population_params.pickle"), "wb") as handle:
+        pickle.dump(mcmc_ftj_population_params, handle, protocol=4)
+
+    # Output MCMC fit-then-join individual samplers (for diagnostics)
+    with open(os.path.join(out_path, "mcmc_ftj_individual_samplers.pickle"), "wb") as handle:
+        pickle.dump(mcmc_ftj_stacked_samplers, handle, protocol=4)
 
     # Output median and percentile (25th and 75th) of drawn m-c pairs as "truth" value for plotting
     true_param_median = (np.median(drawn_mc_pairs.T[0]), np.median(drawn_mc_pairs.T[1]))

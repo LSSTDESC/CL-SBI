@@ -1,14 +1,72 @@
-
+# macOS
 .DS_Store
-*.npy
-*.png
-*.pdf
-sbi-logs/
-adhoc/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
 .ipynb_checkpoints/
 .virtual_documents/
+
+# Project-specific
+sbi-logs/
+adhoc/
+outputs/
+tex_source/
+lit/*.pdf
+lit/*.zip
+*.npy
 *.pickle
-*pycache*
-*.pickle
+*.png
+*.pdf
 scripts/bash2.sh
-# scripts/bash3.sh
+CLAUDE.md
+
+# Sphinx documentation
+docs/_build/

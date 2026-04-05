@@ -172,18 +172,19 @@ def draw_masses_in_richness_bin(
 
     cosmo = cosmology.setCosmology(cosmo)
 
-    # mass func in units of dn/dlnM
-    dndlnM = mass_function.massFunction(
-        10**log10masses, z, mdef=mdef, model=model, q_out="dndlnM"
-    )
+    # mass func weighting: "flat" = uniform, otherwise use specified model (e.g., "tinker08")
+    if model == "flat":
+        # Uniform weighting - no mass function applied
+        pdf = np.ones(grid_size)
+    else:
+        # mass func in units of dn/dlnM
+        dndlnM = mass_function.massFunction(
+            10**log10masses, z, mdef=mdef, model=model, q_out="dndlnM"
+        )
+        # probability density function
+        pdf = dndlnM * np.log(10)
 
-    # probability density function
-    pdf = dndlnM * np.log(10)
-    pdf /= pdf.sum()  # np.trapz(pdf, log10masses)
-
-    # cumulative distribution function
-    cdf = np.cumsum(pdf)
-    cdf /= cdf[-1]
+    pdf /= pdf.sum()
 
     # pick num_obs indices with replacement from the PDF
     idx = np.random.choice(grid_size, size=num_samples, replace=True, p=pdf)
