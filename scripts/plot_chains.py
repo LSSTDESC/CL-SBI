@@ -113,6 +113,7 @@ if "agg" not in infer_config:
         sbi_chains,
         out_path,
         [true_param_median, true_param_25, true_param_75],
+        mc_pairs=drawn_mc_pairs,
     )
 
     # Load and plot two-stage FTJ comparison if available

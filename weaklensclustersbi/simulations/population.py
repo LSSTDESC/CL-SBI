@@ -36,17 +36,16 @@ def random_mass_conc(
     Returns:
         mc_pairs : a numpy array of (log10mass, concentration) tuples of size num_sims
     """
-    from .populationutils import get_concentration
+    from colossus.halo import concentration as conc_module
 
     log10mass_sample = np.random.uniform(min_log10mass, max_log10mass, size=num_sims)
     z_sample = np.random.uniform(min_z, max_z, size=num_sims)
 
-    non_noisy_concentration_sample = np.array(
-        [
-            get_concentration(log10mass, model=mc_relation, z=z)
-            for log10mass, z in zip(log10mass_sample, z_sample)
-        ]
+    # Vectorized with np.vectorize to handle per-sample z values
+    conc_vec = np.vectorize(
+        lambda m, z: conc_module.concentration(10**m, "vir", z, model=mc_relation)
     )
+    non_noisy_concentration_sample = conc_vec(log10mass_sample, z_sample)
 
     concentration_sample = np.random.normal(
         non_noisy_concentration_sample, mc_scatter, num_sims
@@ -63,7 +62,7 @@ def _generate_property_for_sample(log10masses, property_fn, scatter):
     log10masses : array-like
         Array of log10 masses.
     property_fn : callable
-        Function that takes log10mass and returns the property value.
+        Function that takes log10mass (or array) and returns the property value(s).
     scatter : float
         Standard deviation of Gaussian scatter to apply.
 
@@ -72,7 +71,9 @@ def _generate_property_for_sample(log10masses, property_fn, scatter):
     np.ndarray
         Property values with scatter applied.
     """
-    non_noisy_values = np.array([property_fn(m) for m in log10masses])
+    # Vectorized: assumes property_fn supports array input (e.g., get_richness)
+    log10masses = np.asarray(log10masses)
+    non_noisy_values = property_fn(log10masses)
     return np.random.normal(non_noisy_values, scatter, np.shape(log10masses))
 
 
@@ -94,14 +95,16 @@ def generate_concentration_for_sample(
         concentrations : a numpy array of concentration values
 
     """
-    from .populationutils import get_concentration
+    from colossus.halo import concentration as conc_module
 
-    non_noisy_concentrations = np.array(
-        [
-            get_concentration(log10mass, model=mc_relation, z=z)
-            for log10mass, z in zip(log10masses, zs)
-        ]
+    log10masses = np.asarray(log10masses)
+    zs = np.asarray(zs)
+
+    # Vectorized with np.vectorize to handle per-sample z values
+    conc_vec = np.vectorize(
+        lambda m, z: conc_module.concentration(10**m, "vir", z, model=mc_relation)
     )
+    non_noisy_concentrations = conc_vec(log10masses, zs)
     return np.random.normal(non_noisy_concentrations, mc_scatter, np.shape(log10masses))
 
 
@@ -162,12 +165,8 @@ def draw_masses_in_richness_bin(
 
     grid_size = 1000
     lambdas = np.random.rand(grid_size) * (lambda_max - lambda_min) + lambda_min
-    log10masses = np.array(
-        [
-            get_log10mass_from_richness(lambda_, model=rm_relation, z=z)
-            for lambda_ in lambdas
-        ]
-    )
+    # Vectorized: get_log10mass_from_richness uses numpy ops that accept arrays
+    log10masses = get_log10mass_from_richness(lambdas, model=rm_relation, z=z)
     log10masses = np.random.normal(log10masses, rm_scatter, np.shape(lambdas))
 
     cosmo = cosmology.setCosmology(cosmo)

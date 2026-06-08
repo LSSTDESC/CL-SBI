@@ -1,3 +1,7 @@
+import warnings
+
+warnings.filterwarnings("ignore", message="use_inf_as_na option is deprecated")
+
 import pygtc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,6 +23,84 @@ wide_param_ranges = ((12, 17), (2, 9))
 # high m_mc scatter experiment range
 # wide_param_ranges = ((13.5, 15), (2, 7.5))
 narrow_param_ranges = ((13.5, 15), (4, 6.2))
+
+
+def compute_dynamic_extents(
+    chains, truth=None, padding_factor=0.3, use_percentiles=True
+):
+    """
+    Compute plot extents dynamically based on chain data.
+
+    Parameters
+    ----------
+    chains : list of np.ndarray
+        List of chains, each with shape (n_samples, n_params)
+    truth : np.ndarray or list, optional
+        Truth values to include in extent calculation
+    padding_factor : float
+        Fraction of range to add as padding on each side
+    use_percentiles : bool
+        If True, use 1st-99th percentiles instead of min/max to avoid outliers
+
+    Returns
+    -------
+    tuple of tuples
+        ((mass_min, mass_max), (conc_min, conc_max))
+    """
+    # Concatenate all chains
+    all_samples = []
+    for chain in chains:
+        if chain is not None and len(chain) > 0:
+            # Handle both raw chains and percentile-encoded chains
+            samples = np.asarray(chain)
+            if samples.ndim == 1:
+                continue
+            # Take first two columns (mass, concentration)
+            all_samples.append(samples[:, :2])
+
+    if not all_samples:
+        return narrow_param_ranges
+
+    combined = np.vstack(all_samples)
+
+    # Compute ranges using percentiles to avoid outliers
+    if use_percentiles:
+        mass_min, mass_max = np.percentile(combined[:, 0], [1, 99])
+        conc_min, conc_max = np.percentile(combined[:, 1], [1, 99])
+    else:
+        mass_min, mass_max = combined[:, 0].min(), combined[:, 0].max()
+        conc_min, conc_max = combined[:, 1].min(), combined[:, 1].max()
+
+    # Include truth in range calculation if provided
+    if truth is not None:
+        if isinstance(truth, (list, tuple)) and len(truth) > 0:
+            for t in truth:
+                if t is not None and len(t) >= 2:
+                    mass_min = min(mass_min, t[0])
+                    mass_max = max(mass_max, t[0])
+                    conc_min = min(conc_min, t[1])
+                    conc_max = max(conc_max, t[1])
+        elif hasattr(truth, "__len__") and len(truth) >= 2:
+            mass_min = min(mass_min, truth[0])
+            mass_max = max(mass_max, truth[0])
+            conc_min = min(conc_min, truth[1])
+            conc_max = max(conc_max, truth[1])
+
+    # Add padding
+    mass_range = mass_max - mass_min
+    conc_range = conc_max - conc_min
+
+    # Ensure minimum range
+    mass_range = max(mass_range, 0.5)
+    conc_range = max(conc_range, 0.5)
+
+    mass_min -= padding_factor * mass_range
+    mass_max += padding_factor * mass_range
+    conc_min -= padding_factor * conc_range
+    conc_max += padding_factor * conc_range
+
+    return ((mass_min, mass_max), (conc_min, conc_max))
+
 
 QUARTILE_SIGMA = 0.6744897501960817  # z-score at 75th percentile for a normal
 Z_95 = 1.6448536269514722  # z-score at 95th percentile for a normal
@@ -223,7 +305,15 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
             ]
         )
 
-    p50 = np.array((np.median(mc_pairs.T[0]), np.median(mc_pairs.T[1])))
+    # Extract truth values from true_param list [median, 25th, 75th]
+    if len(true_param) >= 3:
+        p50 = np.array(true_param[0])
+        p25 = np.array(true_param[1])
+        p75 = np.array(true_param[2])
+    else:
+        p50 = np.array((np.median(mc_pairs.T[0]), np.median(mc_pairs.T[1])))
+        p25 = p50
+        p75 = p50
 
     # In MCMC we also fit for the error. We don't need to plot that so pruning that param from the data
     # TODO: do we need this?
@@ -265,18 +355,32 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
         shade_alpha=0.3,
     )
 
+    # Compute dynamic extents including 2-sigma observation bounds
+    truth_points = [p25, p50, p75]
+    if mc_pairs is not None:
+        # Add 2-sigma observation bounds to ensure full KDE contours are visible
+        obs_2sigma_low = np.array(
+            [np.percentile(mc_pairs[:, 0], 2.5), np.percentile(mc_pairs[:, 1], 2.5)]
+        )
+        obs_2sigma_high = np.array(
+            [np.percentile(mc_pairs[:, 0], 97.5), np.percentile(mc_pairs[:, 1], 97.5)]
+        )
+        truth_points.extend([obs_2sigma_low, obs_2sigma_high])
+    dynamic_extents = compute_dynamic_extents(
+        chains, truth=truth_points, padding_factor=1
+    )
+
     # Set the median as the truth value
     fig = cc.plotter.plot(
         truth=p50,
         parameters=param_labels,
-        extents=list(narrow_param_ranges),
-        # extents=list(wide_param_ranges),
+        extents=list(dynamic_extents),
         figsize=(8, 8),
     )
 
     # These are your actual data extents
-    mass_range = wide_param_ranges[0]
-    conc_range = wide_param_ranges[1]
+    mass_range = dynamic_extents[0]
+    conc_range = dynamic_extents[1]
 
     # Add a large text label in the top-right empty space
     fig.text(
@@ -342,7 +446,9 @@ def plot_chainconsumer(chains, out_path, infer_type, true_param=[], mc_pairs=Non
     plt.close()
 
 
-def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]):
+def plot_chainconsumer_combined(
+    mcmc_chains, sbi_chains, out_path, true_param=[], mc_pairs=None
+):
     cc = ChainConsumer()
 
     sbi_chains = [np.array(chain, copy=True) for chain in sbi_chains]
@@ -385,17 +491,63 @@ def plot_chainconsumer_combined(mcmc_chains, sbi_chains, out_path, true_param=[]
     p50 = np.array(true_param[0])  # median
     p75 = np.array(true_param[2])  # 75th percentile
 
+    # Compute dynamic extents based on JTF chains and observation bounds
+    # Check if truth/obs falls outside default narrow_param_ranges - if so, use dynamic extents
+    truth_mass = p50[0]
+    truth_conc = p50[1]
+    default_mass_range, default_conc_range = narrow_param_ranges
+
+    # Check if observations extend beyond default range
+    obs_outside_default = False
+    if mc_pairs is not None:
+        obs_mass_min, obs_mass_max = mc_pairs[:, 0].min(), mc_pairs[:, 0].max()
+        obs_conc_min, obs_conc_max = mc_pairs[:, 1].min(), mc_pairs[:, 1].max()
+        if (
+            obs_mass_min < default_mass_range[0]
+            or obs_mass_max > default_mass_range[1]
+            or obs_conc_min < default_conc_range[0]
+            or obs_conc_max > default_conc_range[1]
+        ):
+            obs_outside_default = True
+
+    if (
+        default_mass_range[0] <= truth_mass <= default_mass_range[1]
+        and default_conc_range[0] <= truth_conc <= default_conc_range[1]
+        and not obs_outside_default
+    ):
+        # Truth and observations are within default range, use narrow bounds for cleaner plot
+        dynamic_extents = narrow_param_ranges
+    else:
+        # Truth or observations outside default range, compute dynamic extents
+        jtf_chains = [mcmc_chains[0], sbi_chains[0]]
+        # Include 2-sigma observation bounds (2.5th and 97.5th percentiles) for extent calculation
+        truth_points = [p25, p50, p75]
+        if mc_pairs is not None:
+            # Add 2-sigma observation bounds to ensure full KDE contours are visible
+            obs_2sigma_low = np.array(
+                [np.percentile(mc_pairs[:, 0], 2.5), np.percentile(mc_pairs[:, 1], 2.5)]
+            )
+            obs_2sigma_high = np.array(
+                [
+                    np.percentile(mc_pairs[:, 0], 97.5),
+                    np.percentile(mc_pairs[:, 1], 97.5),
+                ]
+            )
+            truth_points.extend([obs_2sigma_low, obs_2sigma_high])
+        dynamic_extents = compute_dynamic_extents(
+            jtf_chains, truth=truth_points, padding_factor=1, use_percentiles=True
+        )
+
     fig = cc.plotter.plot(
         truth=p50,
         parameters=param_labels,
-        extents=list(narrow_param_ranges),
-        # extents=list(wide_param_ranges),
+        extents=list(dynamic_extents),
         figsize=(8, 8),
     )
 
     # These are your actual data extents
-    mass_range = wide_param_ranges[0]
-    conc_range = wide_param_ranges[1]
+    mass_range = dynamic_extents[0]
+    conc_range = dynamic_extents[1]
 
     # TODO: there has to be a cleaner solution than this to plotting 25 and 75 percentiles
     def is_close_range(r1, r2, tol=0.1):
@@ -502,10 +654,18 @@ def plot_chainconsumer_ftj_comparison(
         shade_alpha=0.3,
     )
 
+    # Compute dynamic extents
+    all_chains = [mcmc_ftj_joint_chain, mcmc_ftj_population_samples]
+    if mcmc_ftj_naive_samples is not None:
+        all_chains.append(mcmc_ftj_naive_samples)
+    dynamic_extents = compute_dynamic_extents(
+        all_chains, truth=[p25, p50, p75], padding_factor=1
+    )
+
     fig = cc.plotter.plot(
         truth=p50,
         parameters=param_labels,
-        extents=list(narrow_param_ranges),
+        extents=list(dynamic_extents),
         figsize=(8, 8),
     )
 
@@ -644,10 +804,18 @@ def plot_chainconsumer_mcmc_all_methods(
         shade_alpha=0.3,
     )
 
+    # Compute dynamic extents
+    all_chains = [mcmc_jtf_chain, mcmc_ftj_joint_chain, mcmc_ftj_population_samples]
+    if mcmc_ftj_naive_samples is not None:
+        all_chains.append(mcmc_ftj_naive_samples)
+    dynamic_extents = compute_dynamic_extents(
+        all_chains, truth=[p25, p50, p75], padding_factor=1
+    )
+
     fig = cc.plotter.plot(
         truth=p50,
         parameters=param_labels,
-        extents=list(wide_param_ranges),
+        extents=list(dynamic_extents),
         figsize=(8, 8),
     )
 
@@ -1683,18 +1851,17 @@ def plot_ppc(
         num_radial_bins : 2 * num_radial_bins
     ]
     plt.plot(rbins, median_obs, "-", color="blue", label="Median Observed NFW")
-    le = []
-    ue = []
-    for nfw_profile in drawn_nfw_profiles:
-        le.append(
-            nfw_profile[num_radial_bins : 2 * num_radial_bins]
-            - nfw_profile[0:num_radial_bins]
-        )
-        ue.append(
-            nfw_profile[2 * num_radial_bins : 3 * num_radial_bins]
-            - nfw_profile[num_radial_bins : 2 * num_radial_bins]
-        )
-    yerr = [(np.median(le, axis=0)), (np.median(ue, axis=0))]
+    # Vectorized error bar computation
+    profiles = np.asarray(drawn_nfw_profiles)
+    le = (
+        profiles[:, num_radial_bins : 2 * num_radial_bins]
+        - profiles[:, :num_radial_bins]
+    )
+    ue = (
+        profiles[:, 2 * num_radial_bins : 3 * num_radial_bins]
+        - profiles[:, num_radial_bins : 2 * num_radial_bins]
+    )
+    yerr = [np.median(le, axis=0), np.median(ue, axis=0)]
     plt.errorbar(
         rbins,
         median_obs,

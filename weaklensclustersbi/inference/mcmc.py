@@ -35,6 +35,65 @@ def default_config() -> MCMCConfig:
     }
 
 
+def _sample_valid_starting_positions(
+    log_prob_fn: Callable[..., float],
+    priors: PriorConfig,
+    data: NDArray[np.floating] | list[NDArray[np.floating]],
+    n_walkers: int,
+    n_par: int,
+    max_attempts: int = 10000,
+    verbose: bool = True,
+) -> NDArray[np.floating]:
+    """
+    Sample valid starting positions from the prior.
+
+    Draws random samples within prior bounds and keeps only those
+    with finite log probability.
+    """
+    from ..simulations import populationutils
+
+    valid_starts = []
+    attempts = 0
+    z = (priors["min_z"] + priors["max_z"]) / 2
+
+    while len(valid_starts) < n_walkers and attempts < max_attempts:
+        # Sample mass uniformly in valid range (will be filtered by prior)
+        # Use narrower range based on richness if available
+        if "min_richness" in priors and "max_richness" in priors:
+            # Estimate mass range from richness using inverse relation
+            # For richness 30-45, mass is roughly 14-14.5
+            mass_center = 14.3
+            mass_width = 0.3
+            m = np.random.normal(mass_center, mass_width)
+        else:
+            m = np.random.uniform(priors["min_log10mass"], priors["max_log10mass"])
+
+        # Sample concentration from M-c relation
+        c_expected = populationutils.get_concentration(m, model=priors["mc_relation"], z=z)
+        c = np.random.normal(c_expected, priors["mc_scatter"])
+
+        # Sample log_f
+        log_f = np.random.uniform(-2, 2)
+
+        params = [m, c, log_f]
+        lp = log_prob_fn(params, priors, data)
+
+        if np.isfinite(lp):
+            valid_starts.append(params)
+
+        attempts += 1
+
+    if len(valid_starts) < n_walkers:
+        raise ValueError(
+            f"Could not find {n_walkers} valid starting positions after {max_attempts} attempts. "
+            f"Found only {len(valid_starts)}. Check prior configuration."
+        )
+
+    if verbose:
+        print(f"## Found {n_walkers} valid starting positions in {attempts} attempts")
+    return np.array(valid_starts)
+
+
 def _run_mcmc_base(
     log_prob_fn: Callable[..., float],
     priors: PriorConfig,
@@ -69,9 +128,11 @@ def _run_mcmc_base(
         pool=pool,
     )
 
-    # Add some noise to starting positions for walkers
-    starts = config["starts"] + 5 * np.random.uniform(
-        size=(config["nwalkers"], config["npar"])
+    # Sample valid starting positions from the prior
+    print("## Sampling valid starting positions from prior...")
+    starts = _sample_valid_starting_positions(
+        log_prob_fn, priors, data,
+        config["nwalkers"], config["npar"]
     )
 
     # burn-in
@@ -92,6 +153,7 @@ def run_mcmc(
     truth_val: NDArray[np.floating],
     priors: PriorConfig,
     pool: Pool | None = None,
+    use_flat_prior: bool = False,
 ) -> emcee.EnsembleSampler:
     """
     Run MCMC on a single observation.
@@ -104,21 +166,26 @@ def run_mcmc(
         Prior configuration dictionary.
     pool : multiprocessing.Pool, optional
         Pool for parallel execution.
+    use_flat_prior : bool, optional
+        If True, use flat prior on mass. If False (default), use informed
+        prior with mass function and richness selection to match SBI.
 
     Returns
     -------
     emcee.EnsembleSampler
         The sampler after running.
     """
-    from .mcmcutils import logprob
+    from .mcmcutils import logprob, logprob_flat
 
-    return _run_mcmc_base(logprob, priors, truth_val, pool=pool)
+    log_prob_fn = logprob_flat if use_flat_prior else logprob
+    return _run_mcmc_base(log_prob_fn, priors, truth_val, pool=pool)
 
 
 def run_joint_mcmc(
     profiles: list[NDArray[np.floating]],
     priors: PriorConfig,
     pool: Pool | None = None,
+    use_flat_prior: bool = False,
 ) -> emcee.EnsembleSampler:
     """
     Run MCMC jointly on multiple profiles.
@@ -131,15 +198,19 @@ def run_joint_mcmc(
         Prior configuration dictionary.
     pool : multiprocessing.Pool, optional
         Pool for parallel execution.
+    use_flat_prior : bool, optional
+        If True, use flat prior on mass. If False (default), use informed
+        prior with mass function and richness selection to match SBI.
 
     Returns
     -------
     emcee.EnsembleSampler
         The sampler after running.
     """
-    from .mcmcutils import joint_logprob
+    from .mcmcutils import joint_logprob, joint_logprob_flat
 
-    return _run_mcmc_base(joint_logprob, priors, profiles, pool=pool)
+    log_prob_fn = joint_logprob_flat if use_flat_prior else joint_logprob
+    return _run_mcmc_base(log_prob_fn, priors, profiles, pool=pool)
 
 
 def fit_then_join(
@@ -226,8 +297,11 @@ def _run_mcmc_single_light(
         args=[priors, profile_with_sigma],
     )
 
-    starts = config["starts"] + 5 * np.random.uniform(
-        size=(config["nwalkers"], config["npar"])
+    # Sample valid starting positions from the prior (same as main MCMC)
+    starts = _sample_valid_starting_positions(
+        logprob, priors, profile_with_sigma,
+        config["nwalkers"], config["npar"],
+        verbose=False  # Suppress output for 376 individual runs
     )
 
     # burn-in (silent)

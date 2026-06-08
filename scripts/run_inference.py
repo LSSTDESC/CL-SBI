@@ -24,6 +24,9 @@ def main():
     # Add regenerate flag if we want to overwrite any existing posterior.
     # If false or not set, skip posterior generation if they already exist from an earlier run.
     parser.add_argument("--regenerate", action="store_true")
+    # Flag to run the slow two-stage MCMC FTJ (individual fits + population inference)
+    # Disabled by default since it runs 376 individual MCMCs
+    parser.add_argument("--run_mcmc_stacked", action="store_true")
     args = parser.parse_args()
 
     script_start = time.perf_counter()
@@ -68,7 +71,7 @@ def main():
     with open(posterior_jtf_filename, "rb") as handle:
         posterior_jtf = pickle.load(handle)
 
-    # Load infer config
+    # Load inference/prior config (contains all MCMC prior parameters)
     infer_config_rel_path = "../configs/inference/"
     infer_config_path = os.path.join(script_dir, infer_config_rel_path)
     infer_config_filename = os.path.join(infer_config_path, f"{args.infer_id}.json")
@@ -150,11 +153,17 @@ def main():
         )
         log_stage("mcmc_fit_then_join", time.perf_counter() - t0)
 
-        t0 = time.perf_counter()
-        mcmc_ftj_population_samples, mcmc_ftj_stacked_samplers, mcmc_ftj_population_params = mcmc.fit_then_join_stacked(
-            drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
-        )
-        log_stage("mcmc_fit_then_join_stacked", time.perf_counter() - t0)
+        # Two-stage MCMC FTJ: individual fits + population inference (slow - 376 MCMCs)
+        # Only run if --run_mcmc_stacked flag is set
+        mcmc_ftj_population_samples = None
+        mcmc_ftj_stacked_samplers = None
+        mcmc_ftj_population_params = None
+        if args.run_mcmc_stacked:
+            t0 = time.perf_counter()
+            mcmc_ftj_population_samples, mcmc_ftj_stacked_samplers, mcmc_ftj_population_params = mcmc.fit_then_join_stacked(
+                drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
+            )
+            log_stage("mcmc_fit_then_join_stacked", time.perf_counter() - t0)
     log_stage("mcmc_total", time.perf_counter() - t0_total_mcmc)
 
     # Output MCMC chains (pickling because diff sizes)
@@ -169,17 +178,16 @@ def main():
     with open(os.path.join(out_path, "mcmc_ftj_samplers.pickle"), "wb") as handle:
         pickle.dump(mcmc_ftj_samplers, handle, protocol=4)
 
-    # Output MCMC fit-then-join population samples (from fitted 2D Gaussian)
-    with open(os.path.join(out_path, "mcmc_ftj_population_samples.pickle"), "wb") as handle:
-        pickle.dump(mcmc_ftj_population_samples, handle, protocol=4)
+    # Output MCMC fit-then-join stacked results (only if --run_mcmc_stacked was set)
+    if args.run_mcmc_stacked and mcmc_ftj_population_samples is not None:
+        with open(os.path.join(out_path, "mcmc_ftj_population_samples.pickle"), "wb") as handle:
+            pickle.dump(mcmc_ftj_population_samples, handle, protocol=4)
 
-    # Output MCMC fit-then-join population parameters (mu, cov, MAP estimates)
-    with open(os.path.join(out_path, "mcmc_ftj_population_params.pickle"), "wb") as handle:
-        pickle.dump(mcmc_ftj_population_params, handle, protocol=4)
+        with open(os.path.join(out_path, "mcmc_ftj_population_params.pickle"), "wb") as handle:
+            pickle.dump(mcmc_ftj_population_params, handle, protocol=4)
 
-    # Output MCMC fit-then-join individual samplers (for diagnostics)
-    with open(os.path.join(out_path, "mcmc_ftj_individual_samplers.pickle"), "wb") as handle:
-        pickle.dump(mcmc_ftj_stacked_samplers, handle, protocol=4)
+        with open(os.path.join(out_path, "mcmc_ftj_individual_samplers.pickle"), "wb") as handle:
+            pickle.dump(mcmc_ftj_stacked_samplers, handle, protocol=4)
 
     # Output median and percentile (25th and 75th) of drawn m-c pairs as "truth" value for plotting
     true_param_median = (np.median(drawn_mc_pairs.T[0]), np.median(drawn_mc_pairs.T[1]))
