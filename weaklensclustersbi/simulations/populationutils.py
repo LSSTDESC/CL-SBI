@@ -156,3 +156,31 @@ def _get_mcclintock18_parameters() -> tuple[float, float, float]:
     G = -0.3
     F = 1.356
     return m0, G, F
+
+
+def get_rm_slope(model: Literal["murata17", "mcclintock18"] = "mcclintock18") -> float:
+    """
+    Return the slope of the richness-mass relation, defined as the exponent F in
+    ``lambda ∝ M^(1/F)`` (equivalently ``M ∝ lambda^F``).
+
+    Used to convert a scatter expressed in log10(M) at fixed richness into the
+    equivalent scatter in ln(lambda) at fixed mass: ``sigma_lnlambda = sigma_log10M * ln(10) / F``.
+
+    Parameters
+    ----------
+    model : {"murata17", "mcclintock18"}, optional
+        Richness-mass relation model. Default is "mcclintock18".
+
+    Returns
+    -------
+    float
+        The slope F.
+    """
+    if model == "mcclintock18":
+        _, _, F = _get_mcclintock18_parameters()
+        return F
+    if model == "murata17":
+        # murata17: ln(lambda) = a + b ln(M/Mpiv)  => M ∝ lambda^(1/b), i.e. F = 1/b
+        _, b, _ = _get_murata2017_parameters()
+        return 1.0 / b
+    raise ValueError(f"unknown rm_relation model: {model}")

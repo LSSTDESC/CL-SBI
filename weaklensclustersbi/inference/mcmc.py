@@ -25,6 +25,12 @@ def default_config() -> MCMCConfig:
     -------
     MCMCConfig
         Dictionary containing nwalkers, npar, starts, nsteps_burn, nsteps_per_chain.
+
+    Notes
+    -----
+    ``nsteps_per_chain`` is now used only as a fallback / increment size; the base
+    runner samples adaptively until convergence (see ``_run_mcmc_adaptive``). The
+    adaptive controls are in ``adaptive_config``.
     """
     return {
         "nwalkers": 100,
@@ -33,6 +39,66 @@ def default_config() -> MCMCConfig:
         "nsteps_burn": 100,
         "nsteps_per_chain": 500,
     }
+
+
+def adaptive_config() -> dict:
+    """
+    Controls for the autocorrelation-based adaptive sampling loop.
+
+    Rather than a fixed number of steps, we sample in increments and stop once the
+    chain is long enough relative to its integrated autocorrelation time ``tau`` and
+    ``tau`` has stabilized (emcee's recommended convergence heuristic), or once a hard
+    step cap is reached. Convergence status is reported per run.
+
+    Keys
+    ----
+    check_every : steps between convergence checks (and increment size).
+    n_tau_target : require chain length > n_tau_target * max(tau) to declare converged.
+    dtau_tol : require fractional change in tau between checks < dtau_tol.
+    max_steps : hard cap on production steps (safety bound).
+    rhat_tol : split-R-hat threshold for the secondary convergence check.
+    """
+    return {
+        "check_every": 500,
+        "n_tau_target": 50,
+        "dtau_tol": 0.01,
+        "max_steps": 8000,
+        "rhat_tol": 1.01,
+    }
+
+
+def _split_rhat(chain: NDArray[np.floating]) -> float:
+    """
+    Split Gelman-Rubin R-hat across walkers, maximized over parameters.
+
+    Parameters
+    ----------
+    chain : NDArray
+        emcee chain of shape (nsteps, nwalkers, npar).
+
+    Returns
+    -------
+    float
+        max over parameters of the split-R-hat statistic (1.0 = perfectly mixed).
+    """
+    nsteps, nwalkers, npar = chain.shape
+    if nsteps < 4:
+        return np.inf
+    half = nsteps // 2
+    # split each walker into two halves -> 2*nwalkers sub-chains of length `half`
+    segs = np.concatenate([chain[:half], chain[half:2 * half]], axis=1)  # (half, 2*nwalkers, npar)
+    m = segs.shape[1]
+    n = half
+    chain_means = segs.mean(axis=0)              # (m, npar)
+    chain_vars = segs.var(axis=0, ddof=1)        # (m, npar)
+    grand_mean = chain_means.mean(axis=0)        # (npar,)
+    B = n * ((chain_means - grand_mean) ** 2).sum(axis=0) / (m - 1)  # between
+    W = chain_vars.mean(axis=0)                                       # within
+    var_hat = (n - 1) / n * W + B / n
+    with np.errstate(divide="ignore", invalid="ignore"):
+        rhat = np.sqrt(var_hat / W)
+    rhat = np.where(np.isfinite(rhat), rhat, np.inf)
+    return float(np.max(rhat))
 
 
 def _sample_valid_starting_positions(
@@ -138,14 +204,75 @@ def _run_mcmc_base(
     # burn-in
     print("## burning in ... ")
     pos, prob, stat = sampler.run_mcmc(starts, config["nsteps_burn"])
-
-    # reset the sampler
     sampler.reset()
 
-    # run the full chain
-    print("## running the full chain ... ")
-    sampler.run_mcmc(pos, config["nsteps_per_chain"])
+    # adaptive production: sample until converged or capped
+    print("## running adaptive chain (until autocorr-converged) ... ")
+    _run_adaptive_production(sampler, pos, verbose=True)
 
+    return sampler
+
+
+def _run_adaptive_production(
+    sampler: emcee.EnsembleSampler,
+    pos: NDArray[np.floating],
+    verbose: bool = True,
+    progress: bool = False,
+) -> emcee.EnsembleSampler:
+    """
+    Sample in increments until the chain is autocorrelation-converged or capped.
+
+    Convergence (emcee-recommended heuristic): the chain is long enough relative to
+    its integrated autocorrelation time (`nsteps > n_tau_target * max(tau)`) AND tau
+    has stabilized between successive checks (`|dtau/tau| < dtau_tol`). We also record
+    the split-R-hat as a secondary diagnostic. The outcome is stamped onto the sampler
+    as attributes (read by run_inference for reporting):
+        sampler.converged   : bool
+        sampler.tau_max      : float (max integrated autocorr time, or nan)
+        sampler.rhat_max     : float (max split-R-hat)
+        sampler.n_steps_run  : int
+        sampler.conv_reason  : str
+    """
+    ac = adaptive_config()
+    tau_prev = np.inf
+    converged = False
+    reason = "hit max_steps without autocorr convergence"
+    steps_done = 0
+
+    while steps_done < ac["max_steps"]:
+        pos, _, _ = sampler.run_mcmc(pos, ac["check_every"], progress=progress)
+        steps_done += ac["check_every"]
+        try:
+            tau = sampler.get_autocorr_time(tol=0)  # tol=0 -> never raise, just estimate
+            tau_max = float(np.nanmax(tau))
+        except Exception:
+            tau_max = np.nan
+
+        long_enough = np.isfinite(tau_max) and (steps_done > ac["n_tau_target"] * tau_max)
+        dtau = np.abs(tau_prev - tau_max) / tau_max if np.isfinite(tau_max) and tau_max > 0 else np.inf
+        stable = dtau < ac["dtau_tol"]
+        tau_prev = tau_max
+
+        if long_enough and stable:
+            converged = True
+            reason = f"autocorr-converged (nsteps>{ac['n_tau_target']}*tau, dtau<{ac['dtau_tol']})"
+            break
+
+    rhat_max = _split_rhat(sampler.get_chain())
+    # secondary check: even if autocorr criterion missed, accept if R-hat is good
+    if not converged and np.isfinite(rhat_max) and rhat_max < ac["rhat_tol"]:
+        converged = True
+        reason = f"R-hat converged (max R-hat={rhat_max:.4f} < {ac['rhat_tol']})"
+
+    sampler.converged = bool(converged)
+    sampler.tau_max = tau_max
+    sampler.rhat_max = rhat_max
+    sampler.n_steps_run = int(steps_done)
+    sampler.conv_reason = reason
+    if verbose:
+        flag = "CONVERGED" if converged else "NOT CONVERGED"
+        print(f"## {flag}: steps={steps_done}, tau_max={tau_max:.1f}, "
+              f"R-hat_max={rhat_max:.4f} -- {reason}")
     return sampler
 
 

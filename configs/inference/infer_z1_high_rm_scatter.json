@@ -1,0 +1,17 @@
+{
+	"priors": {
+		"min_log10mass": 10,
+		"max_log10mass": 20,
+		"mc_scatter": 0.1,
+		"mc_relation": "child18",
+		"min_concentration": 0,
+		"max_concentration": 10,
+		"min_z": 0.2,
+		"max_z": 0.35,
+		"use_mass_function": true,
+		"min_richness": 30,
+		"max_richness": 45,
+		"rm_relation": "mcclintock18",
+		"rm_scatter": 0.7
+	}
+}

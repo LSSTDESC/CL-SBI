@@ -37,8 +37,7 @@ run_plots "sim_z1_high_mc_scatter" "infer_z1_high_mc_scatter" "obs_z1_lambda5" 1
 run_plots "sim_z1_high_noise" "infer_z1" "obs_z1_lambda5_high_noise" 10000 376
 run_plots "sim_z1_high_noise" "infer_z1" "obs_z1_lambda5" 10000 376
 run_plots "sim_z1_high_rm_scatter" "infer_z1_high_rm_scatter" "obs_z1_lambda5_high_rm_scatter" 10000 376
-run_plots "sim_z1_high_rm_scatter" "infer_z1" "obs_z1_lambda5_high_rm_scatter" 10000 376
-run_plots "sim_z1_high_rm_scatter" "infer_z1" "obs_z1_lambda5" 10000 376
+run_plots "sim_z1_high_rm_scatter" "infer_z1_high_rm_scatter" "obs_z1_lambda5" 10000 376
 run_plots "sim_z1" "infer_z1_high_mc_scatter" "obs_z1_lambda5_high_mc_scatter" 10000 376
 run_plots "sim_z1" "infer_z1" "obs_z1_lambda5_high_mc_scatter" 10000 376
 run_plots "sim_z1" "infer_z1" "obs_z1_lambda5_high_noise" 10000 376

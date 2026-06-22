@@ -55,17 +55,24 @@ def logprior(params, priors):
         # Expected richness for this mass
         lambda_expected = populationutils.get_richness(log10mass, z=z, model=rm_relation)
 
-        # P(λ ∈ [λ_min, λ_max] | M) assuming log-normal scatter
-        # Scatter is in log10(mass) at fixed richness, so we need inverse
-        # Approximate: use scatter on log(lambda) ~ rm_scatter (similar magnitude)
+        # P(λ ∈ [λ_min, λ_max] | M) assuming log-normal scatter.
+        # In generation (population.draw_masses_in_richness_bin) rm_scatter is a std in
+        # log10(M) at fixed richness. Here we evaluate the selection in ln(λ) at fixed
+        # mass, so we convert: with λ ∝ M^(1/F) (rm_relation slope F), a scatter of
+        # rm_scatter dex in log10(M) corresponds to a scatter of
+        #   sigma_lnlambda = rm_scatter * ln(10) / F
+        # in ln(λ). (Previously rm_scatter was used directly as the ln(λ) scatter, which
+        # was ~F/ln(10) ≈ 1.7x too tight for the fiducial McClintock18 slope.)
+        F = populationutils.get_rm_slope(rm_relation)
+        sigma_lnlambda = rm_scatter * np.log(10.0) / F
         log_lambda_exp = np.log(lambda_expected)
         log_lambda_min = np.log(priors["min_richness"])
         log_lambda_max = np.log(priors["max_richness"])
 
         # CDF of normal distribution
         p_in_bin = (
-            scipy.stats.norm.cdf(log_lambda_max, log_lambda_exp, rm_scatter) -
-            scipy.stats.norm.cdf(log_lambda_min, log_lambda_exp, rm_scatter)
+            scipy.stats.norm.cdf(log_lambda_max, log_lambda_exp, sigma_lnlambda) -
+            scipy.stats.norm.cdf(log_lambda_min, log_lambda_exp, sigma_lnlambda)
         )
 
         if p_in_bin > 1e-10:
@@ -164,7 +171,7 @@ def joint_logprob(params, priors, models):
         return -np.inf
     ll = 0.0
     for model in models:
-        ll += loglike(params, priors, model) / len(models)
+        ll += loglike(params, priors, model)
     return lp + ll
 
 
@@ -175,5 +182,5 @@ def joint_logprob_flat(params, priors, models):
         return -np.inf
     ll = 0.0
     for model in models:
-        ll += loglike(params, priors, model) / len(models)
+        ll += loglike(params, priors, model)
     return lp + ll

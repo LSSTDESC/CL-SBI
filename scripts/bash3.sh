@@ -12,10 +12,10 @@ run_config() {
 	# python3 gen_simulations.py --sim_id $SIM_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
 	# python3 gen_observations.py --obs_id $OBS_ID --num_obs $NUM_OBS #--regenerate
 	# python3 train_inferrer.py --sim_id $SIM_ID --infer_id $INFER_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS #--regenerate
-	# python3 run_inference.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --regenerate
-	# python3 plot_chains.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --regenerate
-	# python3 plot_diagnostics.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --regenerate
-	python3 plot_calibration.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --regenerate
+	# python3 run_inference.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --regenerate --run_mcmc_stacked
+	python3 plot_chains.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --regenerate
+	python3 plot_diagnostics.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --regenerate
+	# python3 plot_calibration.py --sim_id $SIM_ID --infer_id $INFER_ID --obs_id $OBS_ID --num_sims $NUM_SIMS --num_obs $NUM_OBS --ftj-only #--regenerate
 
 	echo -e "Completed experiment: $SIM_ID\t\t$INFER_ID\t\t$OBS_ID\t\t$NUM_SIMS\t\t$NUM_OBS\n\n\n"
 }
@@ -72,10 +72,10 @@ run_config() {
 # run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5_high_noise"			10000	300
 
 # ###### MAIN EXPERIMENTS ######
-# run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5"					10000	376
+run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5"					10000	376
 # run_config	"sim_z1_high_mc_scatter"	"infer_z1_high_mc_scatter"	"obs_z1_lambda5_high_mc_scatter"	10000	376
-# run_config	"sim_z1_high_rm_scatter"	"infer_z1"					"obs_z1_lambda5_high_rm_scatter"	10000	376
-# run_config	"sim_z1_high_noise"			"infer_z1"					"obs_z1_lambda5_high_noise"			10000	376
+# run_config	"sim_z1_high_rm_scatter"	"infer_z1_high_rm_scatter"	"obs_z1_lambda5_high_rm_scatter"	10000	376
+run_config	"sim_z1_high_noise"			"infer_z1"					"obs_z1_lambda5_high_noise"			10000	376
 
 # run_config	"sim_z1"        			"infer_z1"					"obs_z1_lambda5_prada"				10000	376
 # run_config	"sim_z1"        			"infer_z1"					"obs_z1_lambda5_ludlow"				10000	376
@@ -85,8 +85,8 @@ run_config() {
 # run_config	"sim_z1_high_mc_scatter"	"infer_z1_high_mc_scatter"	"obs_z1_lambda5"					10000	376
 
 # run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5_high_rm_scatter"	10000	376
-# run_config	"sim_z1_high_rm_scatter"	"infer_z1"					"obs_z1_lambda5"					10000	376
-run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5_low_richness_contam"					10000	376
+# run_config	"sim_z1_high_rm_scatter"	"infer_z1_high_rm_scatter"	"obs_z1_lambda5"					10000	376
+# run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5_low_richness_contam"					10000	376
 # run_config	"sim_z1"					"infer_z1"					"obs_z1_lambda5_high_richness_contam"					10000	376
 
 # # ##############################
