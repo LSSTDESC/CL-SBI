@@ -216,6 +216,23 @@ Per user: treat it as a legitimate alternative inference technique alongside HMC
   `sec:neural_hbi` (those figures appear in Results, before the method is formally introduced).
   **Recompiles 18 pp** (down from 19 after removing the standalone PPC fig), 0 undefined refs.
 
+**Figure-review pass (user-directed):**
+- **Fig 5 (calibration grid):** added neural-HBI (purple) to all 8 panels + N in the per-panel Δ_max
+  inset. Same population-draw + Mahalanobis `compute_coverage` as HMC.
+- **Fig 4 (baseline-only calibration) KILLED** — redundant once neural-HBI is in the grid (grid's
+  panel 1 = baseline, all 4 methods). Folded its Δ_max numbers + Mahalanobis-coverage explanation
+  into the grid caption; repointed the 2 dangling `fig:calibration` refs → `fig:calibration_grid`.
+- **Fig 3 (aggregate):** (a) **dropped MCMC from the 1D marginals** (its σ≈0.006 spike crushed the
+  others) — kept in the 2D plane where its overconfidence is the point; (b) **per-row axis windows
+  centered on each experiment's true population** (high-λ-M-scatter at μ_M≈13.2 now shows properly
+  instead of off-screen). Caption updated.
+- **Figs 7/8 (inferred noise, U-shaped):** KEPT as-is (user). They're HMC-only because joint
+  population+30-bin-noise inference is a capability unique to the full hierarchical formulation —
+  structurally impossible for single-(M,c) MCMC or percentile SBI, so adding them makes no sense.
+- **Fig 10 (neural-HBI SBC):** KEPT, caption rewritten to explain SBC tests calibration over the
+  WHOLE trained prior (vs the on-data coverage of Fig 5) — the standard amortized-estimator check.
+- **Recompiles 17 pp**, 0 undefined refs, 0 large overfull boxes.
+
 ---
 
 ## 2026-06-22 (pm) — Env restore, Fig-3 OOD diagnosis, paper2-hbi branch

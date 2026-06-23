@@ -72,59 +72,68 @@ def gauss(x, m, s):
 
 n = len(canon)
 fig, axes = plt.subplots(n, 3, figsize=(13, 2.6 * n))
-mass_grid = np.linspace(13.8, 15.0, 300)
-conc_grid = np.linspace(3.5, 7.0, 300)
 
 for i, r in enumerate(canon):
     true_mc = np.load(f"{REPO}/outputs/observations/{r['obs']}.376/drawn_mc_pairs.npy")
     mu_t, cov_t = true_mc.mean(0), np.cov(true_mc.T)
-    # method (mu, cov) builders
     def gcov(sM, sC, rho=0.0):
         return np.array([[sM**2, rho*sM*sC], [rho*sM*sC, sC**2]])
     methods = []
     if r.get("mcmc_converged", True) and r.get("mcmc_muM") is not None:
-        methods.append((C_MCMC, [r["mcmc_muM"], r["mcmc_muc"]], gcov(r["mcmc_sigM"], r["mcmc_sigc"]), "MCMC joint"))
+        methods.append((C_MCMC, [r["mcmc_muM"], r["mcmc_muc"]], gcov(r["mcmc_sigM"], r["mcmc_sigc"]), "MCMC joint", True))
     if r.get("sbi_muM") is not None:
-        methods.append((C_SBI, [r["sbi_muM"], r["sbi_muc"]], gcov(r["sbi_sigM"], r["sbi_sigc"]), "SBI FTJ"))
+        methods.append((C_SBI, [r["sbi_muM"], r["sbi_muc"]], gcov(r["sbi_sigM"], r["sbi_sigc"]), "SBI FTJ", False))
     if r.get("hmc_muM") is not None:
-        methods.append((C_HMC, [r["hmc_muM"], r["hmc_muc"]], gcov(r["hmc_sigM"], r["hmc_sigc"]), "Hierarchical HMC"))
+        methods.append((C_HMC, [r["hmc_muM"], r["hmc_muc"]], gcov(r["hmc_sigM"], r["hmc_sigc"]), "Hierarchical HMC", False))
     nh = neural_hbi_marginal(r["obs"])
     if nh is not None:
         nmuM, nsigM, nmuc, nsigc = nh
-        methods.append((C_NHBI, [nmuM, nmuc], gcov(nsigM, nsigc), "Neural HBI"))
+        methods.append((C_NHBI, [nmuM, nmuc], gcov(nsigM, nsigc), "Neural HBI", False))
 
-    # --- col 0: 2D plane ---
+    # per-row axis windows CENTERED ON TRUTH (experiments differ a lot: e.g. high-lambda-M has
+    # mu_M~13.2 vs 14.4 elsewhere, so a shared window pushes it off-screen). Width set by the
+    # widest population shown (true + each method's marginal sigma), with a margin.
+    sM_show = max([np.sqrt(cov_t[0, 0])] + [np.sqrt(c[0, 0]) for _, _, c, _, mc in methods if not mc])
+    sC_show = max([np.sqrt(cov_t[1, 1])] + [np.sqrt(c[1, 1]) for _, _, c, _, mc in methods if not mc])
+    mlo, mhi = mu_t[0] - 4.5*sM_show, mu_t[0] + 4.5*sM_show
+    clo, chi = mu_t[1] - 4.5*sC_show, mu_t[1] + 4.5*sC_show
+    mass_grid = np.linspace(mlo, mhi, 300)
+    conc_grid = np.linspace(clo, chi, 300)
+
+    # --- col 0: 2D plane (ALL methods incl. MCMC -- its overconfident ellipse is the point here) ---
     ax = axes[i, 0]
     ax.scatter(true_mc[:, 0], true_mc[:, 1], s=4, color="0.6", alpha=0.4)
     ellipse(ax, mu_t, cov_t, 2, color=C_TRUE, lw=2, ls="--")
-    for col, mu, cov, _ in methods:
+    for col, mu, cov, _, _ in methods:
         ellipse(ax, mu, cov, 2, color=col, lw=2)
     ax.set_ylabel(LABEL.get(r["obs"], r["obs"]) + "\n\n$c$", fontsize=14)
-    ax.set_xlim(13.9, 14.9); ax.set_ylim(3.8, 6.6)
+    ax.set_xlim(mlo, mhi); ax.set_ylim(clo, chi)
     if i == n - 1: ax.set_xlabel(r"$\log_{10} M$")
 
-    # --- col 1: mass marginal ---
+    # --- col 1: mass marginal (MCMC OMITTED -- its sigma~0.006 spike crushes the others) ---
     ax = axes[i, 1]
     ax.plot(mass_grid, gauss(mass_grid, mu_t[0], np.sqrt(cov_t[0, 0])), C_TRUE, ls="--", lw=2)
-    for col, mu, cov, _ in methods:
+    for col, mu, cov, _, is_mcmc in methods:
+        if is_mcmc: continue
         ax.plot(mass_grid, gauss(mass_grid, mu[0], np.sqrt(cov[0, 0])), col, lw=2)
-    ax.set_yticks([])
+    ax.set_yticks([]); ax.set_xlim(mlo, mhi)
     if i == n - 1: ax.set_xlabel(r"$\log_{10} M$")
     if i == 0: ax.set_title("mass marginal")
 
-    # --- col 2: concentration marginal ---
+    # --- col 2: concentration marginal (MCMC OMITTED) ---
     ax = axes[i, 2]
     ax.plot(conc_grid, gauss(conc_grid, mu_t[1], np.sqrt(cov_t[1, 1])), C_TRUE, ls="--", lw=2)
-    for col, mu, cov, _ in methods:
+    for col, mu, cov, _, is_mcmc in methods:
+        if is_mcmc: continue
         ax.plot(conc_grid, gauss(conc_grid, mu[1], np.sqrt(cov[1, 1])), col, lw=2)
-    ax.set_yticks([])
+    ax.set_yticks([]); ax.set_xlim(clo, chi)
     if i == n - 1: ax.set_xlabel(r"$c$")
     if i == 0: ax.set_title("concentration marginal")
 
 # shared legend
 from matplotlib.lines import Line2D
 handles = [Line2D([], [], color=C_TRUE, ls="--", lw=2, label="TRUE population"),
-           Line2D([], [], color=C_MCMC, lw=2, label="MCMC joint-likelihood (FTJ)"),
+           Line2D([], [], color=C_MCMC, lw=2, label="MCMC joint-likelihood (FTJ, 2D plane only)"),
            Line2D([], [], color=C_SBI, lw=2, label="SBI FTJ"),
            Line2D([], [], color=C_HMC, lw=2, label="Hierarchical HMC (this work)"),
            Line2D([], [], color=C_NHBI, lw=2, label="Neural HBI (this work)")]

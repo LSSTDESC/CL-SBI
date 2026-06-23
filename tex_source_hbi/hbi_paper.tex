@@ -168,7 +168,7 @@ Throughout this section, ``SBI'' (or ``SBI FTJ'') refers to the percentile-summa
 inferrer of Paper~I---trained to output percentiles of the population $(M,c)$ distribution, which
 are then fit by a Gaussian---unless explicitly qualified as ``amortized hierarchical SBI,'' the
 distinct approach of Section~\ref{sec:amortized_hbi}. All three-method comparisons (Table~\ref{tab:three_method},
-Figures~\ref{fig:aggregate}, \ref{fig:calibration}, \ref{fig:ppc}) use the Paper~I SBI FTJ.
+Figures~\ref{fig:aggregate}, \ref{fig:calibration_grid}, \ref{fig:ppc}) use the Paper~I SBI FTJ.
 
 \input{figures/three_method_table}
 
@@ -192,13 +192,17 @@ likelihood-based inference per se.
   \centering
   \includegraphics[width=0.62\textwidth]{figures/aggregate_hbi_comparison.png}
   \caption{Aggregate population-recovery comparison across all experiments (one row each),
-  analogous to Fig.~12 of Paper~I but adding the hierarchical HMC. Left: the $2\sigma$ $(M,c)$
-  contour for each method against the true clusters (grey points, black-dashed true contour).
-  Middle and right: the mass and concentration marginals. The MCMC joint-likelihood (blue)
-  collapses to a narrow spike in every row (it estimates a central value); SBI FTJ (orange) and the
-  hierarchical HMC (green) recover the true population width. The hierarchical model additionally
-  captures the broad true distribution in the high $\lambda$--M scatter experiment that SBI FTJ
-  underestimates.}
+  analogous to Fig.~12 of Paper~I but adding the hierarchical HMC and the fully-amortized neural HBI
+  (purple; Section~\ref{sec:neural_hbi}). Left: the $2\sigma$ $(M,c)$ contour for each method against
+  the true clusters (grey points, black-dashed true contour). Middle and right: the mass and
+  concentration marginals. \emph{Axis windows are set per row from that experiment's true population},
+  since the experiments span very different regimes (e.g.\ the high $\lambda$--$M$ scatter row is
+  centred near $\log_{10}M\approx13.2$ rather than $14.4$). The MCMC joint-likelihood collapses to a
+  near-delta spike (it estimates a central value); to keep the other methods legible it is shown
+  \emph{only in the 2D plane (left)} and omitted from the 1D marginals. SBI FTJ (orange), the
+  hierarchical HMC (green), and the neural HBI (purple) recover the true population width; the two
+  hierarchical methods additionally capture the broad true distribution in the high $\lambda$--$M$
+  scatter experiment that SBI FTJ underestimates.}
   \label{fig:aggregate}
 \end{figure*}
 
@@ -209,49 +213,35 @@ concentration across the suite.
 \subsection{Calibration}
 \label{sec:calibration}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.82\columnwidth]{figures/calibration_three_method.png}
-  \caption{Calibration of the inference approaches for the baseline experiment. The
-  horizontal axis is the nominal credible level $p$; the vertical axis is the empirical coverage,
-  the fraction of the $N_c=376$ true cluster $(M,c)$ values that fall within the $p$ credible
-  region of each inferred posterior (computed from the Mahalanobis distance to the posterior mean
-  and covariance, so it accounts for the $M$--$c$ correlation). Perfect calibration lies on the
-  diagonal; curves below it are overconfident. We summarize each with the maximum deviation from
-  the diagonal, $\Delta_{\max}$. The MCMC joint-likelihood (blue, $\Delta_{\max}=0.93$) is
-  severely overconfident---its narrow single-$(M,c)$ posterior contains almost none of the true
-  population until $p\to1$---whereas SBI FTJ (orange, $\Delta_{\max}=0.02$), the hierarchical
-  HMC (green, $\Delta_{\max}=0.11$), and the fully-amortized neural HBI (purple, $\Delta_{\max}=0.05$;
-  Section~\ref{sec:neural_hbi}) are all well calibrated.}
-  \label{fig:calibration}
-\end{figure}
-
-Unlike the Kolmogorov--Smirnov comparison of Paper~I, the coverage in
-Figure~\ref{fig:calibration} is sample-size independent and accounts for the full $M$--$c$
-covariance, making it our most robust calibration diagnostic. It confirms the headline result
-directly: the single-$(M,c)$ MCMC posterior is dramatically overconfident
-($\Delta_{\max}=0.93$), while the hierarchical HMC, SBI FTJ, and the fully-amortized neural HBI
-introduced in Section~\ref{sec:neural_hbi} all recover near-nominal coverage
-($\Delta_{\max}=0.11$, $0.02$, and $0.05$).
-
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.95\textwidth]{figures/calibration_grid.png}
-  \caption{Calibration across all experiments (fit-then-join), one panel each, in the format of
-  Figure~\ref{fig:calibration}; the inset lists $\Delta_{\max}$ for MCMC (M), SBI (S) and
-  hierarchical HMC (H). The MCMC joint-likelihood (blue) is severely overconfident in every
-  in-distribution experiment. SBI FTJ (orange) and the hierarchical HMC (green) are both well calibrated
-  in-distribution, with two informative exceptions: under strong M-c scatter SBI FTJ under-covers
-  (its concentration spread is underestimated; cf.\ Table~\ref{tab:three_method}), and in the
-  out-of-distribution cases (Prada, Ludlow) where the assumed scaling relation is wrong, all methods
-  degrade. The hierarchical HMC is the most consistently calibrated across the in-distribution
-  suite.}
+  \caption{Calibration across all experiments, one panel each. The horizontal axis is the nominal
+  credible level $p$; the vertical axis is the empirical coverage, the fraction of the $N_c=376$ true
+  cluster $(M,c)$ values that fall within the $p$ credible region of each inferred posterior (computed
+  from the Mahalanobis distance to the posterior mean and covariance, so it accounts for the $M$--$c$
+  correlation). Perfect calibration lies on the diagonal; curves below it are overconfident. The inset
+  lists the maximum deviation from the diagonal $\Delta_{\max}$ for MCMC (M), SBI (S), hierarchical
+  HMC (H) and the fully-amortized neural HBI (N; Section~\ref{sec:neural_hbi}). The MCMC
+  joint-likelihood (blue) is severely overconfident in every in-distribution experiment---its narrow
+  single-$(M,c)$ posterior contains almost none of the true population until $p\to1$. SBI FTJ
+  (orange), the hierarchical HMC (green), and the neural HBI (purple) are all well calibrated
+  in-distribution (e.g.\ at baseline $\Delta_{\max}=0.02$, $0.11$, $0.05$ respectively), with two
+  informative exceptions: under strong $M$--$c$ scatter SBI FTJ under-covers (its concentration
+  spread is underestimated; cf.\ Table~\ref{tab:three_method}), and in the out-of-distribution cases
+  (Prada, Ludlow), where the assumed scaling relation is wrong, all methods degrade.}
   \label{fig:calibration_grid}
 \end{figure*}
 
-Figure~\ref{fig:calibration_grid} extends the comparison to all experiments. The pattern is
-consistent: MCMC is overconfident throughout; SBI FTJ and the hierarchical HMC are well calibrated when
-the model matches the data and degrade together under genuine model misspecification.
+We assess calibration with empirical coverage---the fraction of true cluster $(M,c)$ values falling
+within each nominal credible region---across all experiments (Figure~\ref{fig:calibration_grid}).
+Unlike the Kolmogorov--Smirnov comparison of Paper~I, this coverage is sample-size independent and
+accounts for the full $M$--$c$ covariance, making it our most robust calibration diagnostic. The
+pattern is consistent and confirms the headline result directly: the single-$(M,c)$ MCMC posterior is
+dramatically overconfident throughout ($\Delta_{\max}=0.93$ at baseline), while the hierarchical HMC,
+SBI FTJ, and the fully-amortized neural HBI of Section~\ref{sec:neural_hbi} all recover near-nominal
+coverage when the model matches the data, degrading together only under genuine model
+misspecification.
 
 \subsection{Posterior predictive checks}
 \label{sec:ppc}
@@ -483,18 +473,23 @@ failure of Paper~I's percentile SBI is resolved.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/afull_sbc_ranks.png}
-\caption{Simulation-based calibration of the fully-amortized neural HBI over the full training
-envelope ($N=500$ held-out datasets). Uniform rank histograms indicate calibrated posteriors; the
-grey band is the $99\%$ interval expected under uniformity. The population spread $\sigma_M$, the
-$M$--$c$ normalization $c_0$, and the concentration scatter $\sigma_c$ are well calibrated; the mean
-mass $\mu_M$ and the slope $\beta$ are mildly over-confident (Kolmogorov--Smirnov distances $0.119$
-and $0.106$), a residual we expect to improve with a larger training set.\label{fig:afull_sbc}}
+\caption{Simulation-based calibration (SBC) of the fully-amortized neural HBI. Whereas the coverage
+test of Figure~\ref{fig:calibration_grid} asks whether the posterior is calibrated on the eight
+specific observed stacks, SBC asks the complementary and more stringent question: is the network's
+\emph{uncertainty} calibrated across the \emph{entire} space of populations it was trained on? For
+each of $N=500$ held-out datasets drawn from the training prior, we rank the true hyperparameter
+among its posterior samples; if the posterior is calibrated these ranks are uniform, so a flat
+histogram (within the grey $99\%$ band) indicates trustworthy error bars and a $\cup$ or $\cap$ shape
+indicates over- or under-confidence. The population spread $\sigma_M$, the $M$--$c$ normalization
+$c_0$, and the concentration scatter $\sigma_c$ are well calibrated; the mean mass $\mu_M$ and the
+slope $\beta$ are mildly over-confident (Kolmogorov--Smirnov distances $0.119$ and $0.106$), a
+residual we expect to improve with a larger training set.\label{fig:afull_sbc}}
 \end{figure}
 
 \input{figures/afull_table}
 
 The neural HBI is included as a peer method in the cross-method comparisons of the Results section:
-its coverage is well calibrated (Figure~\ref{fig:calibration}, $\Delta_{\max}=0.05$, comparable to
+its coverage is well calibrated (Figure~\ref{fig:calibration_grid}, baseline $\Delta_{\max}=0.05$, comparable to
 SBI FTJ and tighter than hierarchical HMC) and its predictive profiles reproduce the observed stacks
 in every experiment (Figure~\ref{fig:ppc}). We additionally validate the network with
 simulation-based calibration (SBC) over the full training envelope before
