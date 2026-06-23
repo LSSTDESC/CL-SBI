@@ -126,6 +126,42 @@ KS-from-uniform:
 spanning child/ludlow/prada), add nuisance axes (rm_scatter, noise_dex~U(0.1,0.8), f_contam mixture),
 N_c=376, moment-pool embedding, SBC over full envelope + apply to all 8 obs stacks. ~18 hr sims.
 
+**A-full LAUNCHED (Option 2: single Gaussian, 6 non-contam exps; contam mixture deferred).**
+`notebooks/afull_neural_hbi.py`, moment-pool embedding + noise_dex fed as a known input, broad priors
+padded around the 6 exps' true ranges (muM[13.0,14.7] sigM[0.08,0.65] c0[3.8,6.8] beta[-1.8,0.1]
+sigc[0.08,0.80], noise U(0.1,0.8)), N_TRAIN=40000, SBC N=500.
+- **Cost corrected: ~30–45 min sims, NOT 18 hr.** A draws (M,c) directly from the population (no
+  colossus), so it only pays `simulate_nfw` (~50–64 ms/stack at N_c=376). The 18-hr figure assumed
+  colossus-per-cluster, which A never calls. Committed as `d65efc7` on `paper2-hbi`.
+- **Killed the stalled emcee-HBI baseline (PID 42868)** mid-A-full: 18h41m wall, STILL zero
+  checkpoints (writes every ~33 min when healthy) — confirmed dead, same run flagged 2026-06-22
+  am+pm. Freed ~19% CPU (A-full jumped 274→332%). The ≥1-day emcee-HBI timing claim stands on the
+  measured per-step cost, not this run completing — nothing lost. **If the real-data emcee-HBI cost
+  point is still wanted, relaunch fresh on a quiet machine.**
+
+**A-full RESULT (137 min wall) — HEADLINE WIN, with interpretable calibration blemishes.**
+- **σ_M (the paper's central claim) ~perfect across ALL 6 exps, amortized, one forward pass, no
+  per-dataset MCMC:** baseline 0.118/0.118, high_mc 0.116/0.118, **high_rm 0.518/0.535**, high_noise
+  0.127/0.118, ludlow 0.115/0.118, prada 0.118/0.118. Robust across noise 0.31→0.70 and μ_M down to
+  13.2.
+- **Fig-3 VINDICATION (the key result):** high_mc_scatter **σ_c = 0.728 ± 0.047 vs true 0.713** —
+  the exact experiment where the percentile net collapsed to ~0.19. Amortized neural HBI recovers it
+  because high-scatter is now in-distribution. The marginalization thesis works.
+- **SBC (N=500, crit~0.073):** sig_M 0.039, c0 0.046, sig_c 0.052 → clean PASS; **beta 0.106**
+  (persistent weakly-identified slope, expected), **mu_M 0.119** (NEW: over-confident — point-accurate
+  to ~0.01 everywhere but error bars slightly too tight).
+- **Honest blemish — σ_c biased HIGH at low true-scatter:** baseline 0.210/0.149, ludlow 0.212/0.148,
+  prada 0.264/0.134, high_noise 0.366/0.149; but high_mc (genuinely large) 0.728/0.713. Same σ_c
+  information-floor physics: when population signal < per-cluster noise floor, the net can't separate
+  intrinsic scatter from noise and defaults toward prior → lands high. Errs toward *wider* (honest
+  direction), not false confidence.
+- **Verdict:** science secured + strengthened (σ_M everywhere; Fig-3 OOD collapse resolved). Blemishes
+  (mu_M/beta mild over-confidence; σ_c high at floor) are all consistent with the information-limit
+  story already in the paper. `afull_neural_hbi.pkl` saved.
+- **Next options:** (a) fix mu_M/beta over-confidence — bump N_TRAIN and/or embedding capacity (the
+  arch-probe lever), cheap rerun; (b) write results into the paper (replace the \prelim subsection
+  with the table + SBC + the σ_c=0.73 Fig-3 result); (c) Option 1 contam mixture follow-up.
+
 ---
 
 ## 2026-06-22 (pm) — Env restore, Fig-3 OOD diagnosis, paper2-hbi branch

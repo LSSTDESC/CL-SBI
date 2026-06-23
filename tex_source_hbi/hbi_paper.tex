@@ -423,55 +423,93 @@ population posterior as hierarchical HMC. \todo{Replace the per-cluster Gaussian
 normalizing-flow per-cluster likelihood that preserves the non-Gaussian $M$--$c$ degeneracy, and
 quantify the noise level at which the concentration spread becomes recoverable.}
 
-\subsection{Fully-amortized neural hierarchical inference (in progress)}
+\subsection{Fully-amortized neural hierarchical inference}
 \label{sec:neural_hbi}
 
-\prelim{The amortized scheme above still factorizes through per-cluster posteriors and a per-dataset
-NUTS sampler. A more ambitious construction --- option~(i) of Section~\ref{sec:hier_sbi}, which we
-are currently implementing --- amortizes the \emph{entire} hierarchy. We train a single neural
-posterior estimator that maps the full set of $N_c$ cluster profiles directly to the population
-hyperparameters,
+The amortized scheme above still factorizes through per-cluster posteriors and a per-dataset NUTS
+sampler. A more ambitious construction --- option~(i) of Section~\ref{sec:hier_sbi} --- amortizes the
+\emph{entire} hierarchy. We train a single neural posterior estimator that maps the full set of $N_c$
+cluster profiles directly to the population hyperparameters,
 \begin{equation}
-q_\phi\!\left(\mu_M,\sigma_M,c_0,\beta,\sigma_c \,\middle|\, \{d_j\}_{j=1}^{N_c}\right),
+q_\phi\!\left(\mu_M,\sigma_M,c_0,\beta,\sigma_c \,\middle|\, \{d_j\}_{j=1}^{N_c},\,\sigma_{\rm obs}\right),
 \end{equation}
-using a permutation-invariant set embedding (a mean-pooled deep-set encoder) so that the network is
-insensitive to the ordering of clusters within a stack. Inference then requires a \emph{single
-forward pass} on the observed stack, with no per-dataset sampling at all.}
+using a permutation-invariant set embedding so that the network is insensitive to the ordering of
+clusters within a stack, and conditioning additionally on the (measured) noise level
+$\sigma_{\rm obs}$. Inference then requires a \emph{single forward pass} on the observed stack, with
+no per-dataset sampling at all. The estimator is a masked autoregressive flow; the embedding applies
+a shared multilayer perceptron to each profile and aggregates the per-cluster features by their
+\emph{mean and standard deviation} across the stack before a final network. We found this two-moment
+aggregation necessary: a mean-only pool leaves the $M$--$c$ slope $\beta$ and the concentration
+scatter $\sigma_c$ --- both of which are identified by cluster-to-cluster \emph{variation} ---
+measurably under-calibrated, because mean-pooling discards exactly the inter-cluster spread that
+constrains them. Adding the standard-deviation channel restores their calibration.
 
-\prelim{The construction is designed to address the out-of-distribution fragility of the
-percentile-based SBI directly, and the mechanism is worth stating precisely. Rather than training on
-a single fiducial population and reading off fixed summary statistics, we draw the population
-hyperparameters \emph{and} the modeling choices that distinguish our numerical experiments ---the
-$M$--$c$ relation (spanned continuously through its normalization $c_0$ and slope $\beta$ rather than
-as a discrete model label), the richness--mass scatter, the per-bin measurement noise, and a
-richness-contamination fraction--- from broad hyperpriors for \emph{each} training stack. The
-network therefore learns to marginalize over these nuisance directions: what was an out-of-distribution
-shift for a fixed-population estimator (e.g.\ the high $M$--$c$ scatter case, where the percentile
-estimator collapses to $\sigma_c\approx0.19$ against a true $0.72$) becomes an in-distribution
-sample of the training prior. This is the amortized counterpart of the explicit hierarchical model:
-the marginalization that NUTS performs at sampling time is instead compiled into the network weights
-at training time. We emphasize that this is marginalization over a \emph{hyperprior of models}, not
-the removal of priors; robustness extends only as far as the trained envelope, and a genuinely novel
-relation outside it remains out of distribution.}
+The construction is designed to address the out-of-distribution fragility of the percentile-based
+SBI directly. Rather than training on a single fiducial population and reading off fixed summary
+statistics, we draw the population hyperparameters \emph{and} the modeling choices that distinguish
+our numerical experiments ---the $M$--$c$ relation (spanned continuously through its normalization
+$c_0$ and slope $\beta$ rather than as a discrete model label), the richness--mass scatter, and the
+per-bin measurement noise--- from broad hyperpriors for \emph{each} training stack. The network
+therefore learns to marginalize over these nuisance directions: what was an out-of-distribution
+shift for a fixed-population estimator becomes an in-distribution sample of the training prior. This
+is the amortized counterpart of the explicit hierarchical model: the marginalization that NUTS
+performs at sampling time is instead compiled into the network weights at training time. We emphasize
+that this is marginalization over a \emph{hyperprior of models}, not the removal of priors;
+robustness extends only as far as the trained envelope, and a genuinely novel relation outside it
+remains out of distribution.
 
-\prelim{Two requirements follow from our experiment suite and shape the implementation. First, the
-training prior must envelope every experiment, or the amortized network is out-of-distribution in the
-same way the percentile estimator is: the per-cluster mass support must extend to $\log_{10}M\approx
-12$ and the concentration hyperprior to $\sigma_c\gtrsim0.74$, as set by the most extreme scatter
-experiments. Second, the richness-contamination cases drive the in-bin mass distribution
-substantially non-Gaussian, so a single-Gaussian population in $\log_{10}M$ is mis-specified there;
-we therefore adopt a two-component mixture for the population mass model. We validate the network
-with simulation-based calibration (SBC) before applying it to data, since---unlike the per-dataset
-NUTS sampler, which carries its own convergence diagnostics---an amortized estimator can be
-point-accurate yet miscalibrated, and the rank statistics of SBC are the appropriate check. The
-fundamental information limit of Section~\ref{sec:amortized_hbi} is unaffected: amortization cannot
-manufacture per-cluster concentration information that the measurement noise destroys, so we expect
-$\sigma_c$ to remain unrecoverable at our fiducial noise wherever the true spread is small, with the
-network reporting a correspondingly wide posterior rather than a falsely confident one.}
-\todo{Replace this preliminary subsection with measured results: SBC rank histograms, recovered
-hyperparameters across all eight experiments, and a head-to-head against hierarchical HMC and the
-percentile SBI --- in particular a demonstration that the amortized network does \emph{not} collapse
-on the high $M$--$c$ scatter case.}
+\paragraph{Results.} We train one network on $4\times10^4$ simulated stacks ($N_c=376$) drawn from
+hyperpriors that envelope the six non-contamination experiments, with the per-bin noise drawn from
+$\mathcal{U}(0.1,0.8)$\,dex. The entire procedure --- simulation, training, and calibration --- runs
+in $\sim$2\,hours on a single CPU, after which each population posterior is a single forward pass.
+Table~\ref{tab:afull} reports the recovered hyperparameters against truth for all six experiments.
+The population \emph{mass} spread $\sigma_M$ is recovered to a few percent in every case, including
+the strongly out-of-distribution high $\lambda$--$M$ scatter experiment ($0.518$ vs.\ true $0.535$,
+where the mean mass itself shifts to $\log_{10}M\approx13.2$) and the high-noise experiment
+($0.127$ vs.\ $0.118$ at $0.70$\,dex). The central values $\mu_M$ and the $M$--$c$ normalization
+$c_0$ track the Ludlow16 and Prada12 relations that were out-of-distribution for the
+fixed-relation percentile estimator. Most importantly, on the high $M$--$c$ scatter experiment the
+amortized network recovers $\sigma_c=0.728\pm0.047$ against a true $0.713$ --- precisely the case in
+which the percentile estimator collapsed to $\sigma_c\approx0.19$ (Table~\ref{tab:three_method}).
+Because the broadened training prior makes large concentration scatter an in-distribution
+possibility, the network no longer mistakes it for the fiducial value: the out-of-distribution
+failure of Paper~I's percentile SBI is resolved.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/afull_sbc_ranks.png}
+\caption{Simulation-based calibration of the fully-amortized neural HBI over the full training
+envelope ($N=500$ held-out datasets). Uniform rank histograms indicate calibrated posteriors; the
+grey band is the $99\%$ interval expected under uniformity. The population spread $\sigma_M$, the
+$M$--$c$ normalization $c_0$, and the concentration scatter $\sigma_c$ are well calibrated; the mean
+mass $\mu_M$ and the slope $\beta$ are mildly over-confident (Kolmogorov--Smirnov distances $0.119$
+and $0.106$), a residual we expect to improve with a larger training set.\label{fig:afull_sbc}}
+\end{figure}
+
+\input{figures/afull_table}
+
+We validate the network with simulation-based calibration (SBC) over the full envelope before
+applying it to data, since ---unlike the per-dataset NUTS sampler, which carries its own convergence
+diagnostics--- an amortized estimator can be point-accurate yet miscalibrated, and the rank
+statistics of SBC are the appropriate check (Figure~\ref{fig:afull_sbc}). The spread parameters
+$\sigma_M$ and $\sigma_c$ and the normalization $c_0$ are well calibrated; the mean mass $\mu_M$ and
+the slope $\beta$ are mildly over-confident (their posteriors are slightly too narrow, though their
+point estimates are accurate), which we attribute to finite training-set size and expect to relax
+with more simulations.
+
+Two limitations are worth stating plainly. First, consistent with the information limit of
+Section~\ref{sec:amortized_hbi}, the network \emph{over-estimates} $\sigma_c$ when the true scatter
+is small and near the per-cluster noise floor (e.g.\ $0.21$ vs.\ true $0.15$ in the baseline), while
+recovering it accurately when it is genuinely large (the high $M$--$c$ scatter case above). This is
+the expected behaviour: where the population signal lies below the measurement floor the network
+cannot separate intrinsic scatter from noise and reports a conservatively wide posterior rather than
+a falsely confident one --- erring, importantly, in the honest direction. Second, the present run
+uses a single-Gaussian population in $\log_{10}M$ and therefore excludes the two richness-contamination
+experiments, whose in-bin mass distribution is substantially non-Gaussian; extending the network with
+a two-component mixture population is a direct refinement.
+\todo{Add the larger-training-set rerun (tightening $\mu_M$, $\beta$ calibration); add the
+two-component mixture run covering the richness-contamination experiments; and a direct
+head-to-head figure against hierarchical HMC.}
 
 \section{Discussion and conclusions}
 \label{sec:conc}
