@@ -15,6 +15,25 @@ OUT = "/Users/akumgill/Documents/GitHub/CL-SBI/notebooks/hierarchical_poc_output
 REPO = "/Users/akumgill/Documents/GitHub/CL-SBI"
 rows = pickle.load(open(f"{OUT}/_all_methods_rows.pkl", "rb"))
 
+# Fully-amortized neural HBI (architecture A): infers the M-c RELATION (c0, beta, sig_c), so convert
+# to the MARGINAL concentration (mu_c=c0; sig_c,marg = sqrt(beta^2 sig_M^2 + sig_c^2)) to overlay
+# apples-to-apples with the other methods' marginal Gaussians. Keyed by obs name; absent for the two
+# richness-contamination experiments (single-Gaussian run excludes them).
+try:
+    _afull = pickle.load(open(f"{OUT}/afull_neural_hbi.pkl", "rb"))["experiments"]
+except FileNotFoundError:
+    _afull = {}
+
+
+def neural_hbi_marginal(obs):
+    """Return (muM, sigM, muc_marg, sigc_marg) for neural-HBI on this obs, or None if not available."""
+    if obs not in _afull:
+        return None
+    e = _afull[obs]["est"]
+    muM, sigM = e["mu_M"][0], e["sig_M"][0]
+    c0, beta, sigc = e["c0"][0], e["beta"][0], e["sig_c"][0]
+    return muM, sigM, c0, float(np.sqrt(beta**2 * sigM**2 + sigc**2))
+
 # one canonical (sim_z1/infer_z1) row per unique obs set, in-distribution comparison
 seen, canon = set(), []
 order = ["obs_z1_lambda5", "obs_z1_lambda5_high_mc_scatter", "obs_z1_lambda5_high_noise",
@@ -32,7 +51,7 @@ LABEL = {"obs_z1_lambda5": "Baseline", "obs_z1_lambda5_high_mc_scatter": "High M
          "obs_z1_lambda5_high_richness_contam": "High richness contam.",
          "obs_z1_lambda5_prada": "Prada M-c (OOD)", "obs_z1_lambda5_ludlow": "Ludlow M-c (OOD)"}
 
-C_TRUE, C_MCMC, C_SBI, C_HMC = "k", "#1f77b4", "#ff7f0e", "#2ca02c"
+C_TRUE, C_MCMC, C_SBI, C_HMC, C_NHBI = "k", "#1f77b4", "#ff7f0e", "#2ca02c", "#9467bd"
 
 
 def cov_from(mu, cov):
@@ -69,6 +88,10 @@ for i, r in enumerate(canon):
         methods.append((C_SBI, [r["sbi_muM"], r["sbi_muc"]], gcov(r["sbi_sigM"], r["sbi_sigc"]), "SBI FTJ"))
     if r.get("hmc_muM") is not None:
         methods.append((C_HMC, [r["hmc_muM"], r["hmc_muc"]], gcov(r["hmc_sigM"], r["hmc_sigc"]), "Hierarchical HMC"))
+    nh = neural_hbi_marginal(r["obs"])
+    if nh is not None:
+        nmuM, nsigM, nmuc, nsigc = nh
+        methods.append((C_NHBI, [nmuM, nmuc], gcov(nsigM, nsigc), "Neural HBI"))
 
     # --- col 0: 2D plane ---
     ax = axes[i, 0]
@@ -103,8 +126,9 @@ from matplotlib.lines import Line2D
 handles = [Line2D([], [], color=C_TRUE, ls="--", lw=2, label="TRUE population"),
            Line2D([], [], color=C_MCMC, lw=2, label="MCMC joint-likelihood (FTJ)"),
            Line2D([], [], color=C_SBI, lw=2, label="SBI FTJ"),
-           Line2D([], [], color=C_HMC, lw=2, label="Hierarchical HMC (this work)")]
-fig.legend(handles=handles, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.005), fontsize=15)
+           Line2D([], [], color=C_HMC, lw=2, label="Hierarchical HMC (this work)"),
+           Line2D([], [], color=C_NHBI, lw=2, label="Neural HBI (this work)")]
+fig.legend(handles=handles, loc="upper center", ncol=5, bbox_to_anchor=(0.5, 1.005), fontsize=14)
 fig.tight_layout(rect=[0, 0, 1, 0.99])
 fig.savefig(f"{OUT}/aggregate_hbi_comparison.png", dpi=140, bbox_inches="tight")
 print(f"wrote {OUT}/aggregate_hbi_comparison.png  ({n} experiments)")

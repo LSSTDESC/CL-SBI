@@ -162,6 +162,26 @@ sigc[0.08,0.80], noise U(0.1,0.8)), N_TRAIN=40000, SBC N=500.
   arch-probe lever), cheap rerun; (b) write results into the paper (replace the \prelim subsection
   with the table + SBC + the σ_c=0.73 Fig-3 result); (c) Option 1 contam mixture follow-up.
 
+**Results written into paper (commit aa4a02a) + neural-HBI added to comparison figures.** Replaced the
+\prelim subsection with measured results (tab:afull, fig:afull_sbc); paper 18 pp, clean.
+- **Added Neural HBI (purple, C_NHBI=#9467bd) as a 4th/5th method to the comparison figures:**
+  `make_aggregate_hbi_figure.py` (2D plane + mass/conc marginals — converts the inferred RELATION
+  params to MARGINAL conc: μ_c=c0, σ_c,marg=√(β²σ_M²+σ_c²)) and `make_three_method_summary.py` σ_M
+  bar chart (σ_M inferred directly, no conversion; "n/a" markers on the 2 contam exps it skips).
+  Both regenerated and copied into `tex_source_hbi/figures/`. The σ_M bar chart cleanly shows
+  neural-HBI matching truth+HMC everywhere incl. high_rm_scatter (0.52 vs MCMC's DNC collapse).
+- **⚠️ TODO — iteration/training-budget refinement (DEFERRED, do eventually):** current A-full is
+  N_TRAIN=40k. μ_M (SBC KS 0.119) and β (0.106) are mildly over-confident; the planned fix is a
+  **larger-N_TRAIN rerun (≥80k) and/or more embedding capacity** (the arch-probe lever). When that
+  reruns, **regenerate afull_neural_hbi.pkl → re-run both comparison-figure scripts + afull table/SBC
+  fig** so the plotted numbers are final. Tracked in the paper's closing \todo too.
+- **Timing figure DONE:** added neural-HBI (purple, 1.0s measured: ~0.8ms embedding + flow sampling)
+  to `three_method_timing.png` — appears only in the Hierarchical group (NaN → no bar for the two
+  single-(M,c) tasks, by design). Story: **Neural HBI 1.0s ≪ HMC 211s ≪ emcee ≥1 day** for population
+  inference. Explicit legend patches added (the single drawn bar otherwise dropped its swatch).
+  Amortized training (~2 hr, one-time) excluded from per-inference cost, same convention as SBI.
+  Paper recompiles (18 pp). All 3 comparison figs (aggregate, σ_M bar, timing) now include neural-HBI.
+
 ---
 
 ## 2026-06-22 (pm) — Env restore, Fig-3 OOD diagnosis, paper2-hbi branch

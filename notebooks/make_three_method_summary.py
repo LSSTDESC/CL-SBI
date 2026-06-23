@@ -26,6 +26,15 @@ canon.sort(key=lambda r: short(r["exp"]))
 labels = [short(r["exp"]) for r in canon]
 x = np.arange(len(canon)); w = 0.2
 
+# Neural HBI (architecture A) sigma_M per experiment, from the fully-amortized run. Marginal sigma_M
+# is inferred directly (no conversion needed). Absent for the 2 contam experiments.
+try:
+    _afull_exp = pickle.load(open(f"{OUT}/afull_neural_hbi.pkl", "rb"))["experiments"]
+except FileNotFoundError:
+    _afull_exp = {}
+def nhbi_sigM(obs):
+    return _afull_exp[obs]["est"]["sig_M"][0] if obs in _afull_exp else np.nan
+
 def col(r, k):
     v = r.get(k); return float(v) if v is not None else np.nan
 
@@ -35,17 +44,24 @@ true = [col(r, "true_sigM") for r in canon]
 mcmc = [col(r, "mcmc_sigM") for r in canon]
 sbi  = [col(r, "sbi_sigM") for r in canon]
 hmcv = [col(r, "hmc_sigM") for r in canon]
+nhbi = [nhbi_sigM(r["obs"]) for r in canon]
 # mask non-converged MCMC: plot at 0 with a hatch + "DNC" marker instead of a misleading value
 mcmc_conv = [r.get("mcmc_converged", True) for r in canon]
 mcmc_plot = [m if c else 0.0 for m, c in zip(mcmc, mcmc_conv)]
-ax.bar(x - 1.5*w, true, w, color="0.5", label="TRUE population")
-ax.bar(x - 0.5*w, mcmc_plot, w, color="#1f77b4", label="MCMC joint-likelihood (FTJ)")
-ax.bar(x + 0.5*w, sbi,  w, color="#ff7f0e", label="SBI FTJ")
-ax.bar(x + 1.5*w, hmcv, w, color="#2ca02c", label="Hierarchical HMC (this work)")
+wb = 0.16   # 5 bars per group
+ax.bar(x - 2*wb, true, wb, color="0.5", label="TRUE population")
+ax.bar(x - 1*wb, mcmc_plot, wb, color="#1f77b4", label="MCMC joint-likelihood (FTJ)")
+ax.bar(x + 0*wb, sbi,  wb, color="#ff7f0e", label="SBI FTJ")
+ax.bar(x + 1*wb, hmcv, wb, color="#2ca02c", label="Hierarchical HMC (this work)")
+ax.bar(x + 2*wb, np.nan_to_num(nhbi), wb, color="#9467bd", label="Neural HBI (this work)")
 ymax = max(max(true), max(sbi), max(hmcv)) * 1.25
 for xi, conv in zip(x, mcmc_conv):
     if not conv:
-        ax.text(xi - 0.5*w, ymax*0.02, "DNC", rotation=90, fontsize=7, ha="center", va="bottom", color="#1f77b4")
+        ax.text(xi - 1*wb, ymax*0.02, "DNC", rotation=90, fontsize=7, ha="center", va="bottom", color="#1f77b4")
+# mark experiments where neural-HBI was not run (the 2 contamination cases)
+for xi, v in zip(x, nhbi):
+    if np.isnan(v):
+        ax.text(xi + 2*wb, ymax*0.02, "n/a", rotation=90, fontsize=7, ha="center", va="bottom", color="#9467bd")
 ax.set_xticks(x); ax.set_xticklabels(labels, rotation=30, ha="right")
 ax.set_ylabel(r"recovered $\sigma_{\log_{10}M}$")
 ax.set_title("Population mass-spread recovery across experiments  (MCMC DNC = did not converge)")
@@ -74,22 +90,29 @@ hmc_hier = float(hmc["obs_z1_lambda5"]["t_sample_s"])
 sbi_hier = 10.0          # amortized hierarchical SBI POC sampling time
 EMCEE_HBI_EST = 24 * 3600.0   # ~1 day estimate (measured ~1 s/step x >=1500 walkers, accept ~0.1)
 
-# rows: (task, sbi, emcee, hmc, emcee_is_estimate)
+# Neural HBI inference cost: one forward pass through the embedding + flow sampling. Only defined
+# for the Hierarchical (population) task; NaN -> no bar for the single-(M,c) tasks. The amortized
+# training (~2 hr, one-time) is excluded from per-inference cost, same convention as SBI's training.
+nhbi_hier = 1.0
+# rows: (task, sbi, emcee, hmc, nhbi, emcee_is_estimate)
 grid = [
-    ("Join-then-fit\n(single $M,c$)",  tg["sbi_jtf"], emcee_jtf, tg["hmc_jtf"], False),
-    ("Fit-then-join\n(single $M,c$)",  tg["sbi_ftj"], emcee_ftj, tg["hmc_ftj"], False),
-    ("Hierarchical\n(population)",      sbi_hier,      EMCEE_HBI_EST, hmc_hier, True),
+    ("Join-then-fit\n(single $M,c$)",  tg["sbi_jtf"], emcee_jtf, tg["hmc_jtf"], np.nan, False),
+    ("Fit-then-join\n(single $M,c$)",  tg["sbi_ftj"], emcee_ftj, tg["hmc_ftj"], np.nan, False),
+    ("Hierarchical\n(population)",      sbi_hier,      EMCEE_HBI_EST, hmc_hier, nhbi_hier, True),
 ]
-C = {"SBI": "#ff7f0e", "emcee": "#1f77b4", "HMC": "#2ca02c"}
+C = {"SBI": "#ff7f0e", "Neural HBI": "#9467bd", "HMC": "#2ca02c", "emcee": "#1f77b4"}
 fig2, ax2 = plt.subplots(figsize=(9, 5.5))
-w = 0.26
+w = 0.2
 x = np.arange(len(grid))
-# order bars ascending by height within each group (SBI < HMC < emcee in every task) -> emcee right
-for j, (mname, key) in enumerate([("SBI", 1), ("HMC", 3), ("emcee", 2)]):
+# 4 bars/group, ordered ascending by typical height: SBI < Neural HBI < HMC < emcee -> emcee right
+for j, (mname, key) in enumerate([("SBI", 1), ("Neural HBI", 4), ("HMC", 3), ("emcee", 2)]):
     vals = [row[key] for row in grid]
-    bars = ax2.bar(x + (j-1)*w, vals, w, color=C[mname], label=mname)
+    offs = (j - 1.5) * w
+    bars = ax2.bar(x + offs, np.nan_to_num(vals), w, color=C[mname], label=mname)
     for i, (b, v) in enumerate(zip(bars, vals)):
-        est = grid[i][4] and mname == "emcee"
+        if np.isnan(v):
+            b.set_visible(False); continue
+        est = grid[i][5] and mname == "emcee"
         if est:
             b.set_hatch("//"); b.set_alpha(0.55)
         lab = (r"$\gtrsim$1 day" + "\n(est.)") if est else (f"{v:.1f}s" if v < 100 else f"{v:.0f}s")
@@ -97,7 +120,12 @@ for j, (mname, key) in enumerate([("SBI", 1), ("HMC", 3), ("emcee", 2)]):
 ax2.set_xticks(x); ax2.set_xticklabels([row[0] for row in grid])
 ax2.set_yscale("log"); ax2.set_ylabel("wall time per inference [s] (log scale)")
 ax2.set_title("Inference cost by task and method (baseline, $N_c=376$, single CPU)")
-ax2.legend(title="method"); ax2.set_ylim(0.2, EMCEE_HBI_EST*8)
+# explicit legend handles (Neural HBI has only one drawn bar -> auto-legend drops its swatch)
+from matplotlib.patches import Patch
+leg_order = ["SBI", "Neural HBI", "HMC", "emcee"]
+ax2.legend(handles=[Patch(facecolor=C[m], label=m + (" (this work)" if m == "Neural HBI" else ""))
+                    for m in leg_order], title="method")
+ax2.set_ylim(0.2, EMCEE_HBI_EST*8)
 fig2.tight_layout(); fig2.savefig(f"{OUT}/three_method_timing.png", dpi=140)
 
 # ---------- LaTeX table ----------
