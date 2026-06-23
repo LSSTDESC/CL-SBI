@@ -461,8 +461,10 @@ remains out of distribution.
 \paragraph{Results.} We train one network on $4\times10^4$ simulated stacks ($N_c=376$) drawn from
 hyperpriors that envelope the six non-contamination experiments, with the per-bin noise drawn from
 $\mathcal{U}(0.1,0.8)$\,dex. The entire procedure --- simulation, training, and calibration --- runs
-in $\sim$2\,hours on a single CPU, after which each population posterior is a single forward pass.
-Table~\ref{tab:afull} reports the recovered hyperparameters against truth for all six experiments.
+in under an hour on a single CPU, after which each population posterior is a single forward pass.
+We apply the trained network to all eight experiments; Table~\ref{tab:afull} reports the recovered
+hyperparameters against truth (the two richness-contamination experiments lie outside the
+single-Gaussian training model and are discussed separately below).
 The population \emph{mass} spread $\sigma_M$ is recovered to a few percent in every case, including
 the strongly out-of-distribution high $\lambda$--$M$ scatter experiment ($0.518$ vs.\ true $0.535$,
 where the mean mass itself shifts to $\log_{10}M\approx13.2$) and the high-noise experiment
@@ -488,7 +490,21 @@ and $0.106$), a residual we expect to improve with a larger training set.\label{
 
 \input{figures/afull_table}
 
-We validate the network with simulation-based calibration (SBC) over the full envelope before
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/ppc_neural_hbi.png}
+\caption{Posterior predictive check for the neural HBI across all eight experiments. For each, a
+population drawn from the inferred hyperparameters is forward-modelled (purple band: $16$--$84\%$;
+purple line: median) and compared to the observed profiles (grey) and their median (black); the right
+column shows the fractional residual. The predicted population reproduces the observed profiles in
+every experiment, including the two richness-contamination cases (dashed, hatched), whose mass
+\emph{spread} the single-Gaussian model still captures even though it mis-estimates their $M$--$c$
+\emph{relation} (Table~\ref{tab:afull}).\label{fig:afull_ppc}}
+\end{figure}
+
+A posterior predictive check (Figure~\ref{fig:afull_ppc}) confirms that the population inferred by
+the network, pushed back through the forward model, reproduces the observed stacked profiles in every
+experiment. We validate the network with simulation-based calibration (SBC) over the full envelope before
 applying it to data, since ---unlike the per-dataset NUTS sampler, which carries its own convergence
 diagnostics--- an amortized estimator can be point-accurate yet miscalibrated, and the rank
 statistics of SBC are the appropriate check (Figure~\ref{fig:afull_sbc}). The spread parameters
@@ -503,13 +519,18 @@ is small and near the per-cluster noise floor (e.g.\ $0.21$ vs.\ true $0.15$ in 
 recovering it accurately when it is genuinely large (the high $M$--$c$ scatter case above). This is
 the expected behaviour: where the population signal lies below the measurement floor the network
 cannot separate intrinsic scatter from noise and reports a conservatively wide posterior rather than
-a falsely confident one --- erring, importantly, in the honest direction. Second, the present run
-uses a single-Gaussian population in $\log_{10}M$ and therefore excludes the two richness-contamination
-experiments, whose in-bin mass distribution is substantially non-Gaussian; extending the network with
-a two-component mixture population is a direct refinement.
+a falsely confident one --- erring, importantly, in the honest direction. Second, the present network
+uses a single-Gaussian population in $\log_{10}M$, whereas the two richness-contamination experiments
+have a substantially non-Gaussian (bimodal) in-bin mass distribution. Applied to those two stacks,
+the network is therefore mis-specified: it nonetheless recovers the mass location and \emph{spread}
+well (Table~\ref{tab:afull}; e.g.\ $\sigma_M=0.159$ vs.\ true $0.162$ for the high-contamination
+case) and its predictive profiles remain consistent with the data (Figure~\ref{fig:afull_ppc}),
+because the stacked profile is dominated by the mass distribution; the mis-specification instead
+surfaces in a biased $M$--$c$ relation ($\beta$, $\sigma_c$). Extending the population to a
+two-component mixture in $\log_{10}M$ is the direct refinement that should remove this bias.
 \todo{Add the larger-training-set rerun (tightening $\mu_M$, $\beta$ calibration); add the
-two-component mixture run covering the richness-contamination experiments; and a direct
-head-to-head figure against hierarchical HMC.}
+two-component mixture run for the richness-contamination experiments; and a direct head-to-head
+figure against hierarchical HMC.}
 
 \section{Discussion and conclusions}
 \label{sec:conc}

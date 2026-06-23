@@ -1,6 +1,6 @@
 \begin{table*}
 \centering
-\caption{Fully-amortized neural HBI: recovered population hyperparameters (posterior mean, std in parentheses) vs.\ truth, for the six non-contamination experiments. Each value is \texttt{est(std)/true}. All from a single forward pass per stack. \label{tab:afull}}
+\caption{Fully-amortized neural HBI: recovered population hyperparameters (posterior mean, std in parentheses) vs.\ truth. Each value is \texttt{est(std)/true}; all from a single forward pass per stack. $^\dagger$The two richness-contamination experiments have a non-Gaussian in-bin mass distribution and are out of the single-Gaussian training model (Section~\ref{sec:neural_hbi}); they are shown for completeness and the mismatch is visible in the posterior predictive check. \label{tab:afull}}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
@@ -12,6 +12,8 @@ High $\lambda$--$M$ scatter & 0.45 & 13.208(0.025)/13.213 & 0.518(0.021)/0.535 &
 High noise & 0.70 & 14.354(0.015)/14.376 & 0.127(0.018)/0.118 & 5.047(0.125)/4.663 & -1.192(0.374)/-0.813 & 0.366(0.152)/0.149 \\
 Ludlow16 (OOD) & 0.31 & 14.371(0.009)/14.376 & 0.115(0.009)/0.118 & 5.455(0.063)/5.304 & -1.356(0.283)/-1.364 & 0.212(0.078)/0.148 \\
 Prada12 (OOD) & 0.31 & 14.374(0.010)/14.376 & 0.118(0.008)/0.118 & 6.307(0.065)/6.147 & -0.965(0.389)/-0.232 & 0.264(0.102)/0.134 \\
+Low rich.\ contam.\,$^\dagger$ & 0.31 & 14.355(0.010)/14.353 & 0.137(0.009)/0.133 & 4.777(0.056)/4.680 & -1.343(0.269)/-0.873 & 0.206(0.072)/0.144 \\
+High rich.\ contam.\,$^\dagger$ & 0.31 & 14.269(0.010)/14.255 & 0.159(0.009)/0.162 & 4.747(0.057)/4.770 & -0.681(0.346)/-0.856 & 0.316(0.093)/0.161 \\
 \bottomrule
 \end{tabular}}
 \end{table*}

@@ -182,6 +182,25 @@ sigc[0.08,0.80], noise U(0.1,0.8)), N_TRAIN=40000, SBC N=500.
   Amortized training (~2 hr, one-time) excluded from per-inference cost, same convention as SBI.
   Paper recompiles (18 pp). All 3 comparison figs (aggregate, σ_M bar, timing) now include neural-HBI.
 
+**A-full RE-RUN — all 8 experiments + PPC + saved posterior + table fix (47 min wall).** Extended
+`afull_neural_hbi.py` to apply the amortized net to all 8 (added the 2 contam stacks), save the
+trained posterior (`afull_posterior.pkl`, so future analysis needs no retrain), and auto-write the
+table (`tex_source_hbi/figures/afull_table.tex`, now 8 rows, `\resizebox{\textwidth}` → fixes the
+186pt overfull hbox). Killing the dead emcee run earlier → sims 18 ms/stack (was 49–64).
+- **SBC reproduced identically** (deterministic seed-0 training dist): σ_M 0.039, c0 0.046, σ_c 0.052
+  PASS; μ_M 0.119, β 0.106 CHECK. Larger-N_TRAIN rerun still the fix (deferred, tracked).
+- **Contam experiments are a useful honest result, not a clean win OR a clean failure:** neural-HBI
+  recovers mass location + SPREAD even there (high-contam σ_M 0.159/0.162, μ_M 14.269/14.255) because
+  the stacked profile is mass-dominated; the single-Gaussian mis-spec instead biases the M–c RELATION
+  (β, σ_c — high-contam σ_c 0.316 vs 0.144). PPC profiles stay consistent with data.
+- **Neural-HBI PPC (`make_ppc_neural_hbi.py` → `ppc_neural_hbi.png`)** for all 8: predicted
+  population (draw from inferred relation → forward-model) reproduces observed profiles everywhere;
+  contam rows drawn dashed/hatched. Wired into paper as `fig:afull_ppc`.
+- **σ_M bar chart** now shows neural-HBI on all 8 (contam "n/a" markers gone — it recovers σ_M there).
+- Paper updated: results para → "all eight experiments"; PPC figure + sentence added; 2nd limitation
+  rewritten (contam now APPLIED + mis-spec surfaces in relation not spread). **Recompiles 19 pp,
+  0 large overfull boxes, all cross-refs resolved.**
+
 ---
 
 ## 2026-06-22 (pm) — Env restore, Fig-3 OOD diagnosis, paper2-hbi branch
