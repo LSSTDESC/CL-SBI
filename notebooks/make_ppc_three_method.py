@@ -33,8 +33,15 @@ LABEL = {"obs_z1_lambda5": "Baseline", "obs_z1_lambda5_high_mc_scatter": "High M
          "obs_z1_lambda5_low_richness_contam": "Low richness contam.",
          "obs_z1_lambda5_high_richness_contam": "High richness contam.",
          "obs_z1_lambda5_prada": "Prada M-c (OOD)", "obs_z1_lambda5_ludlow": "Ludlow M-c (OOD)"}
-COL = {"mcmc": "#1f77b4", "sbi": "#ff7f0e", "hmc": "#2ca02c"}
-NAME = {"mcmc": "MCMC joint", "sbi": "SBI FTJ", "hmc": "Hierarchical HMC"}
+COL = {"mcmc": "#1f77b4", "sbi": "#ff7f0e", "hmc": "#2ca02c", "nhbi": "#9467bd"}
+NAME = {"mcmc": "MCMC joint", "sbi": "SBI FTJ", "hmc": "Hierarchical HMC", "nhbi": "Neural HBI"}
+
+# Neural HBI (architecture A): population drawn from its inferred RELATION params (c = c0 + beta*dM
+# + scatter), keyed by obs. Available for all 8 experiments from the fully-amortized run.
+try:
+    _nhbi = pickle.load(open(f"{OUT}/afull_neural_hbi.pkl", "rb"))["experiments"]
+except FileNotFoundError:
+    _nhbi = {}
 
 # canonical sim_z1/infer_z1 row per obs
 by_obs = {}
@@ -44,12 +51,22 @@ for r in rows:
 avail = [o for o in ORDER if o in by_obs]
 
 def pop_profiles(r, method, n_pop=400, seed=0):
-    """Sample a population from method's Gaussian (mu,Sigma) and forward-model -> log10 profiles."""
+    """Sample a population from method's inferred population and forward-model -> log10 profiles."""
+    rng = np.random.default_rng(seed)
+    if method == "nhbi":
+        # neural-HBI infers the RELATION: draw logM~N(muM,sigM); c = c0 + beta*(logM-muM) + N(0,sigc)
+        if r["obs"] not in _nhbi:
+            return None
+        e = _nhbi[r["obs"]]["est"]
+        muM, sigM = e["mu_M"][0], e["sig_M"][0]
+        c0, beta, sigc = e["c0"][0], e["beta"][0], e["sig_c"][0]
+        logM = rng.normal(muM, max(sigM, 1e-3), n_pop)
+        c = np.clip(c0 + beta * (logM - muM) + rng.normal(0, max(sigc, 1e-3), n_pop), 2.0, 9.0)
+        return np.array(fwd(jnp.array(logM), jnp.array(c)))
     muM, sigM = r.get(method + "_muM"), r.get(method + "_sigM")
     muc, sigc = r.get(method + "_muc"), r.get(method + "_sigc")
     if muM is None:
         return None
-    rng = np.random.default_rng(seed)
     logM = rng.normal(muM, max(sigM, 1e-3), n_pop)
     c = np.clip(rng.normal(muc, max(sigc, 1e-3), n_pop), 2.0, 9.0)
     return np.array(fwd(jnp.array(logM), jnp.array(c)))
@@ -67,7 +84,7 @@ for i, obs_id in enumerate(avail):
     axL.plot(RBINS, obs_med, "k", lw=2, zorder=6, label="observed median")
     axR.axhline(0, color="k", lw=1.2, zorder=6)
 
-    for method in ["mcmc", "sbi", "hmc"]:
+    for method in ["mcmc", "sbi", "hmc", "nhbi"]:
         if method == "mcmc" and not r.get("mcmc_converged", True):
             continue
         prof = pop_profiles(r, method)
@@ -94,7 +111,7 @@ for i, obs_id in enumerate(avail):
         axL.set_title("predicted vs observed profiles"); axR.set_title("fractional residual")
         axL.legend(fontsize=13, loc="lower left")
 
-fig.suptitle("Three-method posterior predictive checks (population pushed through the forward model)",
+fig.suptitle("Posterior predictive checks across methods (population pushed through the forward model)",
              fontsize=16)
 fig.tight_layout(rect=[0, 0, 1, 0.99])
 fig.savefig(f"{OUT}/aggregate_ppc_three_method.png", dpi=140, bbox_inches="tight")

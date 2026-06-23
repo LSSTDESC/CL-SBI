@@ -201,6 +201,21 @@ table (`tex_source_hbi/figures/afull_table.tex`, now 8 rows, `\resizebox{\textwi
   rewritten (contam now APPLIED + mis-spec surfaces in relation not spread). **Recompiles 19 pp,
   0 large overfull boxes, all cross-refs resolved.**
 
+**Neural-HBI promoted to a PEER method in the comparison figures (not a standalone afterthought).**
+Per user: treat it as a legitimate alternative inference technique alongside HMC/SBI/MCMC.
+- **Calibration (coverage) plot** `make_calibration_three_method.py`: added neural-HBI (purple, draw
+  population from inferred hyperparams → same Mahalanobis `compute_coverage` as HMC). **Δ_max=0.05** —
+  better than HMC (0.11), comparable to SBI-FTJ (0.02), vs MCMC's 0.93. Note: this is the coverage
+  P–P plot, distinct from the SBC rank histograms (`fig:afull_sbc`), which stay as the amortized-net
+  calibration check.
+- **PPC merged:** added neural-HBI as a 4th method to `make_ppc_three_method.py` (relation-based
+  population draw); **removed the standalone `fig:afull_ppc`** and its figure block, repointed both
+  refs to the now-four-method `fig:ppc`. Standalone `make_ppc_neural_hbi.py`/`ppc_neural_hbi.png`
+  superseded (script left in place, harmless).
+- Paper: calibration + PPC captions/text now list all 4 methods with forward-refs to
+  `sec:neural_hbi` (those figures appear in Results, before the method is formally introduced).
+  **Recompiles 18 pp** (down from 19 after removing the standalone PPC fig), 0 undefined refs.
+
 ---
 
 ## 2026-06-22 (pm) — Env restore, Fig-3 OOD diagnosis, paper2-hbi branch

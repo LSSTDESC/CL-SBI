@@ -212,7 +212,7 @@ concentration across the suite.
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.82\columnwidth]{figures/calibration_three_method.png}
-  \caption{Calibration of the three inference approaches for the baseline experiment. The
+  \caption{Calibration of the inference approaches for the baseline experiment. The
   horizontal axis is the nominal credible level $p$; the vertical axis is the empirical coverage,
   the fraction of the $N_c=376$ true cluster $(M,c)$ values that fall within the $p$ credible
   region of each inferred posterior (computed from the Mahalanobis distance to the posterior mean
@@ -220,8 +220,9 @@ concentration across the suite.
   diagonal; curves below it are overconfident. We summarize each with the maximum deviation from
   the diagonal, $\Delta_{\max}$. The MCMC joint-likelihood (blue, $\Delta_{\max}=0.93$) is
   severely overconfident---its narrow single-$(M,c)$ posterior contains almost none of the true
-  population until $p\to1$---whereas SBI FTJ (orange, $\Delta_{\max}=0.02$) and the hierarchical
-  HMC (green, $\Delta_{\max}=0.11$) are both well calibrated.}
+  population until $p\to1$---whereas SBI FTJ (orange, $\Delta_{\max}=0.02$), the hierarchical
+  HMC (green, $\Delta_{\max}=0.11$), and the fully-amortized neural HBI (purple, $\Delta_{\max}=0.05$;
+  Section~\ref{sec:neural_hbi}) are all well calibrated.}
   \label{fig:calibration}
 \end{figure}
 
@@ -229,8 +230,9 @@ Unlike the Kolmogorov--Smirnov comparison of Paper~I, the coverage in
 Figure~\ref{fig:calibration} is sample-size independent and accounts for the full $M$--$c$
 covariance, making it our most robust calibration diagnostic. It confirms the headline result
 directly: the single-$(M,c)$ MCMC posterior is dramatically overconfident
-($\Delta_{\max}=0.93$), while both the hierarchical HMC and SBI FTJ recover near-nominal coverage
-($\Delta_{\max}=0.11$ and $0.02$).
+($\Delta_{\max}=0.93$), while the hierarchical HMC, SBI FTJ, and the fully-amortized neural HBI
+introduced in Section~\ref{sec:neural_hbi} all recover near-nominal coverage
+($\Delta_{\max}=0.11$, $0.02$, and $0.05$).
 
 \begin{figure*}[t]
   \centering
@@ -257,23 +259,24 @@ the model matches the data and degrade together under genuine model misspecifica
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.9\textwidth]{figures/aggregate_ppc_three_method.png}
-  \caption{Three-method posterior predictive checks, one row per experiment. For each method
-  (MCMC joint-likelihood, blue; SBI FTJ, orange; hierarchical HMC, green) we draw a population from
-  its inferred $(\log_{10}M, c)$ distribution, forward-model each draw to a noiseless NFW profile,
-  and compare to the observed profiles. \emph{Left:} grey lines are the observed profiles, the solid
-  black line their median; each method shows its predicted-population $16$--$84$\% band and median.
-  \emph{Right:} fractional residual of each method's predicted median relative to the observed
-  median, $\Sigma_{\rm pred}/\Sigma_{\rm obs}-1$, with the method population bands. The predicted
-  medians of all three methods reproduce the observed median in most experiments (the population
-  \emph{mean} is well constrained by all); the methods differ in their predicted population
-  \emph{spread} (band width) and in the out-of-distribution cases (Prada, Ludlow), where the
-  residuals diverge at large radius.}
+  \caption{Posterior predictive checks across methods, one row per experiment. For each method
+  (MCMC joint-likelihood, blue; SBI FTJ, orange; hierarchical HMC, green; fully-amortized neural HBI,
+  purple --- Section~\ref{sec:neural_hbi}) we draw a population from its inferred $(\log_{10}M, c)$
+  distribution, forward-model each draw to a noiseless NFW profile, and compare to the observed
+  profiles. \emph{Left:} grey lines are the observed profiles, the solid black line their median;
+  each method shows its predicted-population $16$--$84$\% band and median. \emph{Right:} fractional
+  residual of each method's predicted median relative to the observed median,
+  $\Sigma_{\rm pred}/\Sigma_{\rm obs}-1$, with the method population bands. The predicted medians of
+  all methods reproduce the observed median in most experiments (the population \emph{mean} is well
+  constrained by all); the methods differ in their predicted population \emph{spread} (band width)
+  and in the out-of-distribution cases (Prada, Ludlow), where the residuals diverge at large radius.}
   \label{fig:ppc}
 \end{figure*}
 
 As an absolute goodness-of-fit check (rather than a comparison against the known truth, which would
-be unavailable for real data), Figure~\ref{fig:ppc} shows posterior predictive checks for all three
-methods: profiles forward-modelled from each inferred population, overlaid on the observed profiles.
+be unavailable for real data), Figure~\ref{fig:ppc} shows posterior predictive checks for all four
+methods --- including the fully-amortized neural HBI of Section~\ref{sec:neural_hbi} --- with
+profiles forward-modelled from each inferred population, overlaid on the observed profiles.
 The predicted population means reproduce the observed median across experiments, while the predicted
 population spreads differ between methods consistent with Figure~\ref{fig:aggregate}.
 
@@ -490,21 +493,11 @@ and $0.106$), a residual we expect to improve with a larger training set.\label{
 
 \input{figures/afull_table}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/ppc_neural_hbi.png}
-\caption{Posterior predictive check for the neural HBI across all eight experiments. For each, a
-population drawn from the inferred hyperparameters is forward-modelled (purple band: $16$--$84\%$;
-purple line: median) and compared to the observed profiles (grey) and their median (black); the right
-column shows the fractional residual. The predicted population reproduces the observed profiles in
-every experiment, including the two richness-contamination cases (dashed, hatched), whose mass
-\emph{spread} the single-Gaussian model still captures even though it mis-estimates their $M$--$c$
-\emph{relation} (Table~\ref{tab:afull}).\label{fig:afull_ppc}}
-\end{figure}
-
-A posterior predictive check (Figure~\ref{fig:afull_ppc}) confirms that the population inferred by
-the network, pushed back through the forward model, reproduces the observed stacked profiles in every
-experiment. We validate the network with simulation-based calibration (SBC) over the full envelope before
+The neural HBI is included as a peer method in the cross-method comparisons of the Results section:
+its coverage is well calibrated (Figure~\ref{fig:calibration}, $\Delta_{\max}=0.05$, comparable to
+SBI FTJ and tighter than hierarchical HMC) and its predictive profiles reproduce the observed stacks
+in every experiment (Figure~\ref{fig:ppc}). We additionally validate the network with
+simulation-based calibration (SBC) over the full training envelope before
 applying it to data, since ---unlike the per-dataset NUTS sampler, which carries its own convergence
 diagnostics--- an amortized estimator can be point-accurate yet miscalibrated, and the rank
 statistics of SBC are the appropriate check (Figure~\ref{fig:afull_sbc}). The spread parameters
@@ -524,7 +517,7 @@ uses a single-Gaussian population in $\log_{10}M$, whereas the two richness-cont
 have a substantially non-Gaussian (bimodal) in-bin mass distribution. Applied to those two stacks,
 the network is therefore mis-specified: it nonetheless recovers the mass location and \emph{spread}
 well (Table~\ref{tab:afull}; e.g.\ $\sigma_M=0.159$ vs.\ true $0.162$ for the high-contamination
-case) and its predictive profiles remain consistent with the data (Figure~\ref{fig:afull_ppc}),
+case) and its predictive profiles remain consistent with the data (Figure~\ref{fig:ppc}),
 because the stacked profile is dominated by the mass distribution; the mis-specification instead
 surfaces in a biased $M$--$c$ relation ($\beta$, $\sigma_c$). Extending the population to a
 two-component mixture in $\log_{10}M$ is the direct refinement that should remove this bias.
