@@ -12,6 +12,7 @@
 \newcommand{\Msun}{M_\odot}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\prelim}[1]{\textcolor{blue}{#1}}  % preliminary / in-progress methodology (work not yet completed)
 
 \title{Differentiable Forward Models and Hierarchical Inference for\\
 Weak-Lensing Galaxy Cluster Mass Calibration:\\
@@ -421,6 +422,56 @@ fast, requires no differentiable forward model at inference time, and yields the
 population posterior as hierarchical HMC. \todo{Replace the per-cluster Gaussian summary with a
 normalizing-flow per-cluster likelihood that preserves the non-Gaussian $M$--$c$ degeneracy, and
 quantify the noise level at which the concentration spread becomes recoverable.}
+
+\subsection{Fully-amortized neural hierarchical inference (in progress)}
+\label{sec:neural_hbi}
+
+\prelim{The amortized scheme above still factorizes through per-cluster posteriors and a per-dataset
+NUTS sampler. A more ambitious construction --- option~(i) of Section~\ref{sec:hier_sbi}, which we
+are currently implementing --- amortizes the \emph{entire} hierarchy. We train a single neural
+posterior estimator that maps the full set of $N_c$ cluster profiles directly to the population
+hyperparameters,
+\begin{equation}
+q_\phi\!\left(\mu_M,\sigma_M,c_0,\beta,\sigma_c \,\middle|\, \{d_j\}_{j=1}^{N_c}\right),
+\end{equation}
+using a permutation-invariant set embedding (a mean-pooled deep-set encoder) so that the network is
+insensitive to the ordering of clusters within a stack. Inference then requires a \emph{single
+forward pass} on the observed stack, with no per-dataset sampling at all.}
+
+\prelim{The construction is designed to address the out-of-distribution fragility of the
+percentile-based SBI directly, and the mechanism is worth stating precisely. Rather than training on
+a single fiducial population and reading off fixed summary statistics, we draw the population
+hyperparameters \emph{and} the modeling choices that distinguish our numerical experiments ---the
+$M$--$c$ relation (spanned continuously through its normalization $c_0$ and slope $\beta$ rather than
+as a discrete model label), the richness--mass scatter, the per-bin measurement noise, and a
+richness-contamination fraction--- from broad hyperpriors for \emph{each} training stack. The
+network therefore learns to marginalize over these nuisance directions: what was an out-of-distribution
+shift for a fixed-population estimator (e.g.\ the high $M$--$c$ scatter case, where the percentile
+estimator collapses to $\sigma_c\approx0.19$ against a true $0.72$) becomes an in-distribution
+sample of the training prior. This is the amortized counterpart of the explicit hierarchical model:
+the marginalization that NUTS performs at sampling time is instead compiled into the network weights
+at training time. We emphasize that this is marginalization over a \emph{hyperprior of models}, not
+the removal of priors; robustness extends only as far as the trained envelope, and a genuinely novel
+relation outside it remains out of distribution.}
+
+\prelim{Two requirements follow from our experiment suite and shape the implementation. First, the
+training prior must envelope every experiment, or the amortized network is out-of-distribution in the
+same way the percentile estimator is: the per-cluster mass support must extend to $\log_{10}M\approx
+12$ and the concentration hyperprior to $\sigma_c\gtrsim0.74$, as set by the most extreme scatter
+experiments. Second, the richness-contamination cases drive the in-bin mass distribution
+substantially non-Gaussian, so a single-Gaussian population in $\log_{10}M$ is mis-specified there;
+we therefore adopt a two-component mixture for the population mass model. We validate the network
+with simulation-based calibration (SBC) before applying it to data, since---unlike the per-dataset
+NUTS sampler, which carries its own convergence diagnostics---an amortized estimator can be
+point-accurate yet miscalibrated, and the rank statistics of SBC are the appropriate check. The
+fundamental information limit of Section~\ref{sec:amortized_hbi} is unaffected: amortization cannot
+manufacture per-cluster concentration information that the measurement noise destroys, so we expect
+$\sigma_c$ to remain unrecoverable at our fiducial noise wherever the true spread is small, with the
+network reporting a correspondingly wide posterior rather than a falsely confident one.}
+\todo{Replace this preliminary subsection with measured results: SBC rank histograms, recovered
+hyperparameters across all eight experiments, and a head-to-head against hierarchical HMC and the
+percentile SBI --- in particular a demonstration that the amortized network does \emph{not} collapse
+on the high $M$--$c$ scatter case.}
 
 \section{Discussion and conclusions}
 \label{sec:conc}

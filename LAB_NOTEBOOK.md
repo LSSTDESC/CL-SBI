@@ -5,7 +5,176 @@ Detailed per-session TODOs live in `CLAUDE.md` and `tex_source/REVIEW_TODOS.md`.
 
 ---
 
-## 2026-06-22 — Paper 2 figures, KS methodology, cost grid, PGMs
+## 2026-06-22 (eve) — Decision: fully-amortized neural HBI (drop percentiles), staged A-smoke → A-full
+
+**Question that started it (user):** before extending Paper 2 results to all 8 experiments, is the
+hierarchical SBI as powerful as it could be? Why not vary the M-c / R-M relations, noise profiles,
+etc. and marginalize over them — train on a broader set of sims to dissolve the OOD-inference
+argument (Fig 3, where the fixed `infer_z1` percentile net collapses to σ_c≈0.19 vs true 0.72)?
+
+**Reframe (key realization):** the percentile vector (7 logM + 7 c quantiles + correlation) was
+always a *workaround* for Paper 1 having no hierarchy — it smuggles population spread into a
+fixed-length regression target, which is exactly why it OODs. Broadening *its* training prior just
+builds a smarter workaround. Proper HBI **infers** the population hyperparameters, so 4 of the 5 OOD
+axes (mc_relation→c0,β; mc_scatter→σ_c; rm_scatter→σ_M; noise→σ_extra) are handled by the model **by
+construction, not training breadth** — this is structurally why explicit HMC already recovered
+σ_c=0.795 on high-mc-scatter while the percentile net collapsed. Only contamination needs a real
+model change (2-component mass mixture; it pushes the mass dist low/bimodal but barely touches σ_c).
+
+**Architecture decision (user):** go for the gold version — **A, fully-amortized "neural HBI"**:
+train `q(μ_M,σ_M,c0,β,σ_c,[nuisance] | full stack of N_c profiles)` with hyperparameters AND
+nuisance drawn from broad hyperpriors per training stack. One forward pass → population posterior,
+**zero per-dataset MCMC.** Here "vary all the params during training" *is* the marginalization
+mechanism — the literal answer to the user's question.
+
+**Dropped the intermediate (B = amortized per-cluster likelihood + explicit hierarchy).** Initially
+planned B→A as de-risking, but B shares NONE of A's hard parts (permutation-invariant stack embedding;
+calibration over a high-dim hyperparameter posterior) and the parts it shares (forward model,
+population model) are already validated by the working HMC-HBI. HMC-HBI is also already the
+published-grade fallback if A fails. So B was a slower incremental result, not real de-risking.
+
+**Plan: staged A-smoke → A-full.** De-risk A *on its own terms*:
+- **A-smoke (~½ day, go/no-go gate):** narrow priors, in-distribution only, small stacks (N_c≈50),
+  mean-pool embedding → SNPE on the 5 hyperparameters, **run SBC**. One question: does it calibrate on
+  easy data? Uniform rank histograms → proceed. If not → fall back to HMC, ½ day spent.
+- **A-full (overnight commit AFTER the gate):** broad hyperpriors + all nuisance axes (continuous
+  (c0,β) box spanning child/ludlow/prada, rm_scatter, noise_dex~U(0.1,0.8), f_contam mixture), full
+  N_c=376, SBC over the full envelope, collate vs truth/HMC/percentile-SBI. Training sims ~18 hr
+  (colossus-dominated, measured 17 ms/mc-pair this session).
+
+**Scope guard (unchanged):** the σ_c noise floor still binds — at 0.3 dex, per-cluster c is
+constrained to ±0.9 (~5× true spread), so σ_c≈0.18 is unrecoverable for ANY method. high-mc-scatter
+(σ_c=0.72) is the one discriminating case above the floor. A's win is calibrated amortized population
+inference over the nuisance envelope, NOT beating the information limit.
+
+**Products this session:** `notebooks/AMORTIZED_HBI_SCOPE.md` (full scoping doc, numbers measured
+from the `.376` obs sets), a `\prelim`-tagged preliminary methodology subsection in Paper 2
+(`sec:neural_hbi`), and the A-smoke script `notebooks/asmoke_neural_hbi.py` (launched). Open
+decisions: contam mixture in A-full (default: include); embedding net mean-pool vs deep-set (start
+mean-pool); mc_relation continuous-box vs one-hot (prefer box).
+
+**Background runs at session start:** emcee-HBI baseline (PID 42868) still alive at ~1h54m wall /
+12.7% CPU but **still has not written its first checkpoint** — suspect it is effectively stalled
+again (cf. the 2026-06-22 am dead run). The ≥1-day timing estimate stands on the measured per-step
+cost regardless; consider killing if no checkpoint appears.
+
+**A-smoke RESULT — GATE: GO (with a watch-item).** Ran in **3 min**, not the budgeted ½ day (small
+N_c=50 stacks sim at ~6 ms each; 4000 stacks in ~25s, SNPE+deep-set train ~30s, SBC 300×1000 ~35s).
+- **Architecture works.** Deep-set embedding is permutation-invariant to machine precision (1.5e-7).
+  Point recovery on a baseline-truth stack is near-perfect on one forward pass, no MCMC: σ_M=0.119
+  (true 0.120), μ_M=14.380 (14.400), c0=4.597 (4.600), β=−0.839 (−0.850), σ_c=0.188 (0.180).
+- **SBC (300 held-out), KS-from-uniform:** μ_M 0.066, σ_M 0.053, c0 0.059 → clean PASS; **β 0.114,
+  σ_c 0.115 → CHECK.** Max KS 0.115 < 0.12 gate → GO.
+- **Diagnosis of the two CHECK dims (from rank histograms, `asmoke_sbc_ranks.png`):** β and σ_c show
+  a clear **U-shape** (edge-bin frac 0.36/0.37 vs ideal 0.20; center frac 0.16 vs 0.20) = mild
+  **over-confidence** (posteriors slightly too narrow, truth lands in tails too often). This is the
+  *same weakly-identified (β, σ_c) pair* the σ_c noise floor squeezes — expected, not a bug. Most
+  likely fixed by A-full's much larger sim budget (4000 stacks is thin for a 5-D amortized posterior
+  + embedding); if not, the documented lever is mean-pool → deep-set-with-sum / attention.
+- **Verdict:** GO to A-full, but **β and σ_c are the dimensions to scrutinize in A-full's SBC.** Do
+  NOT claim full calibration yet. HMC-HBI remains the fallback.
+
+**Products:** `notebooks/asmoke_neural_hbi.py` (deep-set + SNPE + SBC harness; runs under the `base`
+conda env which has the sbi 0.21 / torch 2.3 / jax 0.4.38 / numpyro 0.13.2 stack — NOT the default
+`python3`), `asmoke_neural_hbi.pkl` (ranks + KS + samples), `asmoke_sbc_ranks.png` (the rank
+histograms). **A-full is now a justified commit, not a blind 18-hr gamble — but held pending review
+of the rank histograms before greenlighting the overnight sim run.**
+
+**N_TRAIN sweep (`asmoke_ntrain_sweep.py`) — falsifies the under-training hypothesis for beta.**
+Retrained at N_TRAIN = 4k/8k/16k (shared cached sim pool, same SBC seed). KS-from-uniform:
+
+| N_TRAIN | mu_M | sig_M | c0 | beta | sig_c |
+|---|---|---|---|---|---|
+| 4000 | 0.030 | 0.045 | 0.046 | 0.096 | 0.097 |
+| 8000 | 0.061 | 0.051 | 0.050 | 0.109 | 0.059 |
+| 16000 | 0.035 | 0.044 | 0.076 | 0.109 | 0.083 |
+
+- **sig_M rock-solid (~0.044) at all N_TRAIN** — the headline mass-spread parameter is secure.
+- **sig_c flat ~0.06–0.10, hovering at the pass line** — consistent with noise-floor physics, not
+  under-training.
+- **beta did NOT improve with 4× sims (0.096→0.109, flat).** Under-training hypothesis FALSIFIED for
+  beta. (Caveat: at N_SBC=300 the α=0.01 KS critical value ≈0.094, so 0.10–0.11 is right at the
+  edge of distinguishable-from-calibrated — beta is *mildly* over-confident, not broken.)
+- **Implication:** the lever for beta is **architecture, not sim count** — so 18 hr of A-full sims
+  would NOT fix it. beta is the M–c *slope*, identified by how c co-varies with M *across* clusters;
+  **mean-pooling averages clusters together and washes out exactly that inter-cluster signal.**
+
+**Architecture probe (`asmoke_arch_probe.py`) — DONE, hypothesis CONFIRMED.** Retrained 4 aggregator
+variants on the 16k pool (same SBC seed; `mean` reproduces the sweep's 16k row exactly → controlled).
+KS-from-uniform:
+
+| variant | mu_M | sig_M | c0 | beta | sig_c |
+|---|---|---|---|---|---|
+| mean (baseline) | 0.035 | 0.044 | 0.076 | **0.109** | 0.083 |
+| sum | 0.042 | 0.104 | 0.049 | 0.107 | 0.085 |
+| **moment** | 0.092 | 0.053 | 0.053 | **0.078** | 0.043 |
+| moment_big | 0.047 | 0.047 | 0.080 | 0.120 | 0.079 |
+
+- **WINNER: `moment` pooling** (concat [mean, std] over clusters). beta 0.109→**0.078** (passes) and
+  sig_c 0.083→**0.043** (best anywhere). Confirms the mechanism: beta/sig_c are covariance/spread
+  params; the **std channel gives the net the inter-cluster spread that identifies them**, which
+  mean-pool discarded. Only variant with all 5 dims ≤ pass line (max 0.092 on mu_M, within N_SBC=300
+  noise).
+- **Controls behaved informatively:** `sum` didn't fix beta AND broke sig_M (0.044→0.104) — sum
+  scales with N_c, conflating cluster count with population width. `moment_big` was *worse* (beta
+  0.120) — more capacity w/o the right inductive bias overfits; rules out "just use a bigger net."
+- **DECISION: lock `moment` pooling (concat mean+std) into A-full.** A-full now goes in with an
+  evidence-based, fully-calibrated architecture rather than a guess — bought for ~25 min on the
+  cached pool vs an 18-hr commit. `asmoke_arch_probe.pkl` saved.
+
+**Next: greenlight A-full** — broaden priors to full envelope (logM↓12, σ_c↑0.74, continuous c0/β
+spanning child/ludlow/prada), add nuisance axes (rm_scatter, noise_dex~U(0.1,0.8), f_contam mixture),
+N_c=376, moment-pool embedding, SBC over full envelope + apply to all 8 obs stacks. ~18 hr sims.
+
+---
+
+## 2026-06-22 (pm) — Env restore, Fig-3 OOD diagnosis, paper2-hbi branch
+
+**Environment untangled.** The numpyro 0.13→0.21 upgrade (done for `render_model` PGMs) had pulled
+numpy 2.4.6 + jax 0.10.2, which broke the SBI/TensorFlow stack (`np.complex_`/`np.string_`/
+`np.dtypes.StringDType` removed in numpy 2). Diagnosed as mutually-exclusive pins: jax 0.10 *requires*
+numpy≥2, sbi/TF *requires* numpy<2. Fix: rolled the whole stack back to the pre-PGM-upgrade state —
+**numpy 1.26.4 + jax 0.4.38 + jaxlib 0.4.38 + numpyro 0.13.2** (sbi stays 0.21, torch 2.3.0). PGMs
+unaffected (already rendered to PNG; `render_model` no longer needed). Verified SBI import + jax/halox
+forward model + numpyro HBI all coexist and run. **Did NOT upgrade sbi** (would break `sbi_.py`'s
+`SNPE` API — renamed to `NPE` in sbi 0.23+ — and wouldn't fix the root numpy-2/TF conflict anyway).
+
+**Fig 3 high-M-c-scatter "discrepancy" resolved — NOT a bug, a design choice.** User noticed Paper 2
+Fig 3 (aggregate_hbi_comparison) shows SBI FTJ *underestimating* σ_c on high-M-c-scatter (0.187 vs
+true 0.719), whereas Paper 1 showed SBI nailing it. Cause: the two figures use different inferrers.
+Paper 1 used the **matched** `infer_z1_high_mc_scatter` inferrer (trained on σ_c≈0.72, in-distribution
+→ recovers 0.721). Paper 2 Fig 3 holds the **baseline** `infer_z1` inferrer fixed across ALL
+experiments (the apples-to-apples stress-test design); for high-M-c-scatter that's OOD (trained on
+σ_c≈0.18, never saw 0.72), so SBI collapses to ~0.19. HMC (likelihood-based, training-free) recovers
+0.795 regardless — which is the panel's whole point: HBI captures population spread that
+fixed-distribution SBI misses OOD. Mass spread is fine for all (SBI 0.111, HMC 0.116 vs true 0.118).
+**TODO (offered, not yet applied): add one `\akum{}` caption sentence to Fig 3 noting all SBI panels
+use the single baseline `infer_z1` inferrer, so its high-scatter underperformance is an OOD effect,
+not a contradiction of Paper 1.**
+
+**Discussed "train SBI over a distribution of M-c / λ-M relations + noise profiles to remove priors."**
+Verdict: sound but it's marginalization-over-models, not prior-free — replaces a parameter prior with
+a hyper-prior over relations (still a modeling choice), trades constraining power, and partly
+*confounds the σ_c population-spread measurement* (observed scatter ↔ which relation generated it).
+It's the amortized twin of HBI → belongs as a discussion paragraph in "Toward hierarchical SBI."
+Optional cheap demo: retrain one SBI on a broad-σ_c mix, show it recovers σ_c where baseline collapsed
+(~half-day). NOT launched; Paper 2 is near-complete (16 pp).
+
+**Committed to new branch `paper2-hbi`** (off `tobemerged`). 62 files: tex_source_hbi/ (paper text,
+bib, generated table — figures omitted per repo convention: Paper 1 tracks 0 figures, all regenerable
+from scripts + Overleaf), all hierarchical notebooks, Paper-1 code changes (adaptive mcmc.py, KS
+methodology, prior fix), regen scripts, this notebook. ⚠️ **Caveat: the commit mixes Paper 1 code
+changes with Paper 2** (they were intertwined uncommitted work) — split out to tobemerged/main later
+if desired. Build artifacts (.aux/.bbl/.log) and plotutils_old.py left untracked.
+
+**Background runs still live at session end:** emcee-HBI baseline (`run_emcee_hbi_baseline.py`, ~40min
+in, checkpoints to `emcee_hbi_baseline_progress.pkl`) — the real-data-point for the emcee-HBI cost
+claim. Amortized-SBI sample-reweighting (`amortized_hbi_samples.py`) is now UNBLOCKED by the env fix
+but not yet re-run.
+
+---
+
+## 2026-06-22 (am) — Paper 2 figures, KS methodology, cost grid, PGMs
 
 **KS test methodology fixed (Paper 1 Table 1).** The KS p-values were sample-size dependent
 (pipeline used N=1000, "reduced for speed"); borderline cells were artifacts. Fix: evaluate KS at
