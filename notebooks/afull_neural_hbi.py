@@ -53,9 +53,14 @@ HYPER_LO = np.array([13.0, 0.08, 3.8, -1.8, 0.08])
 HYPER_HI = np.array([14.7, 0.65, 6.8,  0.1, 0.80])
 NOISE_LO, NOISE_HI = 0.10, 0.80              # noise_dex nuisance, fed to embedding as a known input
 
-# The 6 experiments A-full is evaluated on (Option 2: contam excluded).
+# A-full is TRAINED single-Gaussian over the 6 non-contam experiments (Option 2), but we APPLY the
+# amortized network to all 8 -- the 2 richness-contamination stacks included. Those 2 are a KNOWN
+# mis-specified case (their in-bin mass distribution is non-Gaussian/bimodal): we report them, and the
+# PPC is expected to expose the mismatch, motivating the Option-1 mixture follow-up.
 EXPERIMENTS = ["obs_z1_lambda5", "obs_z1_lambda5_high_mc_scatter", "obs_z1_lambda5_high_rm_scatter",
-               "obs_z1_lambda5_high_noise", "obs_z1_lambda5_ludlow", "obs_z1_lambda5_prada"]
+               "obs_z1_lambda5_high_noise", "obs_z1_lambda5_ludlow", "obs_z1_lambda5_prada",
+               "obs_z1_lambda5_low_richness_contam", "obs_z1_lambda5_high_richness_contam"]
+CONTAM = {"obs_z1_lambda5_low_richness_contam", "obs_z1_lambda5_high_richness_contam"}  # mis-specified
 
 N_TRAIN = 40000        # ~46 min of sims at ~69 ms/stack
 N_SBC = 500            # held-out datasets for SBC over the full envelope
@@ -160,7 +165,8 @@ def ks_uniform(ranks, n_post=N_POST):
 # ---------------------------------------------------------------------------
 def apply_to_experiments(post):
     rows = {}
-    print("\n## applying A-full to the 6 real observation stacks ...", flush=True)
+    print(f"\n## applying A-full to all {len(EXPERIMENTS)} real observation stacks "
+          f"({len(CONTAM)} contam = mis-specified) ...", flush=True)
     for e in EXPERIMENTS:
         d = f"{REPO}/outputs/observations/{e}.376"
         prof = np.load(f"{d}/drawn_nfw_profiles.npy").astype(np.float32)   # (376,30) log10 Sigma
@@ -175,18 +181,51 @@ def apply_to_experiments(post):
         truth = dict(mu_M=float(lm.mean()), sig_M=float(lm.std()), c0=float(c.mean()),
                      beta=beta_true, sig_c=sigc_true)
         est = {nm: (float(s[:, k].mean()), float(s[:, k].std())) for k, nm in enumerate(HYPER_NAMES)}
-        rows[e] = dict(truth=truth, est=est, noise=noise, samples=s)
-        print(f"\n  {e}  (noise={noise:.3f})")
+        rows[e] = dict(truth=truth, est=est, noise=noise, samples=s, contam=(e in CONTAM))
+        tag = "  [CONTAM / mis-specified]" if e in CONTAM else ""
+        print(f"\n  {e}  (noise={noise:.3f}){tag}")
         for nm in HYPER_NAMES:
             m, sd = est[nm]
             print(f"    {nm:6s} = {m:7.3f} +/- {sd:.3f}   (true {truth[nm]:7.3f})")
     return rows
 
 
+LABEL = {"obs_z1_lambda5": "Baseline", "obs_z1_lambda5_high_mc_scatter": r"High $M$--$c$ scatter",
+         "obs_z1_lambda5_high_rm_scatter": r"High $\lambda$--$M$ scatter",
+         "obs_z1_lambda5_high_noise": "High noise", "obs_z1_lambda5_ludlow": "Ludlow16 (OOD)",
+         "obs_z1_lambda5_prada": "Prada12 (OOD)",
+         "obs_z1_lambda5_low_richness_contam": r"Low rich.\ contam.\,$^\dagger$",
+         "obs_z1_lambda5_high_richness_contam": r"High rich.\ contam.\,$^\dagger$"}
+
+
+def write_table(rows, path):
+    """LaTeX table of recovered hyperparameters vs truth, all 8 experiments. \\resizebox keeps it
+    within \\textwidth; a dagger marks the mis-specified (single-Gaussian on non-Gaussian) contam rows."""
+    def cell(nm, e):
+        m, s = rows[e]["est"][nm]; t = rows[e]["truth"][nm]
+        return f"{m:.3f}({s:.3f})/{t:.3f}"
+    L = [r"\begin{table*}", r"\centering",
+         r"\caption{Fully-amortized neural HBI: recovered population hyperparameters (posterior "
+         r"mean, std in parentheses) vs.\ truth. Each value is \texttt{est(std)/true}; all from a "
+         r"single forward pass per stack. $^\dagger$The two richness-contamination experiments have a "
+         r"non-Gaussian in-bin mass distribution and are out of the single-Gaussian training model "
+         r"(Section~\ref{sec:neural_hbi}); they are shown for completeness and the mismatch is "
+         r"visible in the posterior predictive check. \label{tab:afull}}",
+         r"\resizebox{\textwidth}{!}{%", r"\begin{tabular}{lcccccc}", r"\toprule",
+         r"Experiment & noise & $\mu_M$ & $\sigma_M$ & $c_0$ & $\beta$ & $\sigma_c$ \\", r"\midrule"]
+    for e in EXPERIMENTS:
+        nz = rows[e]["noise"]
+        L.append(f"{LABEL[e]} & {nz:.2f} & " + " & ".join(cell(nm, e) for nm in HYPER_NAMES) + r" \\")
+    L += [r"\bottomrule", r"\end{tabular}}", r"\end{table*}"]
+    open(path, "w").write("\n".join(L))
+    print(f"wrote {path}")
+
+
 if __name__ == "__main__":
     t_start = time.time()
     rng = np.random.default_rng(0)
-    print(f"=== A-full (Option 2: single Gaussian, 6 exps) | N_C={N_C}, N_TRAIN={N_TRAIN} ===", flush=True)
+    print(f"=== A-full (Option 2: single-Gaussian training, applied to all 8 exps) | "
+          f"N_C={N_C}, N_TRAIN={N_TRAIN} ===", flush=True)
     print(f"hyperprior box: {dict(zip(HYPER_NAMES, zip(HYPER_LO, HYPER_HI)))}", flush=True)
     print(f"noise_dex ~ U({NOISE_LO},{NOISE_HI}) (fed to embedding)", flush=True)
 
@@ -201,9 +240,17 @@ if __name__ == "__main__":
 
     rows = apply_to_experiments(post)
 
+    # save the trained posterior so future analysis (PPCs, new experiments) needs no retrain
+    try:
+        pickle.dump(post, open(f"{OUT}/afull_posterior.pkl", "wb"))
+        print(f"saved trained posterior -> {OUT}/afull_posterior.pkl")
+    except Exception as ex:
+        print(f"(could not pickle posterior: {ex})")
+
     pickle.dump({"ks": ks, "ranks": ranks, "experiments": rows,
                  "hyper_lo": HYPER_LO, "hyper_hi": HYPER_HI, "noise_range": (NOISE_LO, NOISE_HI),
-                 "N_C": N_C, "N_TRAIN": N_TRAIN, "names": HYPER_NAMES},
+                 "N_C": N_C, "N_TRAIN": N_TRAIN, "names": HYPER_NAMES, "contam": list(CONTAM)},
                 open(f"{OUT}/afull_neural_hbi.pkl", "wb"))
+    write_table(rows, f"{REPO}/tex_source_hbi/figures/afull_table.tex")
     print(f"\n=== total wall {(time.time()-t_start)/60:.1f} min ===")
     print(f"saved -> {OUT}/afull_neural_hbi.pkl")

@@ -1,6 +1,7 @@
 \begin{table*}
 \centering
 \caption{Fully-amortized neural HBI: recovered population hyperparameters (posterior mean, std in parentheses) vs.\ truth, for the six non-contamination experiments. Each value is \texttt{est(std)/true}. All from a single forward pass per stack. \label{tab:afull}}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 Experiment & noise & $\mu_M$ & $\sigma_M$ & $c_0$ & $\beta$ & $\sigma_c$ \\
@@ -12,5 +13,5 @@ High noise & 0.70 & 14.354(0.015)/14.376 & 0.127(0.018)/0.118 & 5.047(0.125)/4.6
 Ludlow16 (OOD) & 0.31 & 14.371(0.009)/14.376 & 0.115(0.009)/0.118 & 5.455(0.063)/5.304 & -1.356(0.283)/-1.364 & 0.212(0.078)/0.148 \\
 Prada12 (OOD) & 0.31 & 14.374(0.010)/14.376 & 0.118(0.008)/0.118 & 6.307(0.065)/6.147 & -0.965(0.389)/-0.232 & 0.264(0.102)/0.134 \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table*}
