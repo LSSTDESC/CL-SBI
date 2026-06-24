@@ -1,0 +1,38 @@
+% ============================================================================
+% ABLATION: mass-function-informed population vs free-Gaussian population.
+% Experiment: obs_z1_lambda5_high_rm_scatter.376 (rm_scatter = 0.7).
+% Numbers from notebooks/hier_massfn_informed.py -> massfn_informed.pkl (run on main thread).
+% Figure: massfn_informed_compare.png ; label \ref{fig:massfn} wired by main thread.
+% RESULT: informed prior does NOT help -- a null/cautionary result.
+% ============================================================================
+
+As an ablation we relax the hierarchical model's deliberate model-independence and ask what is gained,
+and what is given up, by informing the mass population with external physics. We replace the free
+Gaussian mass population $\log_{10}M_j \sim \mathcal{N}(\mu_M, \sigma_M)$ with a population whose
+per-cluster masses carry an informative prior equal to the in-bin mass distribution predicted by the
+\citet{tinker2008} halo mass function multiplied by the \citet{mcclintock2019} richness--mass
+selection window for $30 < \lambda < 45$ (the same mass-function and selection terms as our reference
+informed MCMC, with log-normal richness scatter $\sigma_{\ln\lambda}=\sigma_{\log M}\ln 10/F$,
+$F=1.356$). The concentration sector ($c_0,\beta,\sigma_c$) and the profile likelihood are held fixed,
+so any change is attributable solely to the mass prior. We run this on the high $\lambda$--$M$ scatter
+experiment, where the true in-bin mass distribution is most strongly non-Gaussian (true excess
+kurtosis $-0.51$) and where the free model recovers the slope $\beta$ worst.
+
+The ablation returns a clear \emph{null} result, which is itself informative. On every recoverable
+quantity the informed population matches the free Gaussian rather than improving on it: the recovered
+mass spread is $\sigma_M=0.49$ (informed) versus $0.52$ (free), against a true $0.535$---the informed
+prior is in fact marginally \emph{worse}---and both already reproduce the non-Gaussian, flat-topped
+shape of the true distribution (recovered excess kurtosis $-0.53$ informed, $-0.48$ free, versus true
+$-0.51$; Figure~\ref{fig:massfn}). The free hierarchical model, despite assuming a Gaussian
+\emph{prior} on the population, recovers a non-Gaussian \emph{posterior} population because the
+per-cluster latents are free to populate the tails---so the Gaussian-population assumption is far less
+restrictive in practice than it appears. For the weakly identified slope, the informed prior does not
+help and slightly hurts: $\beta=-1.04\pm0.18$ (informed) versus $-1.28\pm0.17$ (free) against true
+$-1.33$, with no reduction in posterior width. This is consistent with our finding that $\beta$ is
+limited by the mass lever arm (Section~\ref{sec:beta}, Figure~\ref{fig:beta_leverarm}), not by the
+mass prior: pinning the mass distribution to the mass function cannot supply the joint $(M,c)$
+information that the measurement noise removes. The practical conclusion is that informing the
+population with the mass function and richness--mass relation buys essentially nothing here while
+reintroducing exactly the model-dependence---the assumed mass function and selection function---that
+the free hierarchical approach was designed to avoid. We therefore retain the free population as our
+default and report this ablation as a deliberate contrast.

@@ -1,0 +1,92 @@
+MASS-FUNCTION-INFORMED POPULATION ABLATION -- NOTES
+====================================================
+Experiment: obs_z1_lambda5_high_rm_scatter.376  (rm_scatter=0.7, the high lambda-M scatter case)
+Script:     notebooks/hier_massfn_informed.py
+Outputs:    notebooks/hierarchical_poc_outputs/massfn_informed.pkl
+            notebooks/hierarchical_poc_outputs/massfn_informed_compare.png
+
+!!! STATUS: NOT YET RUN -- numbers below are RUN-PENDING placeholders !!!
+The script could not be executed inside the agent sandbox: invoking
+/Users/akumgill/anaconda3/bin/python was permission-denied (only read-only
+Bash such as grep/ls was permitted). The script itself is complete and
+self-contained. To produce the real numbers and fill this file + the LaTeX
+snippet, run:
+
+    cd /Users/akumgill/Documents/GitHub/CL-SBI/notebooks
+    /Users/akumgill/anaconda3/bin/python hier_massfn_informed.py
+
+It prints the full comparison table and the beta verdict, and writes the pkl
++ png. Then transcribe the printed numbers into the <<...>> placeholders in
+tex_source_hbi/_snippet_massfn.tex and into the table below.
+
+----------------------------------------------------------------------
+WHAT THE SCRIPT DOES (so the result is interpretable without rereading code)
+----------------------------------------------------------------------
+- Reuses the differentiable JAX NFW forward model + config from
+  hierarchical_mcmc_poc (import hierarchical_mcmc_poc as H), but loads the
+  high_rm_scatter obs set instead of the baseline.
+- FREE model = the paper baseline: logM_j ~ Normal(mu_M, sig_M), free hyperparams.
+  Hyperpriors match run_hier_all_experiments.make_model, so it reproduces the
+  existing hier_post_obs_z1_lambda5_high_rm_scatter.pkl fit.
+- INFORMED model: per-cluster logM_j drawn from a broad free Gaussian envelope
+  (same free mu_M, sig_M) PLUS a numpyro.factor equal to the precomputed
+  log-pdf of [Tinker08 dn/dlnM] x [McClintock18 richness-selection window for
+  30<lambda<45], evaluated on a 1200-pt logM grid at z=0.275 with
+  sigma_lnlambda = rm_scatter*ln10/F, F=1.356 (same convention as
+  mcmcutils.logprior). The factor is wrapped as a differentiable jnp.interp.
+  The RECOVERED population is read off as the latent per-cluster logM_j
+  (deterministic site logM_pop), so it can be flat-topped/non-Gaussian even
+  though the envelope is Gaussian.
+- ONLY the mass population differs between the two models; concentration block
+  (c0, beta, sig_c) and likelihood (sig_extra) are identical.
+- Both run 4 chains x (1000 warmup + 1500 samples); r-hat checked < 1.05.
+
+Design choice rationale: a numpyro.factor on the latent masses is the most
+NUTS-robust way to inject the non-Gaussian physical shape (no discrete sampling,
+no importance weights, fully differentiable), while still letting the data move
+the population mean/width via the free envelope.
+
+----------------------------------------------------------------------
+COMPARISON TABLE (FILL FROM RUN -- keys are the pkl["true"/"free"/"informed"] fields)
+----------------------------------------------------------------------
+param        TRUE        FREE-Gaussian          MF-INFORMED
+mu_M       <<...>>     <<...>> +/- <<...>>    <<...>> +/- <<...>>
+sig_M      <<...>>     <<...>> +/- <<...>>    <<...>> +/- <<...>>
+c0         <<...>>     <<...>> +/- <<...>>    <<...>> +/- <<...>>
+beta       <<...>>     <<...>> +/- <<...>>    <<...>> +/- <<...>>
+sig_c      <<...>>     <<...>> +/- <<...>>    <<...>> +/- <<...>>
+pop_kurt   <<TRUE_kurt_M>>  <<...>> +/- <<...>>  <<...>> +/- <<...>>   (excess kurtosis of recovered logM population)
+pop_std    <<TRUE_sig_M>>   <<...>> +/- <<...>>  <<...>> +/- <<...>>
+
+r-hat_max:   FREE <<...>>   INFORMED <<...>>   (both must be < 1.05)
+ess_min:     FREE <<...>>   INFORMED <<...>>
+
+MF x selection physical population (fixed, for reference):
+  mean=<<...>>  std=<<...>>  excess_kurt=<<...>>  sigma_lnlambda=<<...>>
+
+----------------------------------------------------------------------
+KEY QUESTIONS (FILL VERDICTS FROM RUN)
+----------------------------------------------------------------------
+Q1. Does the informed population capture the non-Gaussian (flat-topped) mass shape?
+    -> Compare recovered pop_kurt: informed should be closer to TRUE_kurt_M (negative,
+       flat-topped) than the free Gaussian (which is pinned near 0 by construction).
+    VERDICT: <<YES/NO + numbers>>
+
+Q2. Does the informed population recover sig_M better?
+    -> Compare |sig_M - TRUE_sig_M| and |pop_std - TRUE_sig_M| for both.
+    VERDICT: <<...>>
+
+Q3. Does the informed population TIGHTEN or improve beta?
+    -> bias: |beta_informed - beta_true| vs |beta_free - beta_true|
+       width: sd(beta_informed) vs sd(beta_free)
+    The script prints both and a one-line verdict ("BETTER/NOT better", "TIGHTER/NOT tighter").
+    VERDICT: <<...>>   BE HONEST: if beta does NOT improve, say so -- that is a valid result
+    and is consistent with beta being limited by the weak-lensing profile's sensitivity to c,
+    not by the mass prior.
+
+----------------------------------------------------------------------
+OVERALL VERDICT (FILL FROM RUN)
+----------------------------------------------------------------------
+<<One paragraph: does the informed population help the non-Gaussian mass shape (expected
+YES) and beta (TBD)? Frame honestly as a tradeoff -- the informed population reintroduces
+the Tinker08 + McClintock18 assumptions the free hierarchical model avoids.>>
