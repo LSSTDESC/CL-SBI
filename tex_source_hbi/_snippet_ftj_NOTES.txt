@@ -1,0 +1,84 @@
+FTJ M-C MIX (apples-to-apples) — change log
+=============================================
+
+STATUS: Code + configs staged. NUMERIC RUN NOT EXECUTED.
+Reason: in this session the Python interpreter
+(/Users/akumgill/anaconda3/bin/python and the abacus python3) was DENIED by a
+harness permission rule. Every "Permission to use Bash has been denied" was an
+attempt to run Python. Plain shell (echo/ls/rm) was allowed, but no Python
+process could start, so simulation generation / SNPE training / inference /
+loading .pkl/.npy could not run. The pipeline below is ready to launch the
+moment Python execution is permitted.
+
+FILES CREATED
+-------------
+1. configs/simulations/sim_z1_mcmix.json
+   Copy of sim_z1.json plus a new field:
+       "mc_relation_mix": ["child18", "ludlow16", "prada12"]
+   Everything else identical to sim_z1.json (Paper-I baseline sim config).
+
+2. configs/inference/infer_z1_mcmix.json
+   Byte-identical to infer_z1.json (priors unchanged). Created only so the
+   pipeline naming convention {SIM_ID}.{INFER_ID}.{NUM_SIMS}.{NUM_OBS} works
+   with a distinct infer_id, per the task spec.
+
+3. scripts/analyze_ftj_mcmix.py
+   Post-run analysis. Loads the trained mc-mix FTJ posterior, applies it to
+   obs_z1_lambda5 / _ludlow / _prada, collapses the 15-dim percentile MAP
+   vector into (mu_M, sig_M, mu_c, sig_c), compares to the old child18-only
+   FTJ rows in notebooks/hierarchical_poc_outputs/_all_methods_rows.pkl and to
+   truth (mean/std of drawn_mc_pairs columns). Writes
+   notebooks/hierarchical_poc_outputs/ftj_mcmix_results.pkl and prints a table.
+   NOTE: the percentile->population collapse uses median for mu and
+   (P84-P16)/2 for sig, mirroring create_fit_join_observation_nfw /
+   _compute_mc_summary. If the main thread confirms Paper I instead reports
+   sig as std of posterior samples, adjust percentile_vec_to_population().
+
+FILES MODIFIED
+--------------
+4. scripts/gen_simulations.py
+   In the per-richness-bin loop, added a branch honouring
+   sim_config["mc_relation_mix"]. When that list is present, each simulated
+   stack (a num_obs-sized chunk = one FTJ training example) is assigned a
+   randomly chosen relation from the list before drawing its m-c pairs, so the
+   training set spans child18/ludlow16/prada12. When the field is absent the
+   original single-relation code path runs unchanged (Paper-I behaviour fully
+   preserved). Change is commented "M-C MIX (paper2 apples-to-apples)".
+   Verified: the mix branch yields n_stacks_in_bin*num_obs pairs, exactly what
+   the downstream slicing loop consumes (range(sims_per_bin // num_obs)), so no
+   off-by-one vs the original.
+
+HOW TO RUN (once Python is permitted)
+-------------------------------------
+cd /Users/akumgill/Documents/GitHub/CL-SBI/scripts
+PY=/Users/akumgill/anaconda3/bin/python
+
+# 1. Generate broadened sims (SLOW: ~17 ms/pair * 3.76M pairs; background it)
+nohup $PY gen_simulations.py --sim_id sim_z1_mcmix \
+    --num_sims 10000 --num_obs 376 > /tmp/gen_mcmix.log 2>&1 &
+# poll: tail -f /tmp/gen_mcmix.log ; runtime is appended to the runtime log.
+
+# 2. Ensure the three obs sets exist at .376 (they already do for child/ludlow/
+#    prada per outputs/observations/). If missing:
+#    $PY gen_observations.py --obs_id obs_z1_lambda5        --num_obs 376
+#    $PY gen_observations.py --obs_id obs_z1_lambda5_ludlow --num_obs 376
+#    $PY gen_observations.py --obs_id obs_z1_lambda5_prada  --num_obs 376
+
+# 3. Train FTJ on broadened sims
+$PY train_inferrer.py --sim_id sim_z1_mcmix --infer_id infer_z1_mcmix \
+    --num_sims 10000 --num_obs 376
+
+# 4. Analyze + write results pkl + table
+$PY analyze_ftj_mcmix.py --sim_id sim_z1_mcmix --infer_id infer_z1_mcmix \
+    --num_sims 10000 --num_obs 376
+
+# 5. Fill the [NUMBER] placeholders in _snippet_ftj.tex from the printed table /
+#    ftj_mcmix_results.pkl, and state whether the OOD collapse resolves.
+
+NOT DONE / TODO FOR NEXT SESSION (needs Python)
+-----------------------------------------------
+- Run steps 1-4 above; capture simulation wall-clock time from the runtime log.
+- Populate ftj_mcmix_results.pkl (analyze script writes it).
+- Replace [NUMBER]/[RESOLVES?] placeholders in _snippet_ftj.tex with real
+  values and the honest conclusion.
+- DO NOT git commit (per task instructions) and DO NOT edit hbi_paper.tex.

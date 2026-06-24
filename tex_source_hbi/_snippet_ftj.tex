@@ -1,0 +1,61 @@
+% =====================================================================
+% Broadened-training (M-c mix) SBI FTJ -- apples-to-apples vs Paper-I child18-only FTJ.
+% Numbers from notebooks/hierarchical_poc_outputs/ftj_mcmix_results.pkl (run on main thread).
+% RESULT: broadening the FTJ training resolves the OOD concentration-center collapse.
+% =====================================================================
+
+\paragraph{Broadened-training percentile FTJ (apples-to-apples).}
+The percentile-summary fit-then-join (FTJ) SBI estimator of \citetalias{paper1} was trained on a
+\emph{single} fixed mass--concentration relation (\code{child18}). Its degradation on the
+\code{ludlow16} and \code{prada12} out-of-distribution (OOD) tests therefore conflates a difference in
+\emph{training breadth} with a difference in \emph{architecture}: the hierarchical estimators compared
+here were trained over a broad envelope of $M$--$c$ relations, so \code{ludlow16} and \code{prada12}
+are in-distribution for them but OOD for the Paper~I FTJ. To isolate architecture from training
+breadth, we retrain the \emph{same} 15-dimensional percentile FTJ estimator on a broadened simulation
+set in which each simulated stack is assigned a relation drawn at random from \{\code{child18},
+\code{ludlow16}, \code{prada12}\}; all other settings (priors, noise, richness selection,
+$N_{\rm c}=376$, $10^{4}$ training stacks) match Paper~I exactly. This is the only difference in how
+FTJ is trained here versus Paper~I.
+
+The broadened training largely resolves the OOD failure (Table~\ref{tab:ftj_mcmix}). The diagnostic
+is the recovered concentration center $\mu_c$, which is where the OOD relations actually differ: the
+\code{child18}-only FTJ reports $\mu_c\approx4.66$ on \emph{both} OOD sets---essentially its single
+training value---missing the true centers ($5.30$ for \code{ludlow16}, $6.15$ for \code{prada12}). The
+broadened-training FTJ instead tracks them, recovering $\mu_c=5.32$ (vs.\ true $5.30$) for
+\code{ludlow16} and $5.91$ (vs.\ true $6.15$) for \code{prada12}, while remaining consistent with truth
+on the in-distribution baseline. The percentile estimator's apparent OOD fragility is therefore
+substantially an artifact of single-relation training, not an intrinsic limitation of the
+architecture. Two caveats temper this: broadening the training prior modestly degrades the recovered
+mass \emph{spread} $\sigma_M$ (e.g.\ $0.076$ vs.\ true $0.118$ for \code{prada12}), the expected
+breadth--precision tradeoff, and \code{prada12}---the most extreme relation---sits near the edge of even
+the broadened envelope, leaving a residual $\mu_c$ offset. The hierarchical methods achieve their OOD
+robustness by the same mechanism (a broadened training/inference model) but additionally recover the
+population \emph{spread}, which the percentile summary compresses away.
+
+\begin{table}
+\centering
+\caption{Recovered population $(\mu,\sigma)$ for $\log_{10}M$ and $c$ from the broadened-training
+percentile FTJ (\code{mcmix}), the Paper~I \code{child18}-only FTJ, and truth, for the baseline and
+two OOD $M$--$c$ relations.}
+\label{tab:ftj_mcmix}
+\begin{tabular}{llcccc}
+\hline
+Obs set & Method & $\mu_{M}$ & $\sigma_{M}$ & $\mu_{c}$ & $\sigma_{c}$ \\
+\hline
+\multirow{3}{*}{baseline (\code{child18})}
+        & mcmix   & 14.363 & 0.100 & 4.786 & 0.199 \\
+        & child18 & 14.372 & 0.115 & 4.667 & 0.189 \\
+        & truth   & 14.376 & 0.118 & 4.663 & 0.178 \\
+\hline
+\multirow{3}{*}{\code{ludlow16} (OOD)}
+        & mcmix   & 14.383 & 0.089 & 5.322 & 0.302 \\
+        & child18 & 14.411 & 0.118 & 4.658 & 0.173 \\
+        & truth   & 14.376 & 0.118 & 5.304 & 0.219 \\
+\hline
+\multirow{3}{*}{\code{prada12} (OOD)}
+        & mcmix   & 14.281 & 0.076 & 5.908 & 0.114 \\
+        & child18 & 14.488 & 0.142 & 4.639 & 0.152 \\
+        & truth   & 14.376 & 0.118 & 6.147 & 0.137 \\
+\hline
+\end{tabular}
+\end{table}

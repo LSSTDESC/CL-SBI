@@ -102,20 +102,48 @@ for min_lambda, max_lambda in lambda_bins:
     # )
 
     # Generate sims_per_bin * num_obs m-c pairs
-    sample_mc_pairs = population.gen_mc_pairs_in_richness_bin(
-        min_lambda,
-        max_lambda,
-        rm_relation=sim_config["rm_relation"],
-        mc_relation=sim_config["mc_relation"],
-        num_samples=sims_per_bin,
-        mc_scatter=sim_config["mc_scatter"],
-        rm_scatter=sim_config["rm_scatter"],
-        min_z=sim_config["min_z"],
-        max_z=sim_config["max_z"],
-    )
+    # M-C MIX (paper2 apples-to-apples): if the config provides a list of M-c
+    # relations under "mc_relation_mix", each simulated stack (a num_obs-sized
+    # chunk) is assigned a randomly chosen relation from that list, so the
+    # training set spans child18/ludlow16/prada12. Otherwise fall back to the
+    # single fixed "mc_relation" (Paper-I behaviour).
+    mc_relation_mix = sim_config.get("mc_relation_mix", None)
+    if mc_relation_mix:
+        sample_mc_pairs = []
+        n_stacks_in_bin = sims_per_bin // num_obs
+        for _stack in range(n_stacks_in_bin):
+            chosen_mc_relation = np.random.choice(mc_relation_mix)
+            sample_mc_pairs.extend(
+                population.gen_mc_pairs_in_richness_bin(
+                    min_lambda,
+                    max_lambda,
+                    rm_relation=sim_config["rm_relation"],
+                    mc_relation=chosen_mc_relation,
+                    num_samples=num_obs,
+                    mc_scatter=sim_config["mc_scatter"],
+                    rm_scatter=sim_config["rm_scatter"],
+                    min_z=sim_config["min_z"],
+                    max_z=sim_config["max_z"],
+                )
+            )
+    else:
+        sample_mc_pairs = population.gen_mc_pairs_in_richness_bin(
+            min_lambda,
+            max_lambda,
+            rm_relation=sim_config["rm_relation"],
+            mc_relation=sim_config["mc_relation"],
+            num_samples=sims_per_bin,
+            mc_scatter=sim_config["mc_scatter"],
+            rm_scatter=sim_config["rm_scatter"],
+            min_z=sim_config["min_z"],
+            max_z=sim_config["max_z"],
+        )
 
+    # Size z_sample to the actual number of m-c pairs produced. The mc_relation_mix branch yields
+    # (sims_per_bin // num_obs) * num_obs pairs, which can be slightly fewer than sims_per_bin when
+    # num_obs does not divide sims_per_bin; using len(sample_mc_pairs) keeps z_sample aligned.
     z_sample = np.random.uniform(
-        sim_config["min_z"], sim_config["max_z"], size=sims_per_bin
+        sim_config["min_z"], sim_config["max_z"], size=len(sample_mc_pairs)
     )
 
     # # Apply filtering criteria to subselect mc_pairs
