@@ -5,6 +5,64 @@ Detailed per-session TODOs live in `CLAUDE.md` and `tex_source/REVIEW_TODOS.md`.
 
 ---
 
+## 2026-06-24 — Method reframe, 3 parallel investigations, data-driven co-headline decision
+
+**Naming reframe (committed `c57bce0`, `13bde5b`).** The population-SBI methods were poorly named and
+only HMC carried "(this work)". Now three novel methods, all "(this work)":
+- **Hierarchical SBI** (was "neural HBI"/architecture A): deep-set net maps the whole N_c-stack →
+  5 hyperparameters in one forward pass, no per-dataset MCMC. `afull_neural_hbi.py`.
+- **Hybrid SBI–HMC** (was "amortized hierarchical SBI" POC): per-cluster net q(M,c|profile,noise) →
+  NUTS population layer via logsumexp reweighting. `hybrid_sbi_hmc_allexp.py` (now all 8 exps).
+- **Hierarchical HMC** (the original Paper-2 method).
+All three overlaid as peer methods in the aggregate, σ_M, calibration-grid, and PPC figures. Paper
+text renamed throughout; both subsections retitled.
+
+**Hybrid all-8 run had a caught bug:** first 30k-sim wide-box net biased μ_M ~0.75 dex low everywhere
+(under-resolved). Added a baseline-μ_M sanity gate + retrained at 150k sims, bigger flow → gate
+passed (μ_M 14.370). Hybrid then recovers high_mc_scatter σ_c=0.80 vs true 0.71 (also beats
+percentile-SBI's collapse, like Hierarchical SBI's 0.73).
+
+**Three parallel investigations (user asked for separate agents).** NOTE: subagents are
+**Python-execution-denied** by the harness — they staged complete scripts/snippets but I ran all
+compute on the main thread.
+1. **SBI-FTJ retrain over broadened M-c relations (apples-to-apples).** Paper-I FTJ trained on
+   child18 only → OOD on ludlow/prada; this conflates training-breadth with architecture. Agent
+   staged `sim_z1_mcmix`/`infer_z1_mcmix` configs + a `gen_simulations.py` mc_relation_mix branch
+   (one random relation per stack). I found+fixed a `z_sample` length-mismatch crash in the agent's
+   edit. **10k-sim broadened generation RUNNING** (`/tmp/ftj_gensim2.out`); training+analysis pending.
+2. **β / M-c slope (DONE).** My "β–σ_c degeneracy at fixed marginals" hypothesis FALSIFIED
+   (corr≈−0.1). Real driver = **mass lever arm**: corr(σ_M, β-posterior-width) = **−0.81**. β is
+   well-recovered only where mass range is wide (high_rm_scatter: −1.36 vs true −1.33); unconstrained
+   at narrow σ_M; NOT a noise-floor effect (corr with noise ≈0). The experiment whose marginals look
+   worst is where the slope is best determined. Figure `beta_leverarm.png`, snippet `_snippet_beta.tex`.
+3. **Mass-function-informed population ablation (DONE — NULL result).** On high_rm_scatter, replacing
+   the free-Gaussian mass population with Tinker08×McClintock18-informed prior helps nothing: σ_M
+   0.49 vs free 0.52 vs true 0.535 (informed marginally worse); both recover the non-Gaussian shape
+   (excess-kurt ≈ −0.5 = truth); β PULLED OFF truth (−1.04 informed vs −1.28 free vs −1.33 true). 
+   Independently confirms β is lever-arm-limited, not prior-limited. Secondary insight: the free
+   model's Gaussian *prior* yields a non-Gaussian *posterior* (free per-cluster latents populate
+   tails) — so the Gaussian-population assumption is far less restrictive than it looks. Retain free
+   population as default. `hier_massfn_informed.py`, `massfn_informed_compare.png`, `_snippet_massfn.tex`.
+
+**Co-headline decision (user: decide by recovery performance) — DATA-DRIVEN.** Mean fractional error
+on core population params (μ_M, σ_M, c0) over 8 exps: **HMC 0.021, Hierarchical SBI 0.019, Hybrid
+0.047**; σ_M alone: HMC 0.028, HierSBI 0.026, Hybrid 0.114. Verdict:
+- **Hierarchical HMC + Hierarchical SBI = co-equal headline** (accuracy tie; SBI ~200× cheaper at
+  inference: ~1s vs ~210s).
+- **Hybrid SBI–HMC = supporting "unification" method** (2–4× worse; the conceptual bridge between
+  the SBI and HMC paradigms).
+
+**Paper cleanup (committed `1d11e56`):** removed the σ_M bar chart (Fig 4, low info beyond the table);
+cleared 2 done TODOs (head-to-head fig, calibration test — both now exist). Paper 17 pp, clean.
+
+**Pending (gated on FTJ sims finishing):** run FTJ training+analysis; then ONE integration pass —
+wire all 3 snippets (`_snippet_ftj/beta/massfn.tex`) into the paper + the β standalone discussion
+paragraph + the holistic abstract/intro/discussion rewrite around the co-headline framing (intro
+contribution list + abstract still say "three-way comparison" and omit the two hierarchical-SBI
+methods; "Toward hierarchical SBI" §still written as future-work speculation for things now built).
+
+---
+
 ## 2026-06-22 (eve) — Decision: fully-amortized neural HBI (drop percentiles), staged A-smoke → A-full
 
 **Question that started it (user):** before extending Paper 2 results to all 8 experiments, is the
