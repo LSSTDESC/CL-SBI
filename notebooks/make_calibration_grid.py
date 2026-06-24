@@ -18,13 +18,21 @@ x=np.array(CONF_LEVELS)
 def y(cov): return [cov[p] for p in CONF_LEVELS]
 def dmax(cov): return max(abs(cov[p]-p) for p in CONF_LEVELS)
 
-# Neural HBI per-experiment posterior samples (draw population, same compute_coverage as HMC)
+# Hierarchical SBI per-experiment posterior samples (draw population, same compute_coverage as HMC)
 nhbi=pickle.load(open(f"{OUT}/afull_neural_hbi.pkl","rb"))["experiments"]
 def nhbi_cov(obs, true_mc, rng):
     if obs not in nhbi: return None
     s=nhbi[obs]["samples"]; i=rng.integers(0,len(s),20000)
     lM=s[i,0]+s[i,1]*rng.standard_normal(20000)
     cc=s[i,2]+s[i,3]*(lM-s[i,0])+s[i,4]*rng.standard_normal(20000)
+    return compute_coverage(np.column_stack([lM,cc]),true_mc)
+# Hybrid SBI-HMC: relation posterior (mu_M,sig_M,c0,beta,sig_c) per experiment -> draw population
+try: hyb=pickle.load(open(f"{OUT}/hybrid_sbi_hmc_allexp.pkl","rb"))["experiments"]
+except FileNotFoundError: hyb={}
+def hyb_cov(obs, true_mc, rng):
+    if obs not in hyb: return None
+    e=hyb[obs]["est"]; muM,sigM=e["mu_M"][0],e["sig_M"][0]; c0,beta,sigc=e["c0"][0],e["beta"][0],e["sig_c"][0]
+    lM=muM+sigM*rng.standard_normal(20000); cc=c0+beta*(lM-muM)+sigc*rng.standard_normal(20000)
     return compute_coverage(np.column_stack([lM,cc]),true_mc)
 
 fig,axes=plt.subplots(2,4,figsize=(15,7.5)); axes=axes.ravel()
@@ -38,14 +46,18 @@ for ax,(obs,title) in zip(axes,EXPS):
     cov_hmc=compute_coverage(np.column_stack([lM,cc]),true_mc)
     cov_mcmc, cov_sbi = cal[("mcmc","ftj")], cal[("sbi","ftj")]
     cov_nhbi=nhbi_cov(obs,true_mc,np.random.default_rng(1))
+    cov_hyb=hyb_cov(obs,true_mc,np.random.default_rng(2))
     ax.plot([0,1],[0,1],"k--",lw=1.2)
     ax.plot(x,y(cov_mcmc),color="#1f77b4",lw=2,label="MCMC joint")
     ax.plot(x,y(cov_sbi),color="#ff7f0e",lw=2,label="SBI FTJ")
     ax.plot(x,y(cov_hmc),color="#2ca02c",lw=2,label="Hier. HMC")
     txt=f"$\\Delta_{{\\max}}$: M={dmax(cov_mcmc):.2f} S={dmax(cov_sbi):.2f} H={dmax(cov_hmc):.2f}"
     if cov_nhbi is not None:
-        ax.plot(x,y(cov_nhbi),color="#9467bd",lw=2,label="Hierarchical SBI")
-        txt+=f" N={dmax(cov_nhbi):.2f}"
+        ax.plot(x,y(cov_nhbi),color="#9467bd",lw=2,label="Hier. SBI")
+        txt+=f" HS={dmax(cov_nhbi):.2f}"
+    if cov_hyb is not None:
+        ax.plot(x,y(cov_hyb),color="#8c564b",lw=2,label="Hybrid SBI-HMC")
+        txt+=f" Hy={dmax(cov_hyb):.2f}"
     ax.set_title(f"{title}",fontsize=12)
     ax.text(0.04,0.96,txt,transform=ax.transAxes,va="top",fontsize=8.0)
     ax.set_xlim(0,1); ax.set_ylim(0,1); ax.set_aspect("equal")

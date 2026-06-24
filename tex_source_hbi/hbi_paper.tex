@@ -166,7 +166,7 @@ sample size; all reported fits satisfy $\hat r < 1.01$.
 
 Throughout this section, ``SBI'' (or ``SBI FTJ'') refers to the percentile-summary fit-then-join
 inferrer of Paper~I---trained to output percentiles of the population $(M,c)$ distribution, which
-are then fit by a Gaussian---unless explicitly qualified as ``amortized hierarchical SBI,'' the
+are then fit by a Gaussian---unless explicitly qualified as ``Hybrid SBI--HMC,'' the
 distinct approach of Section~\ref{sec:amortized_hbi}. All three-method comparisons (Table~\ref{tab:three_method},
 Figures~\ref{fig:aggregate}, \ref{fig:calibration_grid}, \ref{fig:ppc}) use the Paper~I SBI FTJ.
 
@@ -192,7 +192,7 @@ likelihood-based inference per se.
   \centering
   \includegraphics[width=0.62\textwidth]{figures/aggregate_hbi_comparison.png}
   \caption{Aggregate population-recovery comparison across all experiments (one row each),
-  analogous to Fig.~12 of Paper~I but adding the hierarchical HMC and the fully-amortized neural HBI
+  analogous to Fig.~12 of Paper~I but adding the hierarchical HMC and the Hierarchical SBI
   (purple; Section~\ref{sec:neural_hbi}). Left: the $2\sigma$ $(M,c)$ contour for each method against
   the true clusters (grey points, black-dashed true contour). Middle and right: the mass and
   concentration marginals. \emph{Axis windows are set per row from that experiment's true population},
@@ -200,7 +200,7 @@ likelihood-based inference per se.
   centred near $\log_{10}M\approx13.2$ rather than $14.4$). The MCMC joint-likelihood collapses to a
   near-delta spike (it estimates a central value); to keep the other methods legible it is shown
   \emph{only in the 2D plane (left)} and omitted from the 1D marginals. SBI FTJ (orange), the
-  hierarchical HMC (green), and the neural HBI (purple) recover the true population width; the two
+  hierarchical HMC (green), and the Hierarchical SBI (purple) recover the true population width; the two
   hierarchical methods additionally capture the broad true distribution in the high $\lambda$--$M$
   scatter experiment that SBI FTJ underestimates.}
   \label{fig:aggregate}
@@ -209,6 +209,19 @@ likelihood-based inference per se.
 Figure~\ref{fig:aggregate} extends this comparison to all experiments in the multi-panel format of
 Paper~I, confirming that the hierarchical HMC tracks the true population marginals in both mass and
 concentration across the suite.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figures/three_method_sigmaM.png}
+  \caption{Recovered population mass spread $\sigma_{\log_{10}M}$ vs.\ the true value (grey) for each
+  experiment, across all methods. The single-$(M,c)$ MCMC joint-likelihood (blue) collapses to a
+  near-zero spread (``DNC'' marks the one non-converged run), recovering a central value rather than
+  the population width. SBI FTJ (orange) and all three hierarchical methods of this work---HMC
+  (green), Hierarchical SBI (purple), and Hybrid SBI--HMC (brown)---recover the true spread,
+  including the strongly out-of-distribution high $\lambda$--$M$ scatter case ($\sigma_M\approx0.54$)
+  where MCMC fails entirely.}
+  \label{fig:sigmaM}
+\end{figure*}
 
 \subsection{Calibration}
 \label{sec:calibration}
@@ -222,10 +235,10 @@ concentration across the suite.
   from the Mahalanobis distance to the posterior mean and covariance, so it accounts for the $M$--$c$
   correlation). Perfect calibration lies on the diagonal; curves below it are overconfident. The inset
   lists the maximum deviation from the diagonal $\Delta_{\max}$ for MCMC (M), SBI (S), hierarchical
-  HMC (H) and the fully-amortized neural HBI (N; Section~\ref{sec:neural_hbi}). The MCMC
+  HMC (H) and the Hierarchical SBI (N; Section~\ref{sec:neural_hbi}). The MCMC
   joint-likelihood (blue) is severely overconfident in every in-distribution experiment---its narrow
   single-$(M,c)$ posterior contains almost none of the true population until $p\to1$. SBI FTJ
-  (orange), the hierarchical HMC (green), and the neural HBI (purple) are all well calibrated
+  (orange), the hierarchical HMC (green), and the Hierarchical SBI (purple) are all well calibrated
   in-distribution (e.g.\ at baseline $\Delta_{\max}=0.02$, $0.11$, $0.05$ respectively), with two
   informative exceptions: under strong $M$--$c$ scatter SBI FTJ under-covers (its concentration
   spread is underestimated; cf.\ Table~\ref{tab:three_method}), and in the out-of-distribution cases
@@ -239,7 +252,7 @@ Unlike the Kolmogorov--Smirnov comparison of Paper~I, this coverage is sample-si
 accounts for the full $M$--$c$ covariance, making it our most robust calibration diagnostic. The
 pattern is consistent and confirms the headline result directly: the single-$(M,c)$ MCMC posterior is
 dramatically overconfident throughout ($\Delta_{\max}=0.93$ at baseline), while the hierarchical HMC,
-SBI FTJ, and the fully-amortized neural HBI of Section~\ref{sec:neural_hbi} all recover near-nominal
+SBI FTJ, and the Hierarchical SBI of Section~\ref{sec:neural_hbi} all recover near-nominal
 coverage when the model matches the data, degrading together only under genuine model
 misspecification.
 
@@ -250,7 +263,7 @@ misspecification.
   \centering
   \includegraphics[width=0.9\textwidth]{figures/aggregate_ppc_three_method.png}
   \caption{Posterior predictive checks across methods, one row per experiment. For each method
-  (MCMC joint-likelihood, blue; SBI FTJ, orange; hierarchical HMC, green; fully-amortized neural HBI,
+  (MCMC joint-likelihood, blue; SBI FTJ, orange; hierarchical HMC, green; Hierarchical SBI,
   purple --- Section~\ref{sec:neural_hbi}) we draw a population from its inferred $(\log_{10}M, c)$
   distribution, forward-model each draw to a noiseless NFW profile, and compare to the observed
   profiles. \emph{Left:} grey lines are the observed profiles, the solid black line their median;
@@ -265,7 +278,7 @@ misspecification.
 
 As an absolute goodness-of-fit check (rather than a comparison against the known truth, which would
 be unavailable for real data), Figure~\ref{fig:ppc} shows posterior predictive checks for all four
-methods --- including the fully-amortized neural HBI of Section~\ref{sec:neural_hbi} --- with
+methods --- including the Hierarchical SBI of Section~\ref{sec:neural_hbi} --- with
 profiles forward-modelled from each inferred population, overlaid on the observed profiles.
 The predicted population means reproduce the observed median across experiments, while the predicted
 population spreads differ between methods consistent with Figure~\ref{fig:aggregate}.
@@ -377,11 +390,11 @@ costly, and it is precisely the barrier the differentiable forward model removes
 remains orders of magnitude faster per evaluation once trained, but the hierarchical HMC requires
 no training simulations and yields calibrated, interpretable population hyperparameters directly.
 
-\subsection{Amortized hierarchical SBI: a unified approach}
+\subsection{Hybrid SBI--HMC: amortizing the per-cluster likelihood}
 \label{sec:amortized_hbi}
 
-The two methods compared above need not be alternatives; they can be composed. As a proof of
-concept we trained a single neural posterior estimator on \emph{individual} cluster profiles,
+The two methods compared above need not be alternatives; they can be composed. We trained a single
+neural posterior estimator on \emph{individual} cluster profiles,
 $q_\phi(M,c \mid d_j)$, amortizing the per-cluster likelihood. Because the training prior is
 uniform, $q_\phi$ is proportional to the per-cluster likelihood and can be inserted directly into
 the hierarchical model of Section~\ref{sec:hbm} in place of the analytic forward-model likelihood:
@@ -390,33 +403,37 @@ the per-cluster latents $(M_j,c_j)$ are drawn from the population $(\mu_M,\sigma
 summarize each per-cluster SBI posterior by a Gaussian and sample the population hyperparameters
 with NUTS.
 
-This ``amortized hierarchical SBI'' recovers the population \emph{mass} distribution well
-($\mu_M=14.36$, $\sigma_M=0.13$ vs.\ true $14.38, 0.118$) in $\sim$10\,s of population sampling
-after the one-time training, combining SBI's amortization with the hierarchical layer's coherent,
-interpretable population inference.
+rather than summarize each per-cluster posterior by a Gaussian, we represent it by its raw samples
+and evaluate the population likelihood by reweighting (a log-sum-exp over each cluster's samples),
+which preserves any non-Gaussian per-cluster shape. To make the per-cluster network reusable across
+all experiments we condition it on the noise level, $q_\phi(M,c \mid d_j, \sigma_{\rm obs})$, and
+train it over the same wide $(M,c)$ box as the Hierarchical SBI of Section~\ref{sec:neural_hbi}.
 
-The population \emph{concentration} spread, by contrast, is not recovered ($\sigma_c\approx0.47$
-vs.\ true $0.18$), and we have verified that this is a fundamental information limit rather than a
-methodological artifact. The per-cluster SBI posteriors are well calibrated (the standardized
-residuals between the per-cluster posterior mean and the true value have unit width for both $M$
-and $c$), but each single-cluster concentration is constrained only to $\sigma_c^{\rm meas}\approx
-0.9$ at our fiducial $0.3$\,dex profile noise---roughly five times the true population spread. The
-population scatter is therefore less than $4\%$ of the total observed concentration variance, below
-the noise floor. Fixing the $M$--$c$ slope to the Child18 value or tightening the population
-hyperprior does not change this ($\sigma_c$ remains $\approx0.47$), confirming that the limitation
-is the per-cluster information content, not the prior or the slope. The same difficulty appears,
-less severely, for hierarchical HMC (Table~\ref{tab:three_method}). This is a concrete statement of
-what stacked weak lensing at this noise level can constrain: the population mass distribution is
-recoverable, but the intrinsic concentration scatter is not, for any of the inference methods we
-tested.
+Run across all eight experiments, Hybrid SBI--HMC tracks the Hierarchical SBI and HMC closely on the
+recoverable quantities: the population mass spread $\sigma_M$ (Figure~\ref{fig:sigmaM}), the central
+values, and---crucially---the high $M$--$c$ scatter concentration spread ($\sigma_c=0.80$ vs.\ true
+$0.71$), where like the Hierarchical SBI it avoids the percentile estimator's collapse. Its coverage
+is well calibrated in-distribution (Figure~\ref{fig:calibration_grid}) and its predictive profiles
+reproduce the data (Figure~\ref{fig:ppc}). The population sampling costs $\sim$30\,s per experiment
+after the one-time per-cluster training.
 
-We regard amortized hierarchical SBI as the most promising direction emerging from this work: it is
-fast, requires no differentiable forward model at inference time, and yields the same interpretable
-population posterior as hierarchical HMC. \todo{Replace the per-cluster Gaussian summary with a
-normalizing-flow per-cluster likelihood that preserves the non-Gaussian $M$--$c$ degeneracy, and
-quantify the noise level at which the concentration spread becomes recoverable.}
+The population \emph{concentration} spread at low true scatter, by contrast, is over-estimated
+($\sigma_c\approx0.32$ vs.\ true $0.15$ at baseline), the same noise-floor behaviour seen for the
+Hierarchical SBI and, less severely, for hierarchical HMC (Table~\ref{tab:three_method}). We have
+verified that this is a fundamental information limit rather than a methodological artifact: each
+single-cluster concentration is constrained only to $\sigma_c^{\rm meas}\approx0.9$ at our fiducial
+$0.3$\,dex profile noise---roughly five times the true population spread---so the population scatter
+is less than $4\%$ of the total observed concentration variance, below the noise floor. Fixing the
+$M$--$c$ slope to the Child18 value or tightening the population hyperprior does not change this,
+confirming that the limitation is the per-cluster information content, not the prior or the slope.
+This is a concrete statement of what stacked weak lensing at this noise level can constrain: the
+population mass distribution is recoverable, but the intrinsic concentration scatter is not (where it
+is small), for any of the inference methods we tested.
+\todo{Quantify the noise level at which the concentration spread becomes recoverable; a
+normalizing-flow per-cluster likelihood preserving the non-Gaussian $M$--$c$ degeneracy is a natural
+refinement.}
 
-\subsection{Fully-amortized neural hierarchical inference}
+\subsection{Hierarchical SBI: fully-amortized population inference}
 \label{sec:neural_hbi}
 
 The amortized scheme above still factorizes through per-cluster posteriors and a per-dataset NUTS
@@ -473,7 +490,7 @@ failure of Paper~I's percentile SBI is resolved.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/afull_sbc_ranks.png}
-\caption{Simulation-based calibration (SBC) of the fully-amortized neural HBI. Whereas the coverage
+\caption{Simulation-based calibration (SBC) of the Hierarchical SBI. Whereas the coverage
 test of Figure~\ref{fig:calibration_grid} asks whether the posterior is calibrated on the eight
 specific observed stacks, SBC asks the complementary and more stringent question: is the network's
 \emph{uncertainty} calibrated across the \emph{entire} space of populations it was trained on? For
@@ -488,7 +505,7 @@ residual we expect to improve with a larger training set.\label{fig:afull_sbc}}
 
 \input{figures/afull_table}
 
-The neural HBI is included as a peer method in the cross-method comparisons of the Results section:
+The Hierarchical SBI is included as a peer method in the cross-method comparisons of the Results section:
 its coverage is well calibrated (Figure~\ref{fig:calibration_grid}, baseline $\Delta_{\max}=0.05$, comparable to
 SBI FTJ and tighter than hierarchical HMC) and its predictive profiles reproduce the observed stacks
 in every experiment (Figure~\ref{fig:ppc}). We additionally validate the network with
@@ -569,7 +586,7 @@ replaced by a flexible conditional density (a normalizing flow or mixture densit
 removes the Gaussian assumption and would directly address the non-Gaussian regime. (iii) Most
 compellingly, neural likelihood/ratio estimation can be used to \emph{amortize the per-cluster
 likelihood}, which is then inserted into exactly the hierarchical model developed in this paper ---
-``amortized hierarchical SBI.'' This last option unifies the two threads of this work: SBI provides
+``Hybrid SBI--HMC.'' This last option unifies the two threads of this work: SBI provides
 the fast, simulation-trained likelihood surrogate, while the hierarchical layer provides the
 interpretable, correctly-propagated population inference. Dedicated simulation-based hierarchical
 inference methods have been developed in the broader literature and would be a natural foundation.

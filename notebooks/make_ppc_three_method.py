@@ -33,15 +33,20 @@ LABEL = {"obs_z1_lambda5": "Baseline", "obs_z1_lambda5_high_mc_scatter": "High M
          "obs_z1_lambda5_low_richness_contam": "Low richness contam.",
          "obs_z1_lambda5_high_richness_contam": "High richness contam.",
          "obs_z1_lambda5_prada": "Prada M-c (OOD)", "obs_z1_lambda5_ludlow": "Ludlow M-c (OOD)"}
-COL = {"mcmc": "#1f77b4", "sbi": "#ff7f0e", "hmc": "#2ca02c", "nhbi": "#9467bd"}
-NAME = {"mcmc": "MCMC joint", "sbi": "SBI FTJ", "hmc": "Hierarchical HMC", "nhbi": "Hierarchical SBI"}
+COL = {"mcmc": "#1f77b4", "sbi": "#ff7f0e", "hmc": "#2ca02c", "nhbi": "#9467bd", "hyb": "#8c564b"}
+NAME = {"mcmc": "MCMC joint", "sbi": "SBI FTJ", "hmc": "Hierarchical HMC",
+        "nhbi": "Hierarchical SBI", "hyb": "Hybrid SBI-HMC"}
 
-# Neural HBI (architecture A): population drawn from its inferred RELATION params (c = c0 + beta*dM
-# + scatter), keyed by obs. Available for all 8 experiments from the fully-amortized run.
+# Hierarchical SBI (deep-set, architecture A) and Hybrid SBI-HMC (per-cluster + NUTS): both store
+# inferred RELATION params (c = c0 + beta*dM + scatter), keyed by obs, all 8 experiments.
 try:
     _nhbi = pickle.load(open(f"{OUT}/afull_neural_hbi.pkl", "rb"))["experiments"]
 except FileNotFoundError:
     _nhbi = {}
+try:
+    _hyb = pickle.load(open(f"{OUT}/hybrid_sbi_hmc_allexp.pkl", "rb"))["experiments"]
+except FileNotFoundError:
+    _hyb = {}
 
 # canonical sim_z1/infer_z1 row per obs
 by_obs = {}
@@ -53,11 +58,12 @@ avail = [o for o in ORDER if o in by_obs]
 def pop_profiles(r, method, n_pop=400, seed=0):
     """Sample a population from method's inferred population and forward-model -> log10 profiles."""
     rng = np.random.default_rng(seed)
-    if method == "nhbi":
-        # neural-HBI infers the RELATION: draw logM~N(muM,sigM); c = c0 + beta*(logM-muM) + N(0,sigc)
-        if r["obs"] not in _nhbi:
+    if method in ("nhbi", "hyb"):
+        # both infer the RELATION: draw logM~N(muM,sigM); c = c0 + beta*(logM-muM) + N(0,sigc)
+        src = _nhbi if method == "nhbi" else _hyb
+        if r["obs"] not in src:
             return None
-        e = _nhbi[r["obs"]]["est"]
+        e = src[r["obs"]]["est"]
         muM, sigM = e["mu_M"][0], e["sig_M"][0]
         c0, beta, sigc = e["c0"][0], e["beta"][0], e["sig_c"][0]
         logM = rng.normal(muM, max(sigM, 1e-3), n_pop)
@@ -84,7 +90,7 @@ for i, obs_id in enumerate(avail):
     axL.plot(RBINS, obs_med, "k", lw=2, zorder=6, label="observed median")
     axR.axhline(0, color="k", lw=1.2, zorder=6)
 
-    for method in ["mcmc", "sbi", "hmc", "nhbi"]:
+    for method in ["mcmc", "sbi", "hmc", "nhbi", "hyb"]:
         if method == "mcmc" and not r.get("mcmc_converged", True):
             continue
         prof = pop_profiles(r, method)

@@ -34,6 +34,13 @@ except FileNotFoundError:
     _afull_exp = {}
 def nhbi_sigM(obs):
     return _afull_exp[obs]["est"]["sig_M"][0] if obs in _afull_exp else np.nan
+# Hybrid SBI-HMC sigma_M (per-cluster SBI + NUTS population), all 8 experiments
+try:
+    _hyb_exp = pickle.load(open(f"{OUT}/hybrid_sbi_hmc_allexp.pkl", "rb"))["experiments"]
+except FileNotFoundError:
+    _hyb_exp = {}
+def hyb_sigM(obs):
+    return _hyb_exp[obs]["est"]["sig_M"][0] if obs in _hyb_exp else np.nan
 
 def col(r, k):
     v = r.get(k); return float(v) if v is not None else np.nan
@@ -45,23 +52,24 @@ mcmc = [col(r, "mcmc_sigM") for r in canon]
 sbi  = [col(r, "sbi_sigM") for r in canon]
 hmcv = [col(r, "hmc_sigM") for r in canon]
 nhbi = [nhbi_sigM(r["obs"]) for r in canon]
+hyb  = [hyb_sigM(r["obs"]) for r in canon]
 # mask non-converged MCMC: plot at 0 with a hatch + "DNC" marker instead of a misleading value
 mcmc_conv = [r.get("mcmc_converged", True) for r in canon]
 mcmc_plot = [m if c else 0.0 for m, c in zip(mcmc, mcmc_conv)]
-wb = 0.16   # 5 bars per group
-ax.bar(x - 2*wb, true, wb, color="0.5", label="TRUE population")
-ax.bar(x - 1*wb, mcmc_plot, wb, color="#1f77b4", label="MCMC joint-likelihood (FTJ)")
-ax.bar(x + 0*wb, sbi,  wb, color="#ff7f0e", label="SBI FTJ")
-ax.bar(x + 1*wb, hmcv, wb, color="#2ca02c", label="Hierarchical HMC (this work)")
-ax.bar(x + 2*wb, np.nan_to_num(nhbi), wb, color="#9467bd", label="Hierarchical SBI (this work)")
+wb = 0.135   # 6 bars per group
+ax.bar(x - 2.5*wb, true, wb, color="0.5", label="TRUE population")
+ax.bar(x - 1.5*wb, mcmc_plot, wb, color="#1f77b4", label="MCMC joint-likelihood (FTJ)")
+ax.bar(x - 0.5*wb, sbi,  wb, color="#ff7f0e", label="SBI FTJ")
+ax.bar(x + 0.5*wb, hmcv, wb, color="#2ca02c", label="Hierarchical HMC (this work)")
+ax.bar(x + 1.5*wb, np.nan_to_num(nhbi), wb, color="#9467bd", label="Hierarchical SBI (this work)")
+ax.bar(x + 2.5*wb, np.nan_to_num(hyb), wb, color="#8c564b", label="Hybrid SBI-HMC (this work)")
 ymax = max(max(true), max(sbi), max(hmcv)) * 1.25
 for xi, conv in zip(x, mcmc_conv):
     if not conv:
-        ax.text(xi - 1*wb, ymax*0.02, "DNC", rotation=90, fontsize=7, ha="center", va="bottom", color="#1f77b4")
-# mark experiments where neural-HBI was not run (the 2 contamination cases)
+        ax.text(xi - 1.5*wb, ymax*0.02, "DNC", rotation=90, fontsize=7, ha="center", va="bottom", color="#1f77b4")
 for xi, v in zip(x, nhbi):
     if np.isnan(v):
-        ax.text(xi + 2*wb, ymax*0.02, "n/a", rotation=90, fontsize=7, ha="center", va="bottom", color="#9467bd")
+        ax.text(xi + 1.5*wb, ymax*0.02, "n/a", rotation=90, fontsize=7, ha="center", va="bottom", color="#9467bd")
 ax.set_xticks(x); ax.set_xticklabels(labels, rotation=30, ha="right")
 ax.set_ylabel(r"recovered $\sigma_{\log_{10}M}$")
 ax.set_title("Population mass-spread recovery across experiments  (MCMC DNC = did not converge)")
