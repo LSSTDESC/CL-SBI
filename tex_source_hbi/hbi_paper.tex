@@ -210,19 +210,6 @@ Figure~\ref{fig:aggregate} extends this comparison to all experiments in the mul
 Paper~I, confirming that the hierarchical HMC tracks the true population marginals in both mass and
 concentration across the suite.
 
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=0.92\textwidth]{figures/three_method_sigmaM.png}
-  \caption{Recovered population mass spread $\sigma_{\log_{10}M}$ vs.\ the true value (grey) for each
-  experiment, across all methods. The single-$(M,c)$ MCMC joint-likelihood (blue) collapses to a
-  near-zero spread (``DNC'' marks the one non-converged run), recovering a central value rather than
-  the population width. SBI FTJ (orange) and all three hierarchical methods of this work---HMC
-  (green), Hierarchical SBI (purple), and Hybrid SBI--HMC (brown)---recover the true spread,
-  including the strongly out-of-distribution high $\lambda$--$M$ scatter case ($\sigma_M\approx0.54$)
-  where MCMC fails entirely.}
-  \label{fig:sigmaM}
-\end{figure*}
-
 \subsection{Calibration}
 \label{sec:calibration}
 
@@ -410,7 +397,7 @@ all experiments we condition it on the noise level, $q_\phi(M,c \mid d_j, \sigma
 train it over the same wide $(M,c)$ box as the Hierarchical SBI of Section~\ref{sec:neural_hbi}.
 
 Run across all eight experiments, Hybrid SBI--HMC tracks the Hierarchical SBI and HMC closely on the
-recoverable quantities: the population mass spread $\sigma_M$ (Figure~\ref{fig:sigmaM}), the central
+recoverable quantities: the population mass spread $\sigma_M$ (Table~\ref{tab:three_method}), the central
 values, and---crucially---the high $M$--$c$ scatter concentration spread ($\sigma_c=0.80$ vs.\ true
 $0.71$), where like the Hierarchical SBI it avoids the percentile estimator's collapse. Its coverage
 is well calibrated in-distribution (Figure~\ref{fig:calibration_grid}) and its predictive profiles
@@ -534,8 +521,7 @@ because the stacked profile is dominated by the mass distribution; the mis-speci
 surfaces in a biased $M$--$c$ relation ($\beta$, $\sigma_c$). Extending the population to a
 two-component mixture in $\log_{10}M$ is the direct refinement that should remove this bias.
 \todo{Add the larger-training-set rerun (tightening $\mu_M$, $\beta$ calibration); add the
-two-component mixture run for the richness-contamination experiments; and a direct head-to-head
-figure against hierarchical HMC.}
+two-component mixture run for the richness-contamination experiments.}
 
 \section{Discussion and conclusions}
 \label{sec:conc}
@@ -599,8 +585,7 @@ Several further extensions are natural: jointly inferring the richness--mass rel
 scatter as hyperparameters; propagating photometric-redshift and miscentering systematics through
 the hierarchy; and a head-to-head calibration comparison on survey-realistic mocks. We defer these
 to future work. \todo{quantify HMC concentration bias mitigation; add multi-richness-bin joint fit;
-add coverage/calibration test for the hierarchical posteriors; cite specific hierarchical-SBI
-methods (e.g.\ Rozet \& Louppe 2021).}
+cite specific hierarchical-SBI methods (e.g.\ Rozet \& Louppe 2021).}
 
 \section*{Data and code availability}
 All code, configurations, and the hierarchical-inference notebook are available in the
