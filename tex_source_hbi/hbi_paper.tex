@@ -4,10 +4,24 @@
 \usepackage{graphicx}
 \usepackage{natbib}
 \usepackage{booktabs}
+\usepackage{multirow}
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{authblk}
 \usepackage[section]{placeins}  % keep floats within their section (auto \FloatBarrier before each \section)
+
+\defcitealias{paper1}{Paper~I}
+
+% AAS journal-abbreviation macros, needed by bib entries copied from Paper I (which used AASTeX).
+\providecommand{\apj}{ApJ}
+\providecommand{\apjs}{ApJS}
+\providecommand{\mnras}{MNRAS}
+\providecommand{\aap}{A\&A}
+\providecommand{\aj}{AJ}
+\providecommand{\araa}{ARA\&A}
+\providecommand{\pasp}{PASP}
+\providecommand{\nat}{Nature}
+\providecommand{\physrep}{Phys.~Rep.}
 
 \newcommand{\Msun}{M_\odot}
 \newcommand{\code}[1]{\texttt{#1}}
@@ -39,16 +53,22 @@ profiles, whereas a standard Markov Chain Monte Carlo (MCMC) joint-likelihood fi
 central value and therefore appears ``overconfident'' relative to the population spread. That
 comparison left open a natural question: is the limitation fundamental to likelihood-based
 inference, or merely to the \emph{single-parameter} model the joint likelihood assumes? Here we
-answer it directly. We build a fully differentiable NFW forward model in \code{JAX} (using
-\code{halox}) and implement a \emph{hierarchical} Bayesian model that infers per-cluster
-$(M,c)$ jointly with population-level hyperparameters, sampled with the No-U-Turn Sampler (NUTS).
-Across all of our numerical experiments the hierarchical model recovers the true population
-mass spread $\sigma_{\log_{10}M}$ to within a few percent --- matching SBI and resolving the
-apparent MCMC overconfidence --- while remaining computationally tractable
-($\sim$3--5\,min per experiment on a single CPU). We further identify a noise-induced
-concentration bias inherent to analytic-likelihood inference that SBI avoids by construction, and
-we discuss the practical trade-offs (amortization, differentiability, convergence diagnostics)
-between SBI and hierarchical HMC for upcoming surveys such as LSST.
+answer it directly, and develop two complementary \emph{hierarchical} estimators that recover the
+full population. We build a fully differentiable NFW forward model in \code{JAX} (using
+\code{halox}) and implement (i) a hierarchical Bayesian model sampled with the No-U-Turn Sampler
+(\emph{hierarchical HMC}), and (ii) a fully-amortized \emph{hierarchical SBI} that maps an entire
+cluster stack to the population hyperparameters in a single forward pass; we also demonstrate a
+hybrid scheme that amortizes the per-cluster likelihood inside the hierarchical model. Across all of
+our numerical experiments the two headline methods recover the true population mass spread
+$\sigma_{\log_{10}M}$ to within a few percent --- matching the SBI of Paper~I and resolving the
+apparent MCMC overconfidence --- with hierarchical HMC and hierarchical SBI achieving essentially
+identical accuracy while hierarchical SBI is amortized to a sub-second inference, roughly $200\times$
+faster than per-dataset sampling. We show that the apparent out-of-distribution fragility of the
+percentile-summary SBI is largely an artifact of single-relation training: broadening the training
+to span several mass--concentration relations restores its accuracy. We further identify a
+noise-induced concentration bias inherent to analytic-likelihood inference that SBI avoids by
+construction, and characterize the information limits that bound recovery of the concentration
+scatter and the mass--concentration slope.
 \end{abstract}
 
 \section{Introduction}
@@ -71,18 +91,31 @@ SBI FTJ inferrer, which is trained to output population percentiles.
 
 Paper~I noted that recovering the population spread with a likelihood-based method ``would require
 a hierarchical model that explicitly infers per-cluster $(M,c)$ together with population-level
-hyperparameters.'' This paper carries out exactly that program. Our contributions are:
+hyperparameters.'' This paper carries out exactly that program, and develops the simulation-based
+counterpart alongside it. Our contributions are:
 \begin{enumerate}
   \item A differentiable NFW surface-density forward model in \code{JAX}/\code{halox}
         (Section~\ref{sec:forward}), validated against the \code{Colossus}-based pipeline used to
         generate the data.
-  \item A hierarchical Bayesian model (Section~\ref{sec:hbm}) sampled with NUTS that recovers the
-        population $(M,c)$ distribution, closing the gap with SBI (Section~\ref{sec:results}).
-  \item A three-way comparison (SBI, MCMC joint-likelihood, hierarchical HMC) of population-spread
-        recovery and computational cost across all of Paper~I's experiments
-        (Section~\ref{sec:results}, Table~\ref{tab:three_method}).
+  \item Two complementary hierarchical population estimators that recover the full $(M,c)$
+        distribution: a likelihood-based \emph{hierarchical HMC} (Section~\ref{sec:hbm}) sampled
+        with NUTS, and a fully-amortized \emph{hierarchical SBI} (Section~\ref{sec:neural_hbi}) that
+        maps an entire stack to the population hyperparameters in one forward pass. The two achieve
+        essentially identical accuracy; hierarchical SBI is amortized to sub-second inference. We
+        additionally demonstrate a \emph{hybrid SBI--HMC} scheme (Section~\ref{sec:amortized_hbi})
+        that amortizes the per-cluster likelihood inside the hierarchical model, unifying the two
+        paradigms.
+  \item A head-to-head comparison of population-spread recovery, calibration, and computational
+        cost across all of Paper~I's experiments, spanning the SBI of Paper~I, the MCMC
+        joint-likelihood, and the three hierarchical methods of this work (Section~\ref{sec:results},
+        Table~\ref{tab:three_method}).
+  \item A demonstration that the percentile-summary SBI's apparent out-of-distribution fragility is
+        largely an artifact of single-relation training: retraining it over a broadened set of
+        mass--concentration relations restores its accuracy (Section~\ref{sec:neural_hbi}).
   \item Identification of a noise-induced concentration bias intrinsic to analytic-likelihood
-        inference, which SBI avoids (Section~\ref{sec:noisebias}).
+        inference, which SBI avoids (Section~\ref{sec:noisebias}), and a characterization of the
+        information limits that bound the concentration scatter $\sigma_c$ and the
+        mass--concentration slope $\beta$.
 \end{enumerate}
 
 \section{Differentiable forward model}
@@ -228,8 +261,10 @@ concentration across the suite.
   (orange), the hierarchical HMC (green), and the Hierarchical SBI (purple) are all well calibrated
   in-distribution (e.g.\ at baseline $\Delta_{\max}=0.02$, $0.11$, $0.05$ respectively), with two
   informative exceptions: under strong $M$--$c$ scatter SBI FTJ under-covers (its concentration
-  spread is underestimated; cf.\ Table~\ref{tab:three_method}), and in the out-of-distribution cases
-  (Prada, Ludlow), where the assumed scaling relation is wrong, all methods degrade.}
+  spread is underestimated; cf.\ Table~\ref{tab:three_method}), and under the alternative
+  Prada and Ludlow $M$--$c$ relations the percentile SBI FTJ---trained on a single fixed
+  relation---degrades, an out-of-distribution effect specific to that estimator that we revisit in
+  Section~\ref{sec:neural_hbi}.}
   \label{fig:calibration_grid}
 \end{figure*}
 
@@ -259,7 +294,8 @@ misspecification.
   $\Sigma_{\rm pred}/\Sigma_{\rm obs}-1$, with the method population bands. The predicted medians of
   all methods reproduce the observed median in most experiments (the population \emph{mean} is well
   constrained by all); the methods differ in their predicted population \emph{spread} (band width)
-  and in the out-of-distribution cases (Prada, Ludlow), where the residuals diverge at large radius.}
+  and under the alternative Prada and Ludlow $M$--$c$ relations, where the percentile FTJ residuals
+  diverge at large radius.}
   \label{fig:ppc}
 \end{figure*}
 
@@ -463,11 +499,11 @@ We apply the trained network to all eight experiments; Table~\ref{tab:afull} rep
 hyperparameters against truth (the two richness-contamination experiments lie outside the
 single-Gaussian training model and are discussed separately below).
 The population \emph{mass} spread $\sigma_M$ is recovered to a few percent in every case, including
-the strongly out-of-distribution high $\lambda$--$M$ scatter experiment ($0.518$ vs.\ true $0.535$,
+the demanding high $\lambda$--$M$ scatter experiment ($0.518$ vs.\ true $0.535$,
 where the mean mass itself shifts to $\log_{10}M\approx13.2$) and the high-noise experiment
 ($0.127$ vs.\ $0.118$ at $0.70$\,dex). The central values $\mu_M$ and the $M$--$c$ normalization
-$c_0$ track the Ludlow16 and Prada12 relations that were out-of-distribution for the
-fixed-relation percentile estimator. Most importantly, on the high $M$--$c$ scatter experiment the
+$c_0$ track the Ludlow and Prada relations that were out-of-distribution for the
+fixed-relation percentile estimator but are spanned by this network's broadened training. Most importantly, on the high $M$--$c$ scatter experiment the
 amortized network recovers $\sigma_c=0.728\pm0.047$ against a true $0.713$ --- precisely the case in
 which the percentile estimator collapsed to $\sigma_c\approx0.19$ (Table~\ref{tab:three_method}).
 Because the broadened training prior makes large concentration scatter an in-distribution
@@ -523,6 +559,8 @@ two-component mixture in $\log_{10}M$ is the direct refinement that should remov
 \todo{Add the larger-training-set rerun (tightening $\mu_M$, $\beta$ calibration); add the
 two-component mixture run for the richness-contamination experiments.}
 
+\input{_snippet_ftj}
+
 \section{Discussion and conclusions}
 \label{sec:conc}
 
@@ -549,6 +587,12 @@ non-hierarchical informed-prior MCMC of Paper~I does to match SBI's training dis
 the goal of the hierarchical model is to \emph{infer} the population rather than assume it; a
 natural refinement is a more flexible population family (e.g.\ skew-normal, or a
 mass-function-informed shape with free amplitude and width).
+
+\input{_snippet_massfn}
+
+\subsection{Identifiability of the mass--concentration slope}
+\label{sec:beta}
+\input{_snippet_beta}
 
 \subsection{Toward hierarchical SBI}
 \label{sec:hier_sbi}

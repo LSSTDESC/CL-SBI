@@ -1,0 +1,40 @@
+% ---- beta / M-c slope identifiability snippet (grounded in notebooks/_scratch_beta.py output) ----
+% Intended for the Hierarchical SBI / discussion: explains why the 1D population marginals are
+% recovered well while the M-c slope beta is not, across most experiments.
+
+\paragraph{Why the slope $\beta$ is weakly identified.} A consistent feature of all three
+hierarchical methods is that the one-dimensional population marginals---$\mu_M$, $\sigma_M$, $c_0$,
+and the marginal concentration spread---are recovered accurately, while the mass--concentration
+\emph{slope} $\beta$ is not: its posterior remains broad (typically $50$--$75\%$ of the prior width)
+and its central value is biased toward steeper slopes. This is not a failure of any particular
+method but a statement about what the data constrain. The slope $\beta = \mathrm{d}c/\mathrm{d}\log_{10}M$
+can only be measured if the clusters span an appreciable \emph{range} in mass: with no lever arm in
+$\log_{10}M$, the per-cluster $(M,c)$ pairs carry no information about how $c$ trends with $M$. The
+controlling variable is therefore the population mass spread $\sigma_M$ itself. Across our
+experiments the fractional width of the $\beta$ posterior is strongly anti-correlated with $\sigma_M$
+(Pearson $r=-0.81$): in the high $\lambda$--$M$ scatter experiment, where $\sigma_M\approx0.54$
+provides a wide mass baseline, $\beta$ is in fact recovered tightly and accurately
+($-1.36$ vs.\ true $-1.33$, posterior width only $27\%$ of the prior), whereas in the experiments
+with the fiducial narrow mass range ($\sigma_M\approx0.12$) the slope is essentially unconstrained.
+Notably this is the same experiment whose 1D marginals look the most challenging---the slope is best
+determined precisely where the mass distribution is broadest. We verified that this is a lever-arm
+identifiability effect rather than the noise floor that limits $\sigma_c$: the $\beta$ posterior
+width is uncorrelated with the per-bin measurement noise ($r\approx-0.01$), and the $\beta$ and
+$\sigma_c$ posteriors are essentially uncorrelated ($r\approx-0.1$), so $\beta$ is not simply trading
+off against the concentration scatter at fixed marginals (Figure~\ref{fig:beta_leverarm}). The
+practical implication is
+that a precise $M$--$c$ \emph{slope} from stacked weak lensing requires either a wide intrinsic mass
+range within the stack or---more realistically---a joint fit across multiple richness bins that
+together span a broad mass baseline, which we leave to future work.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/beta_leverarm.png}
+\caption{The $M$--$c$ slope $\beta$ is identifiable only with a mass lever arm. \emph{Left:} the
+fractional width of the $\beta$ posterior (relative to its prior) versus the true population mass
+spread $\sigma_M$, for the Hierarchical SBI and Hybrid SBI--HMC; the two are strongly anti-correlated
+($r=-0.81$), so $\beta$ is constrained only where the clusters span an appreciable mass range.
+\emph{Right:} recovered versus true $\beta$ (marker size $\propto\sigma_M$); the wide-mass-range
+experiment lands on the one-to-one line while the narrow-mass experiments scatter and rail toward the
+prior.\label{fig:beta_leverarm}}
+\end{figure}

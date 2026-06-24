@@ -13,7 +13,7 @@ EXPS=[("obs_z1_lambda5","Baseline"),("obs_z1_lambda5_high_mc_scatter","High M-c 
       ("obs_z1_lambda5_high_noise","High noise"),("obs_z1_lambda5_high_rm_scatter",r"High $\lambda$-M scatter"),
       ("obs_z1_lambda5_low_richness_contam","Low richness contam."),
       ("obs_z1_lambda5_high_richness_contam","High richness contam."),
-      ("obs_z1_lambda5_prada","Prada M-c (OOD)"),("obs_z1_lambda5_ludlow","Ludlow M-c (OOD)")]
+      ("obs_z1_lambda5_prada","Prada M-c (alt.)"),("obs_z1_lambda5_ludlow","Ludlow M-c (alt.)")]
 x=np.array(CONF_LEVELS)
 def y(cov): return [cov[p] for p in CONF_LEVELS]
 def dmax(cov): return max(abs(cov[p]-p) for p in CONF_LEVELS)

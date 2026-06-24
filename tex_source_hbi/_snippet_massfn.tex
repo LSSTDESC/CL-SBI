@@ -10,7 +10,7 @@ As an ablation we relax the hierarchical model's deliberate model-independence a
 and what is given up, by informing the mass population with external physics. We replace the free
 Gaussian mass population $\log_{10}M_j \sim \mathcal{N}(\mu_M, \sigma_M)$ with a population whose
 per-cluster masses carry an informative prior equal to the in-bin mass distribution predicted by the
-\citet{tinker2008} halo mass function multiplied by the \citet{mcclintock2019} richness--mass
+\citet{tinker08} halo mass function multiplied by the \citet{mcclintock18} richness--mass
 selection window for $30 < \lambda < 45$ (the same mass-function and selection terms as our reference
 informed MCMC, with log-normal richness scatter $\sigma_{\ln\lambda}=\sigma_{\log M}\ln 10/F$,
 $F=1.356$). The concentration sector ($c_0,\beta,\sigma_c$) and the profile likelihood are held fixed,
@@ -36,3 +36,15 @@ population with the mass function and richness--mass relation buys essentially n
 reintroducing exactly the model-dependence---the assumed mass function and selection function---that
 the free hierarchical approach was designed to avoid. We therefore retain the free population as our
 default and report this ablation as a deliberate contrast.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/massfn_informed_compare.png}
+\caption{Mass-function-informed vs free-Gaussian population, high $\lambda$--$M$ scatter experiment.
+\emph{Left:} recovered in-bin mass distribution for the free-Gaussian (blue) and mass-function-informed
+(green) hierarchical models against the true drawn population (grey); both reproduce the non-Gaussian,
+flat-topped truth, and both differ markedly from the raw mass-function$\times$selection prior (red
+dashed)---the data, not the prior, drive the result. \emph{Right:} the $M$--$c$ slope posterior: the
+free model (blue) sits on the true value (dashed), while the informed prior pulls the informed model
+(green) \emph{away} from it.\label{fig:massfn}}
+\end{figure}

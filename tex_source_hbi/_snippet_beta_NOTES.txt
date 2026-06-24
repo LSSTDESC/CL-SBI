@@ -1,0 +1,31 @@
+BETA / M-c SLOPE IDENTIFIABILITY -- findings (notebooks/_scratch_beta.py, run on main thread)
+================================================================================================
+
+VERDICT: The original "beta-sigma_c degeneracy at fixed marginals" hypothesis is FALSIFIED.
+The real driver is the MASS LEVER ARM (sigma_M). beta = dc/dlogM is only identifiable when the
+clusters span a range in logM; with a narrow mass range there is no lever arm and beta is
+unconstrained, falling back toward the prior.
+
+KEY NUMBERS
+-----------
+- corr(sigma_M, beta posterior fractional width) = -0.81   (Hierarchical SBI)  <-- the headline
+- corr(noise_dex, beta width) = -0.01   -> NOT a noise-floor effect
+- corr(beta, sigma_c) posterior samples ~ -0.06 to -0.14 (near zero) -> NOT trading off; no degeneracy
+- high_rm_scatter (sigma_M=0.54, wide mass range): beta = -1.36 +/- 0.15 vs true -1.33, posterior
+  width only 27% of prior, bias 0.03  -> BEST beta recovery, despite worst-looking marginals
+- narrow-mass experiments (sigma_M~0.12): beta posterior 50-75% of prior width, large bias
+
+Prior stds (for frac = post_std/prior_std): SBI uniform[-1.8,0.1] -> 0.548 ; Hybrid Normal(.,0.8) -> 0.8 ;
+HMC Normal(0,2.0) -> 2.0.
+
+CURVATURE CHECK (ludlow/prada): linear vs quadratic residual nearly identical; mild curvature
+(slope_lowM vs slope_hiM differ ~30%) but NOT the dominant effect. Linear beta is a fine summary.
+
+FIGURE: notebooks/hierarchical_poc_outputs/beta_sigc_degeneracy.png
+  -> beta vs sig_c posterior samples for baseline + high_mc_scatter; shows near-zero correlation
+     (visually confirms NO degeneracy). NB: the plot title still says "degeneracy" from the agent's
+     original framing -- the RESULT shown is that there is NO degeneracy. Consider regenerating with
+     a corrected title/panels (beta-width vs sigma_M) if used in the paper; current snippet cites it
+     as fig:beta_degen only for the corr(beta,sigc)~0 point.
+
+SNIPPET: tex_source_hbi/_snippet_beta.tex  (lever-arm framing, all numbers grounded above)
