@@ -34,7 +34,7 @@ LABEL = {"obs_z1_lambda5": "Baseline", "obs_z1_lambda5_high_mc_scatter": "High M
          "obs_z1_lambda5_high_richness_contam": "High richness contam.",
          "obs_z1_lambda5_prada": "Prada M-c (OOD)", "obs_z1_lambda5_ludlow": "Ludlow M-c (OOD)"}
 COL = {"mcmc": "#1f77b4", "sbi": "#ff7f0e", "hmc": "#2ca02c", "nhbi": "#9467bd"}
-NAME = {"mcmc": "MCMC joint", "sbi": "SBI FTJ", "hmc": "Hierarchical HMC", "nhbi": "Neural HBI"}
+NAME = {"mcmc": "MCMC joint", "sbi": "SBI FTJ", "hmc": "Hierarchical HMC", "nhbi": "Hierarchical SBI"}
 
 # Neural HBI (architecture A): population drawn from its inferred RELATION params (c = c0 + beta*dM
 # + scatter), keyed by obs. Available for all 8 experiments from the fully-amortized run.

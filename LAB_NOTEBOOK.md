@@ -233,6 +233,31 @@ Per user: treat it as a legitimate alternative inference technique alongside HMC
   WHOLE trained prior (vs the on-data coverage of Fig 5) — the standard amortized-estimator check.
 - **Recompiles 17 pp**, 0 undefined refs, 0 large overfull boxes.
 
+**Reframe: two hierarchical-SBI variants, both (this work), compared head-to-head.** Per user — the
+methods were poorly named and only HMC said "(this work)". New scheme:
+- **Hierarchical SBI** (was "neural HBI" / architecture A): one deep-set net maps the whole stack →
+  5 hyperparameters, single forward pass, no per-dataset MCMC. `afull_neural_hbi.py`.
+- **Hybrid SBI–HMC** (was "amortized hierarchical SBI" POC): per-cluster net q(M,c|profile,noise) →
+  NUTS population hierarchy via logsumexp reweighting. `hybrid_sbi_hmc_allexp.py` (NEW, all 8 exps).
+- Both labeled "(this work)"; **Hierarchical HMC also (this work)** — all three are novel here.
+- Renamed display labels across all 4 figure scripts ("Neural HBI" → "Hierarchical SBI"); kept
+  variable names (C_NHBI, nhbi) to limit churn. Paper text rename still TODO.
+
+**Hybrid SBI–HMC run on all 8 (`hybrid_sbi_hmc_allexp.py`) — with a caught-and-fixed bug.** First
+attempt (30k single-cluster sims, wide box logM∈[12,15.2] + noise-conditioned) **biased μ_M ~0.75 dex
+LOW everywhere** (baseline 13.62 vs the original narrow-box POC's correct 14.36) — the wide box +
+variable noise under-resolved the per-cluster net. Added a **baseline-μ_M sanity gate** and retrained
+with **150k sims + bigger flow (hidden=80, 8 transforms)**: gate PASSED (baseline μ_M 14.370). Fair
+results now:
+- μ_M, σ_M, c0 recovered well across all 8 (baseline μ_M 14.369; high_rm σ_M 0.536 vs 0.535).
+- **high_mc_scatter σ_c = 0.796 vs true 0.713** — Hybrid ALSO recovers the high-scatter case (cf.
+  Hierarchical SBI 0.728). BOTH hierarchical-SBI variants beat percentile-SBI's collapse to ~0.19.
+- Same σ_c noise-floor over-estimate at low true scatter (baseline 0.32 vs 0.15) — consistent physics.
+- ~5 min wall once the per-cluster net is trained.
+- Aggregate figure regenerated with BOTH variants overlaid (Hierarchical SBI purple, Hybrid brown).
+- **Still TODO this thread:** Hybrid into σ_M bar + calibration grid + PPC; Hybrid PPCs; paper text
+  rename + "(this work)" on all three; recompile.
+
 ---
 
 ## 2026-06-22 (pm) — Env restore, Fig-3 OOD diagnosis, paper2-hbi branch

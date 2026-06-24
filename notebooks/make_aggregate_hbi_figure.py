@@ -26,10 +26,33 @@ except FileNotFoundError:
 
 
 def neural_hbi_marginal(obs):
-    """Return (muM, sigM, muc_marg, sigc_marg) for neural-HBI on this obs, or None if not available."""
+    """Return (muM, sigM, muc_marg, sigc_marg) for Hierarchical SBI on this obs, or None."""
     if obs not in _afull:
         return None
     e = _afull[obs]["est"]
+    muM, sigM = e["mu_M"][0], e["sig_M"][0]
+    c0, beta, sigc = e["c0"][0], e["beta"][0], e["sig_c"][0]
+    return muM, sigM, c0, float(np.sqrt(beta**2 * sigM**2 + sigc**2))
+
+
+# Hybrid SBI-HMC (per-cluster-SBI + NUTS-population). All-experiments run; relation params
+# (mu_M, sig_M, c0, beta, sig_c) -> same marginal conversion. Falls back to the baseline-only
+# POC pkl if the all-experiments run is absent.
+try:
+    _hybrid = pickle.load(open(f"{OUT}/hybrid_sbi_hmc_allexp.pkl", "rb"))["experiments"]
+    _hybrid_kind = "allexp"
+except FileNotFoundError:
+    try:
+        _hybrid = {"obs_z1_lambda5": {"est": pickle.load(open(f"{OUT}/amortized_hier_sbi.pkl", "rb"))["summary_informed"]}}
+        _hybrid_kind = "baseline"
+    except (FileNotFoundError, KeyError):
+        _hybrid = {}; _hybrid_kind = None
+
+def hybrid_marginal(obs):
+    """Return (muM, sigM, muc_marg, sigc_marg) for Hybrid SBI-HMC, or None if not available."""
+    if obs not in _hybrid:
+        return None
+    e = _hybrid[obs]["est"]
     muM, sigM = e["mu_M"][0], e["sig_M"][0]
     c0, beta, sigc = e["c0"][0], e["beta"][0], e["sig_c"][0]
     return muM, sigM, c0, float(np.sqrt(beta**2 * sigM**2 + sigc**2))
@@ -51,7 +74,7 @@ LABEL = {"obs_z1_lambda5": "Baseline", "obs_z1_lambda5_high_mc_scatter": "High M
          "obs_z1_lambda5_high_richness_contam": "High richness contam.",
          "obs_z1_lambda5_prada": "Prada M-c (OOD)", "obs_z1_lambda5_ludlow": "Ludlow M-c (OOD)"}
 
-C_TRUE, C_MCMC, C_SBI, C_HMC, C_NHBI = "k", "#1f77b4", "#ff7f0e", "#2ca02c", "#9467bd"
+C_TRUE, C_MCMC, C_SBI, C_HMC, C_NHBI, C_HYB = "k", "#1f77b4", "#ff7f0e", "#2ca02c", "#9467bd", "#8c564b"
 
 
 def cov_from(mu, cov):
@@ -88,7 +111,11 @@ for i, r in enumerate(canon):
     nh = neural_hbi_marginal(r["obs"])
     if nh is not None:
         nmuM, nsigM, nmuc, nsigc = nh
-        methods.append((C_NHBI, [nmuM, nmuc], gcov(nsigM, nsigc), "Neural HBI", False))
+        methods.append((C_NHBI, [nmuM, nmuc], gcov(nsigM, nsigc), "Hierarchical SBI", False))
+    hy = hybrid_marginal(r["obs"])
+    if hy is not None:
+        hmuM, hsigM, hmuc, hsigc = hy
+        methods.append((C_HYB, [hmuM, hmuc], gcov(hsigM, hsigc), "Hybrid SBI-HMC", False))
 
     # per-row axis windows CENTERED ON TRUTH (experiments differ a lot: e.g. high-lambda-M has
     # mu_M~13.2 vs 14.4 elsewhere, so a shared window pushes it off-screen). Width set by the
@@ -136,8 +163,9 @@ handles = [Line2D([], [], color=C_TRUE, ls="--", lw=2, label="TRUE population"),
            Line2D([], [], color=C_MCMC, lw=2, label="MCMC joint-likelihood (FTJ, 2D plane only)"),
            Line2D([], [], color=C_SBI, lw=2, label="SBI FTJ"),
            Line2D([], [], color=C_HMC, lw=2, label="Hierarchical HMC (this work)"),
-           Line2D([], [], color=C_NHBI, lw=2, label="Neural HBI (this work)")]
-fig.legend(handles=handles, loc="upper center", ncol=5, bbox_to_anchor=(0.5, 1.005), fontsize=14)
+           Line2D([], [], color=C_NHBI, lw=2, label="Hierarchical SBI (this work)"),
+           Line2D([], [], color=C_HYB, lw=2, label="Hybrid SBI-HMC (this work)")]
+fig.legend(handles=handles, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.01), fontsize=13)
 fig.tight_layout(rect=[0, 0, 1, 0.99])
 fig.savefig(f"{OUT}/aggregate_hbi_comparison.png", dpi=140, bbox_inches="tight")
 print(f"wrote {OUT}/aggregate_hbi_comparison.png  ({n} experiments)")

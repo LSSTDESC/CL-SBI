@@ -53,7 +53,7 @@ ax.bar(x - 2*wb, true, wb, color="0.5", label="TRUE population")
 ax.bar(x - 1*wb, mcmc_plot, wb, color="#1f77b4", label="MCMC joint-likelihood (FTJ)")
 ax.bar(x + 0*wb, sbi,  wb, color="#ff7f0e", label="SBI FTJ")
 ax.bar(x + 1*wb, hmcv, wb, color="#2ca02c", label="Hierarchical HMC (this work)")
-ax.bar(x + 2*wb, np.nan_to_num(nhbi), wb, color="#9467bd", label="Neural HBI (this work)")
+ax.bar(x + 2*wb, np.nan_to_num(nhbi), wb, color="#9467bd", label="Hierarchical SBI (this work)")
 ymax = max(max(true), max(sbi), max(hmcv)) * 1.25
 for xi, conv in zip(x, mcmc_conv):
     if not conv:
@@ -100,12 +100,12 @@ grid = [
     ("Fit-then-join\n(single $M,c$)",  tg["sbi_ftj"], emcee_ftj, tg["hmc_ftj"], np.nan, False),
     ("Hierarchical\n(population)",      sbi_hier,      EMCEE_HBI_EST, hmc_hier, nhbi_hier, True),
 ]
-C = {"SBI": "#ff7f0e", "Neural HBI": "#9467bd", "HMC": "#2ca02c", "emcee": "#1f77b4"}
+C = {"SBI": "#ff7f0e", "Hierarchical SBI": "#9467bd", "HMC": "#2ca02c", "emcee": "#1f77b4"}
 fig2, ax2 = plt.subplots(figsize=(9, 5.5))
 w = 0.2
 x = np.arange(len(grid))
 # 4 bars/group, ordered ascending by typical height: SBI < Neural HBI < HMC < emcee -> emcee right
-for j, (mname, key) in enumerate([("SBI", 1), ("Neural HBI", 4), ("HMC", 3), ("emcee", 2)]):
+for j, (mname, key) in enumerate([("SBI", 1), ("Hierarchical SBI", 4), ("HMC", 3), ("emcee", 2)]):
     vals = [row[key] for row in grid]
     offs = (j - 1.5) * w
     bars = ax2.bar(x + offs, np.nan_to_num(vals), w, color=C[mname], label=mname)
@@ -122,8 +122,8 @@ ax2.set_yscale("log"); ax2.set_ylabel("wall time per inference [s] (log scale)")
 ax2.set_title("Inference cost by task and method (baseline, $N_c=376$, single CPU)")
 # explicit legend handles (Neural HBI has only one drawn bar -> auto-legend drops its swatch)
 from matplotlib.patches import Patch
-leg_order = ["SBI", "Neural HBI", "HMC", "emcee"]
-ax2.legend(handles=[Patch(facecolor=C[m], label=m + (" (this work)" if m == "Neural HBI" else ""))
+leg_order = ["SBI", "Hierarchical SBI", "HMC", "emcee"]
+ax2.legend(handles=[Patch(facecolor=C[m], label=m + (" (this work)" if m == "Hierarchical SBI" else ""))
                     for m in leg_order], title="method")
 ax2.set_ylim(0.2, EMCEE_HBI_EST*8)
 fig2.tight_layout(); fig2.savefig(f"{OUT}/three_method_timing.png", dpi=140)

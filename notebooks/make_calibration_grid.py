@@ -44,7 +44,7 @@ for ax,(obs,title) in zip(axes,EXPS):
     ax.plot(x,y(cov_hmc),color="#2ca02c",lw=2,label="Hier. HMC")
     txt=f"$\\Delta_{{\\max}}$: M={dmax(cov_mcmc):.2f} S={dmax(cov_sbi):.2f} H={dmax(cov_hmc):.2f}"
     if cov_nhbi is not None:
-        ax.plot(x,y(cov_nhbi),color="#9467bd",lw=2,label="Neural HBI")
+        ax.plot(x,y(cov_nhbi),color="#9467bd",lw=2,label="Hierarchical SBI")
         txt+=f" N={dmax(cov_nhbi):.2f}"
     ax.set_title(f"{title}",fontsize=12)
     ax.text(0.04,0.96,txt,transform=ax.transAxes,va="top",fontsize=8.0)
