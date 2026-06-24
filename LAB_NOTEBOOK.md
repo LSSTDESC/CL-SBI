@@ -55,11 +55,31 @@ on core population params (μ_M, σ_M, c0) over 8 exps: **HMC 0.021, Hierarchica
 **Paper cleanup (committed `1d11e56`):** removed the σ_M bar chart (Fig 4, low info beyond the table);
 cleared 2 done TODOs (head-to-head fig, calibration test — both now exist). Paper 17 pp, clean.
 
-**Pending (gated on FTJ sims finishing):** run FTJ training+analysis; then ONE integration pass —
-wire all 3 snippets (`_snippet_ftj/beta/massfn.tex`) into the paper + the β standalone discussion
-paragraph + the holistic abstract/intro/discussion rewrite around the co-headline framing (intro
-contribution list + abstract still say "three-way comparison" and omit the two hierarchical-SBI
-methods; "Toward hierarchical SBI" §still written as future-work speculation for things now built).
+**FTJ retrain DONE (`bcfb24c`).** 10k-sim broadened (mc-mix) generation + training finished;
+`analyze_ftj_mcmix.py` applied to baseline/ludlow/prada. **Result: broadening resolves the OOD
+concentration collapse.** μ_c (where relations differ): child18-only FTJ reports ~4.66 on BOTH OOD
+sets; broadened FTJ recovers 5.32 (ludlow, true 5.30) and 5.91 (prada, true 6.15). Caveats: σ_M
+slightly degraded by breadth; prada at envelope edge. Confirms the percentile-SBI OOD fragility is a
+single-relation-training artifact, not architecture.
+
+**INTEGRATION + REWRITE PASS DONE (`ba14b71`).** One coherent pass:
+- **Abstract + intro contribution list rewritten** — now feature the two co-equal headline methods
+  (hierarchical HMC + Hierarchical SBI; SBI ~200× cheaper) + Hybrid SBI–HMC as unification + the
+  FTJ-retrain and information-limit findings. (Were "three-way comparison," omitting both SBI variants.)
+- **3 snippets integrated** via `\input`: FTJ (broadened-training table, resolves OOD), β (new
+  "Identifiability of the M–c slope" discussion subsection — lever-arm-limited, r=−0.81, fig), massfn
+  (null-result ablation, fig).
+- **5 citations copied from Paper I bib** (tinker08, child18, prada12, ludlow16, mcclintock18) +
+  AAS journal `\providecommand`s + `multirow` + `\defcitealias{paper1}`. Full bibtex cycle clean.
+- **OOD reframe (user point):** ludlow/prada are now "alternative M–c relations" (a physical axis);
+  "out-of-distribution" reserved for the single-relation Paper-I FTJ specifically. Figure labels
+  ("(alt.)"), captions, body all updated.
+- **Paper now 22 pp, 0 undefined refs/citations, compiles clean.**
+
+**Remaining TODOs (all real future-work, none blocking):** larger-N_TRAIN Hierarchical SBI rerun to
+tighten μ_M/β SBC; 2-component mixture for the contam experiments; multi-richness-bin joint fit (the
+β lever-arm fix); Zenodo DOI + acknowledgments placeholders. Scratch `_snippet_*` files + NOTES
+remain in `tex_source_hbi/` (now `\input` into the paper; could be inlined/removed in a cleanup).
 
 ---
 
