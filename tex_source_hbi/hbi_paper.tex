@@ -235,7 +235,11 @@ likelihood-based inference per se.
   \emph{only in the 2D plane (left)} and omitted from the 1D marginals. SBI FTJ (orange), the
   hierarchical HMC (green), and the Hierarchical SBI (purple) recover the true population width; the two
   hierarchical methods additionally capture the broad true distribution in the high $\lambda$--$M$
-  scatter experiment that SBI FTJ underestimates.}
+  scatter experiment that SBI FTJ underestimates. The $(M,c)$ contours appear nearly horizontal in
+  most rows because a single richness bin spans only $\sigma_M\approx0.12$ in mass, over which even
+  the true $M$--$c$ slope produces a barely-perceptible tilt; the slope $\beta$ is consequently
+  unconstrained per bin (visible only in the wide high $\lambda$--$M$ scatter row) and is recovered
+  by the multi-bin joint fit of Section~\ref{sec:beta}.}
   \label{fig:aggregate}
 \end{figure*}
 
@@ -636,8 +640,9 @@ Several further extensions are natural: jointly inferring the richness--mass rel
 scatter as hyperparameters (the multi-bin joint fit of Section~\ref{sec:beta} is a first step);
 propagating photometric-redshift and miscentering systematics through the hierarchy; and a
 head-to-head calibration comparison on survey-realistic mocks. We defer these to future work.
-\todo{quantify HMC concentration bias mitigation; cite specific hierarchical-SBI methods (e.g.\ Rozet
-\& Louppe 2021).}
+\todo{quantify HMC concentration bias mitigation; vary the richness--mass relation form (not just its
+scatter) in the training/inference priors as an additional axis; cite specific hierarchical-SBI
+methods (e.g.\ Rozet \& Louppe 2021).}
 
 \section*{Data and code availability}
 All code, configurations, and the hierarchical-inference notebook are available in the
