@@ -99,10 +99,27 @@ massfn-informed ablation + multi-bin per-bin populations, never the default free
 inference is the right β fix; dimensionality fine for HMC (2632 latents routine), selection effects
 are a feature to model (per-bin MF×selection), not a blocker.
 
+**FULL-DATASET (McClintock 4×3 grid) HMC — building (`9d3853d`).** User asked: do the multi-bin β
+fit on a realistic full survey (all richness + redshift bins) à la Fig 3, HMC first; if it works,
+repeat for all methods. **Got the real per-cell counts from McClintock18 Fig 4** (user typed them;
+total 76,574 over λ≥5 = matches "76,000"). λ<20 is below McClintock's calibration floor + dominates
+(90% of clusters) + intractable → use **λ≥20 only = 6,504 clusters** (matches their "6,500 above
+λ=20"), HMC-feasible.
+- **12 cells** (λ∈{[20,30],[30,45],[45,60],[60,∞]} × z∈{0.275,0.425,0.575}), real counts e.g.
+  z1: 762/376/123/91; z2: 1549/672/187/148; z3: 1612/687/205/92. Obs generated at these counts.
+- **Model:** shared M–c relation **with redshift evolution** c = c0 + β(logM−14.3) + γ(z−0.35) + N(0,σ_c);
+  per-cell MF×selection mass population; **z-aware forward model** (Δ_vir(z)=124.9/134.8/142.9,
+  verified vs colossus). The γ term is essential — true γ=−2.07 (concentration drops with z); omitting
+  it would bias β.
+- True structure from data: c0=4.55, β=−0.68, γ=−2.07, 1.28 dex mass baseline. Smoke test already
+  recovers γ=−2.05, β tracking. **Full run launched (PID 32766, 6504 latents — heaviest NUTS yet,
+  ~1–2 hr).** Will produce a Fig-3-analog (M,c,β,γ recovery) for the full dataset.
+- **Next if it works:** repeat for Hierarchical SBI + Hybrid (amortized methods handle large N more
+  naturally) → parallel full-dataset Figure 3.
+
 **Remaining TODOs (all real future-work, none blocking):** larger-N_TRAIN Hierarchical SBI rerun to
-tighten μ_M/β SBC; amortized (Hierarchical-SBI) version of the multi-bin fit; Zenodo DOI +
-acknowledgments placeholders. Scratch `_snippet_*` files + NOTES remain in `tex_source_hbi/` (now
-`\input` into the paper; could be inlined/removed in a cleanup).
+tighten μ_M/β SBC; vary R–M relation FORM in priors; Zenodo DOI + acknowledgments. Scratch
+`_snippet_*` files remain `\input` into the paper (could inline in cleanup).
 
 ---
 
