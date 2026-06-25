@@ -554,10 +554,17 @@ the network is therefore mis-specified: it nonetheless recovers the mass locatio
 well (Table~\ref{tab:afull}; e.g.\ $\sigma_M=0.159$ vs.\ true $0.162$ for the high-contamination
 case) and its predictive profiles remain consistent with the data (Figure~\ref{fig:ppc}),
 because the stacked profile is dominated by the mass distribution; the mis-specification instead
-surfaces in a biased $M$--$c$ relation ($\beta$, $\sigma_c$). Extending the population to a
-two-component mixture in $\log_{10}M$ is the direct refinement that should remove this bias.
-\todo{Add the larger-training-set rerun (tightening $\mu_M$, $\beta$ calibration); add the
-two-component mixture run for the richness-contamination experiments.}
+surfaces in a biased $M$--$c$ relation ($\beta$, $\sigma_c$). We tested the direct refinement---a
+two-component Gaussian mixture mass population (a main component plus a lower-mass contaminant of free
+fraction $f$)---in a hierarchical HMC on both contamination stacks. At low contamination it removes
+the bias: the mixture recovers $\beta=-0.87$ (true $-0.87$) versus $-1.19$ for the single-Gaussian
+fit, with a recovered contaminant fraction $f=0.18$. At high contamination ($\sim$50\%), however, the
+mixture does not rescue the slope ($\beta=+0.41$ versus a true $-0.86$): with the two mass components
+heavily overlapping and only a single richness bin's narrow mass baseline, $\beta$ remains
+lever-arm-limited (Section~\ref{sec:beta}) regardless of how well the mass \emph{shape} is modeled.
+The mixture therefore corrects the population \emph{shape} but not the slope; recovering the slope
+under heavy contamination requires the wide mass baseline of the multi-bin joint fit.
+\todo{Add the larger-training-set rerun (tightening $\mu_M$, $\beta$ calibration).}
 
 \input{_snippet_ftj}
 
@@ -626,10 +633,11 @@ hierarchical neural posterior estimation of Rozet \& Louppe 2021) as an alternat
 amortized-likelihood approach used here.}
 
 Several further extensions are natural: jointly inferring the richness--mass relation and its
-scatter as hyperparameters; propagating photometric-redshift and miscentering systematics through
-the hierarchy; and a head-to-head calibration comparison on survey-realistic mocks. We defer these
-to future work. \todo{quantify HMC concentration bias mitigation; add multi-richness-bin joint fit;
-cite specific hierarchical-SBI methods (e.g.\ Rozet \& Louppe 2021).}
+scatter as hyperparameters (the multi-bin joint fit of Section~\ref{sec:beta} is a first step);
+propagating photometric-redshift and miscentering systematics through the hierarchy; and a
+head-to-head calibration comparison on survey-realistic mocks. We defer these to future work.
+\todo{quantify HMC concentration bias mitigation; cite specific hierarchical-SBI methods (e.g.\ Rozet
+\& Louppe 2021).}
 
 \section*{Data and code availability}
 All code, configurations, and the hierarchical-inference notebook are available in the
