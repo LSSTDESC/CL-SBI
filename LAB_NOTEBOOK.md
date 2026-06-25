@@ -76,10 +76,33 @@ single-relation-training artifact, not architecture.
   ("(alt.)"), captions, body all updated.
 - **Paper now 22 pp, 0 undefined refs/citations, compiles clean.**
 
+**Multi-bin β fix + contam mixture — BUILT & INTEGRATED (`26a8a7f`, `aff861e`).** Prompted by user:
+can we constrain β by inferring across all richness bins (wider mass lever arm) rather than per-bin?
+- **Multi-bin joint fit (`hier_multibin_beta.py`) — clear WIN.** Generated obs for all 7 richness
+  bins (fixed `obs_z1_lambda1.json` error_dex→profile_noise_dex crash). Pooled mass spans **2.08 dex**
+  vs ~0.12 single-bin (~11× lever arm); true cross-bin slope −0.97. Joint HMC over ~2632 clusters:
+  ONE shared (c0,β,σ_c) + per-bin MF×selection mass population (handles selection effects). Recovers
+  **β=−0.86±0.04 vs single-bin −1.28±0.31 → 7× tighter.** Confirms the lever-arm diagnosis directly.
+  ~20 min wall.
+- **Contam 2-component mixture (`hier_contam_mixture.py`) — PARTIAL.** logM ~ (1−f)N(main)+f·N(contam),
+  assignment marginalized via logaddexp, vs single-Gaussian, on both contam stacks. **Low contam (f≈0.1):
+  fixes β** (mixture −0.87 vs true −0.87; single-Gaussian −1.19; recovered f=0.18). **High contam (~50%):
+  does NOT rescue β** (mixture +0.41 vs true −0.86) — overlapping components + single-bin narrow lever
+  arm → β still lever-arm-limited. Mixture corrects population SHAPE, not the SLOPE. Coherent with the
+  β finding: slope needs the multi-bin baseline, not better shape modeling.
+- Paper: β subsection now reports the multi-bin demonstration (was "future work"); contam limitation
+  reports the mixture result; done TODOs cleared. 22 pp, clean.
+
+**Direct answers logged:** (1) R–M relation is NOT varied in sims (only rm_scatter); mc_relation form
+IS varied (child/ludlow/prada) — asymmetry noted. R–M enters hierarchical priors only via the
+massfn-informed ablation + multi-bin per-bin populations, never the default free model. (2) Multi-bin
+inference is the right β fix; dimensionality fine for HMC (2632 latents routine), selection effects
+are a feature to model (per-bin MF×selection), not a blocker.
+
 **Remaining TODOs (all real future-work, none blocking):** larger-N_TRAIN Hierarchical SBI rerun to
-tighten μ_M/β SBC; 2-component mixture for the contam experiments; multi-richness-bin joint fit (the
-β lever-arm fix); Zenodo DOI + acknowledgments placeholders. Scratch `_snippet_*` files + NOTES
-remain in `tex_source_hbi/` (now `\input` into the paper; could be inlined/removed in a cleanup).
+tighten μ_M/β SBC; amortized (Hierarchical-SBI) version of the multi-bin fit; Zenodo DOI +
+acknowledgments placeholders. Scratch `_snippet_*` files + NOTES remain in `tex_source_hbi/` (now
+`\input` into the paper; could be inlined/removed in a cleanup).
 
 ---
 
