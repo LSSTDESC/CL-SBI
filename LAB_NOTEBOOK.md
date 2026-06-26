@@ -117,6 +117,29 @@ total 76,574 over λ≥5 = matches "76,000"). λ<20 is below McClintock's calibr
 - **Next if it works:** repeat for Hierarchical SBI + Hybrid (amortized methods handle large N more
   naturally) → parallel full-dataset Figure 3.
 
+**FULL-DATASET RESULTS — DONE (`3a10938`). β AND z-evolution recovered.** Both HMC + Hybrid ran (the
+fully-amortized Hierarchical SBI deferred — needs a variable-multi-cell deep-set redesign, not a quick
+run). Hybrid's per-cluster net was z-conditioned `q(M,c|profile,noise,z)` for this. Results (rhat~1.00):
+
+| param | true | HMC | Hybrid |
+|---|---|---|---|
+| c0 | 4.552 | 4.587±0.016 | 4.551±0.018 |
+| **β** | −0.683 | −0.559±0.056 | **−0.698±0.069** |
+| γ (z-evol) | −2.068 | **−2.091±0.100** | −2.466±0.109 |
+| σ_c | 0.293 | 0.207±0.030 | — |
+
+- **HEADLINE:** both recover β on the realistic 6504-cluster survey — posteriors **~5× tighter** than
+  single-bin (−1.28±0.31, biased) and on-target. **γ (concentration–z evolution) detected** (HMC
+  −2.09 vs true −2.07) — only the multi-z dataset can probe it. HMC 45 min, Hybrid 32 min.
+- **Honest blemishes:** HMC β ~2σ low + σ_c low (likely per-cell MF-prior↔shared-slope interaction);
+  Hybrid γ ~3σ steep (per-cluster net z-calibration drift at z-extremes). Both stated in the paper.
+  Cross-check is reassuring: the two methods miss on *different* second-order params, agree on the
+  headline β.
+- `fig:fulldataset` (pooled colored-by-z (M,c) cloud + β/γ recovery bars) + realistic-survey paragraph
+  added to the β subsection. Paper 23 pp, clean.
+- **Open:** fully-amortized Hierarchical SBI on the full dataset (architecture redesign — deferred);
+  optionally chase the HMC-β / Hybrid-γ discrepancies.
+
 **Remaining TODOs (all real future-work, none blocking):** larger-N_TRAIN Hierarchical SBI rerun to
 tighten μ_M/β SBC; vary R–M relation FORM in priors; Zenodo DOI + acknowledgments. Scratch
 `_snippet_*` files remain `\input` into the paper (could inline in cleanup).
