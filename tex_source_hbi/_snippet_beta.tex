@@ -59,3 +59,35 @@ spread $\sigma_M$, for the Hierarchical SBI and Hybrid SBI--HMC; the two are str
 experiment lands on the one-to-one line while the narrow-mass experiments scatter and rail toward the
 prior.\label{fig:beta_leverarm}}
 \end{figure}
+
+\paragraph{A realistic-survey demonstration.} To test this on a survey-realistic dataset rather than
+the controlled equal-count bins, we assemble the full \citet{mcclintock18} sample geometry: the four
+richness bins above their calibration floor ($\lambda\in[20,30),[30,45),[45,60),[60,\infty)$) crossed
+with three redshift bins ($z\in[0.2,0.35),[0.35,0.5),[0.5,0.65)$), using the actual per-cell cluster
+counts from that analysis (6504 clusters in total, ranging from 1612 in the most populated cell to 91
+in the sparsest). We fit one shared $M$--$c$ relation across all twelve cells, now including a
+redshift-evolution term, $c = c_0 + \beta(\log_{10}M - 14.3) + \gamma(z-0.35) + \mathcal{N}(0,\sigma_c)$,
+with each cell carrying its own mass-function$\times$selection mass population at its own redshift
+(and a redshift-aware forward model). We run this with both hierarchical HMC and the Hybrid SBI--HMC.
+Both recover the slope that is inaccessible in any single bin (Figure~\ref{fig:fulldataset}): the
+Hybrid gives $\beta=-0.70\pm0.07$ and HMC $\beta=-0.56\pm0.06$ against a true $-0.68$, posteriors
+$\sim5\times$ tighter than the single-bin value and no longer prior-railed. The redshift evolution,
+which only this multi-redshift dataset can probe, is also detected ($\gamma=-2.09\pm0.10$ from HMC
+versus a true $-2.07$). The two methods differ mildly on the harder second-order parameters---HMC
+slightly underestimates $\beta$ and $\sigma_c$ (a residual interaction with the per-cell
+mass-function prior), while the Hybrid's $\gamma$ is pulled somewhat steep (a calibration drift of the
+redshift-conditioned per-cluster network at the redshift extremes)---but both deliver the central
+result: with a realistic survey's mass and redshift baseline, the $M$--$c$ slope and its redshift
+evolution are well constrained, where a single richness bin determines neither.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/fulldataset_recovery.png}
+\caption{Full-dataset recovery on the realistic \citet{mcclintock18} $4\times3$ (richness $\times$
+redshift) grid, 6504 clusters. \emph{Left:} the pooled $(M,c)$ population (points colored by redshift)
+with the recovered $M$--$c$ relation at each redshift; the relation shifts downward with $z$ (the
+recovered evolution $\gamma$) and tilts with mass (the slope $\beta$). \emph{Right:} recovered $\beta$
+and $\gamma$ for hierarchical HMC and Hybrid SBI--HMC against truth; both recover the slope that is
+unconstrained in any single richness bin ($\beta=-1.28\pm0.31$, biased) and detect the
+concentration--redshift evolution.\label{fig:fulldataset}}
+\end{figure*}
