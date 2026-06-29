@@ -245,7 +245,13 @@ likelihood-based inference per se.
 
 Figure~\ref{fig:aggregate} extends this comparison to all experiments in the multi-panel format of
 Paper~I, confirming that the hierarchical HMC tracks the true population marginals in both mass and
-concentration across the suite.
+concentration across the suite. One feature is conspicuous and deferred to Section~\ref{sec:beta}: the
+$(M,c)$ contours are nearly horizontal in most rows, i.e.\ none of the methods recovers the
+mass--concentration \emph{slope} $\beta$ here. This is not a failure of the methods but of the data
+geometry---a single richness bin spans too little mass to constrain a slope---and we show in
+Section~\ref{sec:beta} that jointly fitting multiple richness (and redshift) bins, which widens the
+mass baseline by an order of magnitude, recovers $\beta$ cleanly
+(Figures~\ref{fig:multibin_beta} and~\ref{fig:fulldataset}).
 
 \subsection{Calibration}
 \label{sec:calibration}
