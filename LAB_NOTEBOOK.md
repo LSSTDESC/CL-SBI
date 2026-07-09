@@ -5,6 +5,37 @@ Detailed per-session TODOs live in `CLAUDE.md` and `tex_source/REVIEW_TODOS.md`.
 
 ---
 
+## 2026-07-09 — Paper I internal review (C. Payerne / LSST-DESC): plan + tracker
+
+Received Constantin Payerne's LSST-DESC internal review of Paper I (`~/Downloads/
+internal_review_sbi_wl_paper.pdf`). ~80 comments; triaged into 9 themes + a prioritized response plan
+at **`tex_source/feedback/IR1_payerne_plan.md`** (checkbox tracker, comment-by-comment).
+
+**Dominant theme (P0): the over/under-confidence framing.** Payerne (an SBI expert) flags that we use
+"overconfidence" non-standardly — SBI-literature calibration = *probability coverage* (TARP/SBC) vs a
+method's OWN training/likelihood, by which MCMC FTJ is perfectly calibrated. We measure spread vs the
+*intrinsic (M,c) distribution* instead. He wants (i) both notions defined precisely & EARLY w/ an
+equation, (ii) the "MCMC & SBI answer different questions; MCMC narrowness is by-construction" caveat
+moved up front (currently buried in conclusions), (iii) anti-MCMC tone softened (paper reads as
+"MCMC is bad"; not intended). **This is exactly the language we already built for Paper II — port it.**
+
+**Other priorities:** P1 = restructure §2.3 (split MCMC/SBI, JTF/FTJ first) + NEW mean-mass-recovery
+summary figure (#6, we can build from existing outputs; answers "useful for cluster cosmo?") + intro
+SBI refs. P2 = author-decision science Qs (Σ vs ΔΣ; log-normal noise motivation; one-realization-vs-
+averaged data vector; refs for scatter/noise values). P3 = §2.2→appendix, §4.7→perspectives, merges,
+"experiment"→"mock data"/"training set" rename. P4 = ~30 line-level wording nits + title (drop one
+"inference").
+
+**Refs to add:** arXiv:2602.01911 (Payerne cluster-SBI, for the coverage definition + intro cites),
+arXiv:2502.08444 (DC2 stacked-WL scaling-relation, downstream use case), Murray et al. in prep.
+
+**Plan:** Phase 1 P0 calibration reframe → Phase 2 P1 structure+mean-mass fig → Phase 3 P2 author
+decisions → Phase 4 P3/P4 sweep. Edits go in `main.tex` (Overleaf; `tex_source/` gitignored here) under
+a NEW **`\IR1{}`** orange comment tag (`\newcommand{\IR1}[1]{\textcolor{orange}{IR1:#1}}`) to distinguish
+from `\akum` cyan / `\ca` purple / `\draft` red. **Blockers for Phase 3:** the 4 open author decisions.
+
+---
+
 ## 2026-06-24 — Method reframe, 3 parallel investigations, data-driven co-headline decision
 
 **Naming reframe (committed `c57bce0`, `13bde5b`).** The population-SBI methods were poorly named and
