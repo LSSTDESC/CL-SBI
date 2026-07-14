@@ -70,3 +70,4 @@ CLAUDE.md
 
 # Sphinx documentation
 docs/_build/
+notebooks/tutorial_01_population_inference/cache/
