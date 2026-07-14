@@ -53,6 +53,17 @@ def cached(name, fn, where=CACHE):
 # package machinery (imported, not re-implemented -- see the paper / repo)
 from weaklensclustersbi.simulations import population, wlprofile
 
+def kde_contours(ax, samples, color, levels=(0.68, 0.95), ls="-", lw=1.8, fill=False, alpha=0.18):
+    \"\"\"2D KDE contours enclosing the given probability mass.\"\"\"
+    from scipy import stats as _st
+    x, y = samples[:, 0], samples[:, 1]
+    xx, yy = np.mgrid[x.min():x.max():90j, y.min():y.max():90j]
+    f = np.reshape(_st.gaussian_kde(samples.T)(np.vstack([xx.ravel(), yy.ravel()])), xx.shape)
+    sf = np.sort(f.ravel())[::-1]; cs = np.cumsum(sf); cs /= cs[-1]
+    cl = sorted(sf[np.searchsorted(cs, lv)] for lv in levels)
+    if fill: ax.contourf(xx, yy, f, levels=[cl[0], f.max()], colors=[color], alpha=alpha)
+    ax.contour(xx, yy, f, levels=cl, colors=[color], linewidths=lw, linestyles=ls)
+
 N_CLUSTERS = 5          # scale this up later (e.g. 10, 50) -- everything else adapts
 NOISE_DEX  = 0.3        # per-radial-bin log-normal noise (paper baseline)
 Z          = 0.275      # mid of the 0.2 < z < 0.35 bin
@@ -142,12 +153,22 @@ def percluster_samples(n=2000):
 PC = cached("percluster_samples", percluster_samples)
 np.savez(os.path.join(DATA, "percluster_posteriors.npz"), samples=PC, true_mc=OBS["true_mc"])  # shared deliverable
 
-fig, ax = plt.subplots(figsize=(5.5, 4.5))
-ax.scatter(PC[0][:, 0], PC[0][:, 1], s=3, alpha=0.15, color="gray", label="cluster-0 posterior (SBI)")
-ax.scatter(*OBS["true_mc"][0], marker="*", s=250, color="red", edgecolor="k", zorder=5, label="cluster-0 truth")
-ax.scatter(POP[::40, 0], POP[::40, 1], s=2, alpha=0.15, color="C0", label="true population")
-ax.set_xlabel(r"$\\log_{10} M$"); ax.set_ylabel("concentration"); ax.legend()
-ax.set_title("One cluster tells you little -- hence: population inference"); plt.show()"""))
+fig, ax = plt.subplots(figsize=(8, 6))
+kde_contours(ax, PC[0], "C1", fill=True)                      # cluster 0 posterior (68/95%)
+kde_contours(ax, PC[3], "C2", fill=True)                      # cluster 3 posterior
+kde_contours(ax, POP[:8000], "k", ls="--", lw=2)              # true population (68/95%)
+ax.scatter(*OBS["true_mc"][0], marker="*", s=350, color="C1", edgecolor="k", zorder=5)
+ax.scatter(*OBS["true_mc"][3], marker="*", s=350, color="C2", edgecolor="k", zorder=5)
+from matplotlib.lines import Line2D
+ax.legend(handles=[Line2D([], [], color="C1", lw=2, label="cluster-0 posterior (68/95%)"),
+                   Line2D([], [], color="C2", lw=2, label="cluster-3 posterior (68/95%)"),
+                   Line2D([], [], color="k", ls="--", lw=2, label="true population (68/95%)"),
+                   Line2D([], [], marker="*", ls="", ms=15, mfc="gray", mec="k", label="true (M, c) of each cluster")],
+          fontsize=10, loc="upper right")
+ax.set_xlabel(r"$\\log_{10} M$", fontsize=13); ax.set_ylabel("concentration", fontsize=13)
+ax.set_title("Each single-cluster posterior is wide, degenerate, and much broader than\\n"
+             "the population itself -- combining clusters is what constrains the population", fontsize=11)
+plt.show()"""))
 
 C.append(md("""## 3. The population question
 
@@ -157,6 +178,72 @@ and infer the four **hyperparameters** $(\\mu_M, \\sigma_M, \\mu_c, \\sigma_c)$.
 All three methods use the **same hyperprior**:
 $\\mu_M \\sim \\mathcal{N}(14.4, 0.3)$, $\\sigma_M \\sim \\mathrm{HalfNormal}(0.25)$,
 $\\mu_c \\sim \\mathcal{N}(4.6, 0.8)$, $\\sigma_c \\sim \\mathrm{HalfNormal}(0.5)$."""))
+
+C.append(code("""# --- what actually differs between the three approaches? (PGMs) ---------------
+import matplotlib.patches as mpatches
+
+def node(ax, x, y, label, observed=False, fs=11):
+    ax.add_patch(plt.Circle((x, y), 0.32, fc="0.82" if observed else "white", ec="k", zorder=3))
+    ax.text(x, y, label, ha="center", va="center", fontsize=fs, zorder=4)
+
+def arrow(ax, x0, y0, x1, y1):
+    ax.annotate("", xy=(x1, y1), xytext=(x0, y0),
+                arrowprops=dict(arrowstyle="-|>", color="k", lw=1.4, shrinkA=12, shrinkB=12))
+
+def plate(ax, x, y, w, h, label):
+    ax.add_patch(mpatches.FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.06",
+                                         fill=False, ec="0.4", lw=1.2))
+    ax.text(x + w - 0.08, y + 0.08, label, ha="right", va="bottom", fontsize=9, color="0.35")
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 4.2))
+for ax, title, color in zip(axes, ["GREEN: joint hierarchical", "BROWN: two-stage (recycled)",
+                                   "PURPLE: amortized neural posterior"], ["green", "saddlebrown", "purple"]):
+    ax.set_xlim(0, 3); ax.set_ylim(-0.9, 4.3); ax.axis("off")
+    ax.set_title(title, fontsize=11, color=color, fontweight="bold")
+
+# green: theta -> (M_j,c_j) -> x_j, one joint inference
+ax = axes[0]
+node(ax, 1.5, 3.5, r"$\\theta$"); node(ax, 1.5, 2.1, r"$M_j, c_j$"); node(ax, 1.5, 0.7, r"$x_j$", observed=True)
+arrow(ax, 1.5, 3.5, 1.5, 2.1); arrow(ax, 1.5, 2.1, 1.5, 0.7)
+plate(ax, 0.7, 0.15, 1.6, 2.55, r"$j=1..N$")
+ax.text(1.5, -0.6, "NUTS samples $\\\\theta$ AND all latents\\njointly (exact, re-run per model)", ha="center", fontsize=8.5)
+
+# brown: stage 1 per cluster with flat prior; stage 2 reweight cached samples by theta
+ax = axes[1]
+node(ax, 0.8, 3.5, r"$\\pi_0$"); node(ax, 0.8, 2.1, r"$M_j, c_j$"); node(ax, 0.8, 0.7, r"$x_j$", observed=True)
+arrow(ax, 0.8, 3.5, 0.8, 2.1); arrow(ax, 0.8, 2.1, 0.8, 0.7)
+plate(ax, 0.15, 0.15, 1.3, 2.55, r"$j=1..N$")
+node(ax, 2.3, 3.5, r"$\\theta$"); node(ax, 2.3, 2.1, r"$w_{js}$")
+arrow(ax, 2.3, 3.5, 2.3, 2.1)
+ax.annotate("", xy=(2.0, 2.1), xytext=(1.15, 2.1),
+            arrowprops=dict(arrowstyle="-|>", color="0.4", lw=1.2, ls="--", shrinkA=14, shrinkB=14))
+ax.text(1.55, 2.35, "cached\\nsamples", ha="center", fontsize=7.5, color="0.35")
+ax.text(1.5, -0.6, "stage 1 ONCE (flat prior, cached);\\nstage 2 reweights samples under $\\\\theta$", ha="center", fontsize=8.5)
+
+# purple: x_j -> neural net -> theta (inference direction)
+ax = axes[2]
+node(ax, 1.5, 0.7, r"$x_j$", observed=True)
+plate(ax, 0.7, 0.15, 1.6, 1.15, r"$j=1..N$")
+ax.add_patch(mpatches.FancyBboxPatch((0.9, 1.85), 1.2, 0.6, boxstyle="round,pad=0.05", fc="lavender", ec="purple"))
+ax.text(1.5, 2.15, r"$q_\\phi$", ha="center", va="center", fontsize=12, color="purple")
+node(ax, 1.5, 3.5, r"$\\theta$")
+arrow(ax, 1.5, 1.0, 1.5, 1.85); arrow(ax, 1.5, 2.45, 1.5, 3.5)
+ax.text(1.5, -0.6, "network trained on sims of the full graph;\\ninverts it: profiles in, $\\\\theta$ posterior out", ha="center", fontsize=8.5)
+plt.tight_layout(); plt.show()"""))
+
+C.append(md("""**Same generative story, three inference strategies.**
+All three assume the identical graph: hyperparameters $\\theta$ generate per-cluster $(M_j, c_j)$,
+which generate the observed profiles $x_j$. They differ *only* in how the posterior
+$p(\\theta \\mid x_{1..N})$ is computed:
+
+- 🟢 **Green** samples the joint posterior over $\\theta$ *and* every latent $(M_j, c_j)$ at once
+  (exact, but the cost grows with $N$ and every new population model re-pays the full cost).
+- 🟤 **Brown** splits the graph: per-cluster posteriors are computed **once** under a flat prior
+  and cached; any population model is then fit by *reweighting* the cached samples
+  (importance sampling). Same math, different factorization — the per-cluster work is never repeated.
+- 🟣 **Purple** replaces sampling entirely: a neural posterior estimator is trained on simulations
+  of the whole graph and *inverts* it — profiles in, $\\theta$ posterior out, in milliseconds.
+  The cost moves to training time; the prior is baked into the training simulations."""))
 
 C.append(code("""# --- method 1 (green): hierarchical HMC -- the joint generative model ---------
 import jax, jax.numpy as jnp, numpyro
@@ -256,6 +343,20 @@ C.append(code("""METHODS = [("Hierarchical HMC", GREEN, "green"), ("Hybrid SBI +
            ("Full hierarchical SBI", PURPLE, "purple")]
 PARAMS  = [("mu_M", r"$\\mu_{\\log M}$"), ("sig_M", r"$\\sigma_{\\log M}$"),
            ("mu_c", r"$\\mu_c$"), ("sig_c", r"$\\sigma_c$")]
+
+# 2D posteriors: the (mean, spread) planes for mass and concentration
+fig, axes = plt.subplots(1, 2, figsize=(11, 4.6))
+for ax, (kx, ky, lx, ly) in zip(axes, [("mu_M", "sig_M", r"$\\mu_{\\log M}$", r"$\\sigma_{\\log M}$"),
+                                        ("mu_c", "sig_c", r"$\\mu_c$", r"$\\sigma_c$")]):
+    for name, smp, color in METHODS:
+        kde_contours(ax, np.column_stack([smp[kx], smp[ky]]), color, fill=True)
+    ax.scatter(TRUE[kx], TRUE[ky], marker="*", s=350, color="k", zorder=6, label="truth")
+    ax.set_xlabel(lx, fontsize=12); ax.set_ylabel(ly, fontsize=12)
+from matplotlib.lines import Line2D
+axes[0].legend(handles=[Line2D([], [], color=c, lw=2, label=n) for n, _, c in METHODS]
+               + [Line2D([], [], marker="*", ls="", ms=14, mfc="k", mec="k", label="truth")], fontsize=9)
+fig.suptitle("2D population posteriors (68/95%): mean vs spread", y=1.02)
+plt.tight_layout(); plt.show()
 
 fig, axes = plt.subplots(2, 2, figsize=(10, 7))
 for ax, (key, label) in zip(axes.ravel(), PARAMS):
