@@ -6,18 +6,19 @@ def code(src): return {"cell_type": "code", "metadata": {}, "source": src, "outp
 
 C = []
 
-C.append(md("""# Tutorial 01 — Population inference on 5 clusters, three ways
+C.append(md("""# Tutorial 01 — Population inference on a small cluster sample, four ways
 
-**The core idea of the paper in one notebook.** We take **five** simulated cluster weak-lensing
+**The core idea of the paper in one notebook.** We take **N = 25** simulated cluster weak-lensing
 observations and infer the *population* mass–concentration distribution with three methods:
 
 | color | method | per-cluster step | population step |
 |---|---|---|---|
-| 🟢 green | **Hierarchical HMC** | sampled jointly (latents) | NUTS on hyperparameters (differentiable model) |
-| 🟤 brown | **Hybrid: SBI + recycling** | amortized SBI (NPE) posteriors, cached | reweight cached samples (importance sampling) |
-| 🟣 purple | **Full hierarchical SBI** | — (end-to-end) | neural posterior trained to map 5 profiles → hyperparameters |
+| 🟢 green | **Hierarchical HMC** *(paper)* | sampled jointly (latents) | NUTS on hyperparameters (differentiable model) |
+| 🐬 teal | **HMC + recycling** *(validation variant, not in the paper)* | per-cluster NUTS (flat prior), cached | reweight cached samples (importance sampling) |
+| 🟤 brown | **Hybrid SBI-HMC** *(paper)* | amortized SBI (NPE) posteriors, cached | HMC on hyperparameters over the cached samples |
+| 🟣 purple | **Hierarchical SBI** *(paper)* | — (end-to-end) | neural posterior trained to map all profiles → hyperparameters |
 
-All three answer the same question with the same priors — the punchline is that they **agree**.
+The colors match the paper's comparison figures. All methods answer the same question with the same priors — the punchline is that they **agree**.
 
 *Runtime:* first fresh run ≈ 10–20 min (SBI training dominates); everything is cached in `cache/`,
 so re-runs take seconds. Delete `cache/` to recompute from scratch. The 5 observations live in
@@ -64,15 +65,15 @@ def kde_contours(ax, samples, color, levels=(0.68, 0.95), ls="-", lw=1.8, fill=F
     if fill: ax.contourf(xx, yy, f, levels=[cl[0], f.max()], colors=[color], alpha=alpha)
     ax.contour(xx, yy, f, levels=cl, colors=[color], linewidths=lw, linestyles=ls)
 
-N_CLUSTERS = 5          # scale this up later (e.g. 10, 50) -- everything else adapts
+N_CLUSTERS = 25         # scale freely -- all caches are keyed by N
 NOISE_DEX  = 0.3        # per-radial-bin log-normal noise (paper baseline)
 Z          = 0.275      # mid of the 0.2 < z < 0.35 bin
 RBINS      = 10 ** np.arange(0, 3, 0.1)   # 30 log-spaced radii [kpc/h]
 SEED       = 11"""))
 
-C.append(md("""## 1. The data: five clusters from one richness bin
+C.append(md("""## 1. The data: N clusters from one richness bin
 
-We draw 5 clusters from the paper's baseline population — the $30<\\lambda<45$ richness bin
+We draw `N_CLUSTERS` clusters from the paper's baseline population — the $30<\\lambda<45$ richness bin
 (McClintock+18 richness–mass relation, Child+18 concentration–mass relation, Tinker08 mass
 function weighting) — and observe each as a noisy **excess surface density** $\\Delta\\Sigma(R)$
 profile (0.3 dex log-normal noise per radial bin), exactly as in the paper."""))
@@ -99,7 +100,7 @@ def make_truth_population():
         num_samples=20000, mc_scatter=0.1, rm_scatter=0.1, min_z=0.2, max_z=0.35))
     return pop
 
-OBS  = cached("observations", make_observations, where=DATA)
+OBS  = cached(f"observations_N{N_CLUSTERS}", make_observations, where=DATA)
 POP  = cached("truth_population", make_truth_population, where=DATA)
 TRUE = dict(mu_M=POP[:,0].mean(), sig_M=POP[:,0].std(), mu_c=POP[:,1].mean(), sig_c=POP[:,1].std())
 
@@ -150,8 +151,8 @@ def percluster_samples(n=2000):
         out.append(s)
     return np.array(out)                        # (N_CLUSTERS, n, 2)
 
-PC = cached("percluster_samples", percluster_samples)
-np.savez(os.path.join(DATA, "percluster_posteriors.npz"), samples=PC, true_mc=OBS["true_mc"])  # shared deliverable
+PC = cached(f"percluster_samples_N{N_CLUSTERS}", percluster_samples)
+np.savez(os.path.join(DATA, f"percluster_posteriors_N{N_CLUSTERS}.npz"), samples=PC, true_mc=OBS["true_mc"])  # shared deliverable
 
 fig, ax = plt.subplots(figsize=(8, 6))
 kde_contours(ax, PC[0], "C1", fill=True)                      # cluster 0 posterior (68/95%)
@@ -196,8 +197,8 @@ def plate(ax, x, y, w, h, label):
     ax.text(x + w - 0.08, y + 0.08, label, ha="right", va="bottom", fontsize=9, color="0.35")
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 4.2))
-for ax, title, color in zip(axes, ["GREEN: joint hierarchical", "BROWN: two-stage (recycled)",
-                                   "PURPLE: amortized neural posterior"], ["green", "saddlebrown", "purple"]):
+for ax, title, color in zip(axes, ["GREEN: Hierarchical HMC (joint)", "BROWN: Hybrid SBI-HMC (two-stage)",
+                                   "PURPLE: Hierarchical SBI (amortized)"], ["green", "saddlebrown", "purple"]):
     ax.set_xlim(0, 3); ax.set_ylim(-0.9, 4.3); ax.axis("off")
     ax.set_title(title, fontsize=11, color=color, fontweight="bold")
 
@@ -275,33 +276,59 @@ def run_green():
     s = mcmc.get_samples()
     return {k: np.array(s[k]) for k in ("mu_M", "sig_M", "mu_c", "sig_c")}
 
-GREEN = cached("green_hmc", run_green)
+GREEN = cached(f"green_hmc_N{N_CLUSTERS}", run_green)
 print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in GREEN.items()})"""))
 
 C.append(code("""# --- method 2 (brown): recycle the cached per-cluster SBI posteriors ----------
 # GW-style importance sampling: with a FLAT per-cluster training prior, the population
 # likelihood is just the average population density over each cluster's posterior samples:
 #   L_j(hyper) = (1/S) sum_s  N(logM_js | mu_M, sig_M) * N(c_js | mu_c, sig_c)
-SAMPS = jnp.array(PC)                                            # (N_CLUSTERS, S, 2)
-
-def brown_model():
-    mu_M  = numpyro.sample("mu_M",  dist.Normal(14.4, 0.3))
-    sig_M = numpyro.sample("sig_M", dist.HalfNormal(0.25))
-    mu_c  = numpyro.sample("mu_c",  dist.Normal(4.6, 0.8))
-    sig_c = numpyro.sample("sig_c", dist.HalfNormal(0.5))
-    logp = (dist.Normal(mu_M, sig_M).log_prob(SAMPS[..., 0])
-            + dist.Normal(mu_c, sig_c).log_prob(SAMPS[..., 1]))   # (N_CLUSTERS, S)
-    logL = jnp.sum(jax.scipy.special.logsumexp(logp, axis=1) - jnp.log(SAMPS.shape[1]))
-    numpyro.factor("recycled_likelihood", logL)
-
-def run_brown():
-    mcmc = MCMC(NUTS(brown_model), num_warmup=800, num_samples=1500, progress_bar=False)
-    mcmc.run(jax.random.PRNGKey(1))
+def recycle(percluster_sample_array, rng_seed=1):
+    \"\"\"Population inference by reweighting cached per-cluster posterior samples.
+    Works with samples from ANY per-cluster engine (SBI or MCMC) drawn under a flat prior.\"\"\"
+    SAMPS = jnp.array(percluster_sample_array)                   # (N_CLUSTERS, S, 2)
+    def model():
+        mu_M  = numpyro.sample("mu_M",  dist.Normal(14.4, 0.3))
+        sig_M = numpyro.sample("sig_M", dist.HalfNormal(0.25))
+        mu_c  = numpyro.sample("mu_c",  dist.Normal(4.6, 0.8))
+        sig_c = numpyro.sample("sig_c", dist.HalfNormal(0.5))
+        logp = (dist.Normal(mu_M, sig_M).log_prob(SAMPS[..., 0])
+                + dist.Normal(mu_c, sig_c).log_prob(SAMPS[..., 1]))   # (N_CLUSTERS, S)
+        logL = jnp.sum(jax.scipy.special.logsumexp(logp, axis=1) - jnp.log(SAMPS.shape[1]))
+        numpyro.factor("recycled_likelihood", logL)
+    mcmc = MCMC(NUTS(model), num_warmup=800, num_samples=1500, progress_bar=False)
+    mcmc.run(jax.random.PRNGKey(rng_seed))
     s = mcmc.get_samples()
     return {k: np.array(s[k]) for k in ("mu_M", "sig_M", "mu_c", "sig_c")}
 
-BROWN = cached("brown_recycled", run_brown)
+def run_brown():
+    return recycle(PC, rng_seed=1)
+
+BROWN = cached(f"brown_recycled_N{N_CLUSTERS}", run_brown)
 print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in BROWN.items()})"""))
+
+C.append(code("""# --- method 2b (teal): per-cluster HMC + recycling -----------------------------
+# Same recycling step as brown, but the per-cluster posteriors come from MCMC (NUTS with a
+# flat prior) instead of SBI. Comparing teal vs green isolates "does recycling work?";
+# comparing brown vs teal isolates "does SBI per-cluster inference work?".
+def percluster_hmc_model(prof):
+    logM = numpyro.sample("logM", dist.Uniform(BOX_LO[0], BOX_HI[0]))
+    c    = numpyro.sample("c",    dist.Uniform(BOX_LO[1], BOX_HI[1]))
+    numpyro.sample("obs", dist.Normal(nfw_logDeltaSigma(logM, c), NOISE_DEX),
+                   obs=jnp.asarray(prof))
+
+def percluster_hmc_samples(n=1500):
+    out = []
+    for j in range(N_CLUSTERS):
+        mcmc = MCMC(NUTS(percluster_hmc_model), num_warmup=500, num_samples=n, progress_bar=False)
+        mcmc.run(jax.random.PRNGKey(100 + j), OBS["log_profiles"][j])
+        sj = mcmc.get_samples()
+        out.append(np.column_stack([np.array(sj["logM"]), np.array(sj["c"])]))
+    return np.array(out)                        # (N_CLUSTERS, n, 2)
+
+PC_HMC = cached(f"percluster_hmc_N{N_CLUSTERS}", percluster_hmc_samples)
+TEAL = cached(f"teal_recycled_N{N_CLUSTERS}", lambda: recycle(PC_HMC, rng_seed=2))
+print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in TEAL.items()})"""))
 
 C.append(code("""# --- method 3 (purple): full hierarchical SBI -- profiles in, hyperparameters out
 def train_population_npe(n_train=6000):
@@ -326,7 +353,7 @@ def train_population_npe(n_train=6000):
                                 torch.as_tensor(np.array(xs), dtype=torch.float32)).train(show_train_summary=False)
     return inf.build_posterior(de)
 
-pop_npe = cached("population_npe", train_population_npe)
+pop_npe = cached(f"population_npe_N{N_CLUSTERS}", train_population_npe)
 
 def run_purple(n=4000):
     x_obs = OBS["log_profiles"][np.argsort(OBS["log_profiles"].mean(axis=1))].ravel()
@@ -334,13 +361,15 @@ def run_purple(n=4000):
                        show_progress_bars=False).numpy()
     return {"mu_M": s[:, 0], "sig_M": s[:, 1], "mu_c": s[:, 2], "sig_c": s[:, 3]}
 
-PURPLE = cached("purple_samples", run_purple)
+PURPLE = cached(f"purple_samples_N{N_CLUSTERS}", run_purple)
 print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in PURPLE.items()})"""))
 
 C.append(md("""## 4. Compare: three posteriors, one truth"""))
 
-C.append(code("""METHODS = [("Hierarchical HMC", GREEN, "green"), ("Hybrid SBI + recycling", BROWN, "saddlebrown"),
-           ("Full hierarchical SBI", PURPLE, "purple")]
+C.append(code("""METHODS = [("Hierarchical HMC", GREEN, "green"),
+           ("HMC + recycling (validation)", TEAL, "darkcyan"),
+           ("Hybrid SBI-HMC", BROWN, "saddlebrown"),
+           ("Hierarchical SBI", PURPLE, "purple")]
 PARAMS  = [("mu_M", r"$\\mu_{\\log M}$"), ("sig_M", r"$\\sigma_{\\log M}$"),
            ("mu_c", r"$\\mu_c$"), ("sig_c", r"$\\sigma_c$")]
 
@@ -360,15 +389,16 @@ for name, smp, color in METHODS:
     kde_contours(ax, predictive_population(smp), color, fill=True)
 kde_contours(ax, POP[:8000], "k", ls="--", lw=2.2)
 ax.scatter(OBS["true_mc"][:, 0], OBS["true_mc"][:, 1], marker="*", s=180, color="gold",
-           edgecolor="k", zorder=6, label="the 5 observed clusters (truth)")
+           edgecolor="k", zorder=6, label=f"the {N_CLUSTERS} observed clusters (truth)")
 from matplotlib.lines import Line2D
 ax.legend(handles=[Line2D([], [], color=c, lw=2, label=n) for n, _, c in METHODS]
           + [Line2D([], [], color="k", ls="--", lw=2, label="TRUE population (68/95%)"),
-             Line2D([], [], marker="*", ls="", ms=13, mfc="gold", mec="k", label="the 5 observed clusters")],
+             Line2D([], [], marker="*", ls="", ms=13, mfc="gold", mec="k", label=f"the {N_CLUSTERS} observed clusters")],
           fontsize=9, loc="upper right")
 ax.set_xlabel(r"$\\log_{10} M$", fontsize=13); ax.set_ylabel("concentration", fontsize=13)
 ax.set_xlim(13.6, 15.2); ax.set_ylim(2.5, 7.2)
-ax.set_title("The population each method infers (posterior predictive, 68/95%)\\nvs the true population -- from only 5 clusters", fontsize=11)
+ax.set_title(f"The population each method infers (posterior predictive, 68/95%)\\n"
+             f"vs the true population -- from only {N_CLUSTERS} clusters", fontsize=11)
 plt.show()
 
 # 2D posteriors: the (mean, spread) planes for mass and concentration
@@ -404,7 +434,7 @@ C.append(md("""## 5. What you just saw (and how it maps to the paper)
 - **The three methods agree** (within sampling noise) — that is the paper's central check: the
   joint hierarchical likelihood (🟢), the cached-posterior recycling shortcut (🟤), and the
   end-to-end neural posterior (🟣) are three routes to the *same* population posterior.
-- **With only 5 clusters the posteriors are wide** — honestly so. The paper's analyses use
+- **With a small sample the posteriors are wide** — honestly so. The paper's analyses use
   $N_c = 376$ per bin (and thousands across bins), where $\\sigma_M, \\sigma_c$ tighten dramatically.
   Change `N_CLUSTERS` at the top and re-run (delete `cache/`) to watch that happen.
 - **Why the hybrid matters:** the per-cluster NPE posteriors were computed *once* and cached
