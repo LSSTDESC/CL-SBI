@@ -14,7 +14,7 @@ observations and infer the *population* mass–concentration distribution with t
 | color | method | per-cluster step | population step |
 |---|---|---|---|
 | 🟢 green | **Hierarchical HMC** *(paper)* | sampled jointly (latents) | NUTS on hyperparameters (differentiable model) |
-| 🐬 teal | **HMC + recycling** *(validation variant, not in the paper)* | per-cluster NUTS (flat prior), cached | reweight cached samples (importance sampling) |
+| 💗 pink | **HMC + recycling** *(validation variant, not in the paper)* | per-cluster NUTS (flat prior), cached | reweight cached samples (importance sampling) |
 | 🟤 brown | **Hybrid SBI-HMC** *(paper)* | amortized SBI (NPE) posteriors, cached | HMC on hyperparameters over the cached samples |
 | 🟣 purple | **Hierarchical SBI** *(paper)* | — (end-to-end) | neural posterior trained to map all profiles → hyperparameters |
 
@@ -197,7 +197,7 @@ def plate(ax, x, y, w, h, label):
     ax.text(x + w - 0.08, y + 0.08, label, ha="right", va="bottom", fontsize=9, color="0.35")
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 4.2))
-for ax, title, color in zip(axes, ["GREEN: Hierarchical HMC (joint)", "BROWN + TEAL: two-stage (recycled)",
+for ax, title, color in zip(axes, ["GREEN: Hierarchical HMC (joint)", "BROWN + PINK: two-stage (recycled)",
                                    "PURPLE: Hierarchical SBI (amortized)"], ["green", "saddlebrown", "purple"]):
     ax.set_xlim(0, 3); ax.set_ylim(-0.9, 4.3); ax.axis("off")
     ax.set_title(title, fontsize=11, color=color, fontweight="bold")
@@ -219,7 +219,7 @@ arrow(ax, 2.3, 3.5, 2.3, 2.1)
 ax.annotate("", xy=(2.0, 2.1), xytext=(1.15, 2.1),
             arrowprops=dict(arrowstyle="-|>", color="0.4", lw=1.2, ls="--", shrinkA=14, shrinkB=14))
 ax.text(1.55, 2.35, "cached\\nsamples", ha="center", fontsize=7.5, color="0.35")
-ax.text(1.5, -0.6, "stage 1 ONCE, cached -- engine: SBI (brown) or NUTS (teal);\\nstage 2 reweights samples under $\\\\theta$", ha="center", fontsize=8.5)
+ax.text(1.5, -0.6, "stage 1 ONCE, cached -- engine: SBI (brown) or NUTS (pink);\\nstage 2 reweights samples under $\\\\theta$", ha="center", fontsize=8.5)
 
 # purple: x_j -> neural net -> theta (inference direction)
 ax = axes[2]
@@ -241,7 +241,7 @@ $p(\\theta \\mid x_{1..N})$ is computed:
   (exact, but the cost grows with $N$ and every new population model re-pays the full cost).
 - 🟤 **Brown** splits the graph: per-cluster posteriors are computed **once** under a flat prior
   and cached; any population model is then fit by *reweighting* the cached samples
-  (importance sampling). Same math, different factorization — the per-cluster work is never repeated. Teal is the same graph with NUTS as the per-cluster engine instead of SBI.
+  (importance sampling). Same math, different factorization — the per-cluster work is never repeated. Pink is the same graph with NUTS as the per-cluster engine instead of SBI.
 - 🟣 **Purple** replaces sampling entirely: a neural posterior estimator is trained on simulations
   of the whole graph and *inverts* it — profiles in, $\\theta$ posterior out, in milliseconds.
   The cost moves to training time; the prior is baked into the training simulations."""))
@@ -310,7 +310,7 @@ print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in BROWN.items()})"""))
 C.append(code("""# --- method 2b (teal): per-cluster HMC + recycling -----------------------------
 # Same recycling step as brown, but the per-cluster posteriors come from MCMC (NUTS with a
 # flat prior) instead of SBI. Comparing teal vs green isolates "does recycling work?";
-# comparing brown vs teal isolates "does SBI per-cluster inference work?".
+# comparing brown vs pink isolates "does SBI per-cluster inference work?".
 def percluster_hmc_model(prof):
     logM = numpyro.sample("logM", dist.Uniform(BOX_LO[0], BOX_HI[0]))
     c    = numpyro.sample("c",    dist.Uniform(BOX_LO[1], BOX_HI[1]))
@@ -367,7 +367,7 @@ print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in PURPLE.items()})"""))
 C.append(md("""## 4. Compare: three posteriors, one truth"""))
 
 C.append(code("""METHODS = [("Hierarchical HMC", GREEN, "green"),
-           ("HMC + recycling (validation)", TEAL, "darkcyan"),
+           ("HMC + recycling (validation)", TEAL, "deeppink"),
            ("Hybrid SBI-HMC", BROWN, "saddlebrown"),
            ("Hierarchical SBI", PURPLE, "purple")]
 PARAMS  = [("mu_M", r"$\\mu_{\\log M}$"), ("sig_M", r"$\\sigma_{\\log M}$"),
