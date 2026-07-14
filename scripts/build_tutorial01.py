@@ -344,6 +344,33 @@ C.append(code("""METHODS = [("Hierarchical HMC", GREEN, "green"), ("Hybrid SBI +
 PARAMS  = [("mu_M", r"$\\mu_{\\log M}$"), ("sig_M", r"$\\sigma_{\\log M}$"),
            ("mu_c", r"$\\mu_c$"), ("sig_c", r"$\\sigma_c$")]
 
+# THE key comparison: each method's inferred POPULATION in the (logM, c) plane.
+# Draw from the posterior predictive: sample hyperparameters from each method's posterior,
+# then draw (logM, c) from the implied population Gaussian -- the mixture is "the population
+# this method believes in", directly comparable to the true population.
+def predictive_population(s, k=20000):
+    rng = np.random.default_rng(0)
+    idx = rng.integers(0, len(s["mu_M"]), k)
+    logM = rng.normal(s["mu_M"][idx], s["sig_M"][idx])
+    c    = rng.normal(s["mu_c"][idx], np.abs(s["sig_c"][idx]))
+    return np.column_stack([logM, c])
+
+fig, ax = plt.subplots(figsize=(8, 6))
+for name, smp, color in METHODS:
+    kde_contours(ax, predictive_population(smp), color, fill=True)
+kde_contours(ax, POP[:8000], "k", ls="--", lw=2.2)
+ax.scatter(OBS["true_mc"][:, 0], OBS["true_mc"][:, 1], marker="*", s=180, color="gold",
+           edgecolor="k", zorder=6, label="the 5 observed clusters (truth)")
+from matplotlib.lines import Line2D
+ax.legend(handles=[Line2D([], [], color=c, lw=2, label=n) for n, _, c in METHODS]
+          + [Line2D([], [], color="k", ls="--", lw=2, label="TRUE population (68/95%)"),
+             Line2D([], [], marker="*", ls="", ms=13, mfc="gold", mec="k", label="the 5 observed clusters")],
+          fontsize=9, loc="upper right")
+ax.set_xlabel(r"$\\log_{10} M$", fontsize=13); ax.set_ylabel("concentration", fontsize=13)
+ax.set_xlim(13.6, 15.2); ax.set_ylim(2.5, 7.2)
+ax.set_title("The population each method infers (posterior predictive, 68/95%)\\nvs the true population -- from only 5 clusters", fontsize=11)
+plt.show()
+
 # 2D posteriors: the (mean, spread) planes for mass and concentration
 fig, axes = plt.subplots(1, 2, figsize=(11, 4.6))
 for ax, (kx, ky, lx, ly) in zip(axes, [("mu_M", "sig_M", r"$\\mu_{\\log M}$", r"$\\sigma_{\\log M}$"),
