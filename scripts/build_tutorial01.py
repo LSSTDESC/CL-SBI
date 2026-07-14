@@ -386,14 +386,11 @@ def predictive_population(s, k=20000):
 
 fig, ax = plt.subplots(figsize=(8, 6))
 for name, smp, color in METHODS:
-    kde_contours(ax, predictive_population(smp), color, fill=True)
+    kde_contours(ax, predictive_population(smp), color, fill=True, alpha=0.07)
 kde_contours(ax, POP[:8000], "k", ls="--", lw=2.2)
-ax.scatter(OBS["true_mc"][:, 0], OBS["true_mc"][:, 1], marker="*", s=180, color="gold",
-           edgecolor="k", zorder=6, label=f"the {N_CLUSTERS} observed clusters (truth)")
 from matplotlib.lines import Line2D
 ax.legend(handles=[Line2D([], [], color=c, lw=2, label=n) for n, _, c in METHODS]
-          + [Line2D([], [], color="k", ls="--", lw=2, label="TRUE population (68/95%)"),
-             Line2D([], [], marker="*", ls="", ms=13, mfc="gold", mec="k", label=f"the {N_CLUSTERS} observed clusters")],
+          + [Line2D([], [], color="k", ls="--", lw=2, label="TRUE population (68/95%)")],
           fontsize=9, loc="upper right")
 ax.set_xlabel(r"$\\log_{10} M$", fontsize=13); ax.set_ylabel("concentration", fontsize=13)
 ax.set_xlim(13.6, 15.2); ax.set_ylim(2.5, 7.2)
