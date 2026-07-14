@@ -13,10 +13,10 @@ observations and infer the *population* mass–concentration distribution with t
 
 | color | method | per-cluster step | population step |
 |---|---|---|---|
-| 🟢 green | **Hierarchical HMC** *(paper)* | sampled jointly (latents) | NUTS on hyperparameters (differentiable model) |
-| 💗 pink | **HMC + recycling** *(validation variant, not in the paper)* | per-cluster NUTS (flat prior), cached | reweight cached samples (importance sampling) |
-| 🟤 brown | **Hybrid SBI-HMC** *(paper)* | amortized SBI (NPE) posteriors, cached | HMC on hyperparameters over the cached samples |
-| 🟣 purple | **Hierarchical SBI** *(paper)* | — (end-to-end) | neural posterior trained to map all profiles → hyperparameters |
+| 🟩 green | **Hierarchical HMC** *(paper)* | sampled jointly (latents) | NUTS on hyperparameters (differentiable model) |
+| 🟨 amber | **HMC + recycling** *(validation variant, not in the paper)* | per-cluster NUTS (flat prior), cached | reweight cached samples (importance sampling) |
+| 🟦 blue | **Hybrid SBI-HMC** *(paper)* | amortized SBI (NPE) posteriors, cached | HMC on hyperparameters over the cached samples |
+| 🟧 vermillion | **Hierarchical SBI** *(paper)* | — (end-to-end) | neural posterior trained to map all profiles → hyperparameters |
 
 The colors match the paper's comparison figures. All methods answer the same question with the same priors — the punchline is that they **agree**.
 
@@ -366,10 +366,10 @@ print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in PURPLE.items()})"""))
 
 C.append(md("""## 4. Compare: three posteriors, one truth"""))
 
-C.append(code("""METHODS = [("Hierarchical HMC", GREEN, "green"),
-           ("HMC + recycling (validation)", TEAL, "deeppink"),
-           ("Hybrid SBI-HMC", BROWN, "saddlebrown"),
-           ("Hierarchical SBI", PURPLE, "purple")]
+C.append(code("""METHODS = [("Hierarchical HMC", GREEN, "#009E73"),
+           ("HMC + recycling (validation)", TEAL, "#E69F00"),
+           ("Hybrid SBI-HMC", BROWN, "#0072B2"),
+           ("Hierarchical SBI", PURPLE, "#D55E00")]
 PARAMS  = [("mu_M", r"$\\mu_{\\log M}$"), ("sig_M", r"$\\sigma_{\\log M}$"),
            ("mu_c", r"$\\mu_c$"), ("sig_c", r"$\\sigma_c$")]
 
@@ -386,7 +386,7 @@ def predictive_population(s, k=20000):
 
 fig, ax = plt.subplots(figsize=(8, 6))
 for name, smp, color in METHODS:
-    kde_contours(ax, predictive_population(smp), color, fill=True, alpha=0.07)
+    kde_contours(ax, predictive_population(smp), color, fill=False, lw=2.0)
 kde_contours(ax, POP[:8000], "k", ls="--", lw=2.2)
 from matplotlib.lines import Line2D
 ax.legend(handles=[Line2D([], [], color=c, lw=2, label=n) for n, _, c in METHODS]
@@ -403,7 +403,7 @@ fig, axes = plt.subplots(1, 2, figsize=(11, 4.6))
 for ax, (kx, ky, lx, ly) in zip(axes, [("mu_M", "sig_M", r"$\\mu_{\\log M}$", r"$\\sigma_{\\log M}$"),
                                         ("mu_c", "sig_c", r"$\\mu_c$", r"$\\sigma_c$")]):
     for name, smp, color in METHODS:
-        kde_contours(ax, np.column_stack([smp[kx], smp[ky]]), color, fill=True)
+        kde_contours(ax, np.column_stack([smp[kx], smp[ky]]), color, fill=False, lw=2.0)
     ax.scatter(TRUE[kx], TRUE[ky], marker="*", s=350, color="k", zorder=6, label="truth")
     ax.set_xlabel(lx, fontsize=12); ax.set_ylabel(ly, fontsize=12)
 from matplotlib.lines import Line2D
