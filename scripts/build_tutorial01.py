@@ -317,7 +317,7 @@ def percluster_hmc_model(prof):
     numpyro.sample("obs", dist.Normal(nfw_logDeltaSigma(logM, c), NOISE_DEX),
                    obs=jnp.asarray(prof))
 
-def percluster_hmc_samples(n=1500):
+def percluster_hmc_samples(n=12000):
     out = []
     for j in range(N_CLUSTERS):
         mcmc = MCMC(NUTS(percluster_hmc_model), num_warmup=500, num_samples=n, progress_bar=False)
@@ -326,8 +326,8 @@ def percluster_hmc_samples(n=1500):
         out.append(np.column_stack([np.array(sj["logM"]), np.array(sj["c"])]))
     return np.array(out)                        # (N_CLUSTERS, n, 2)
 
-PC_HMC = cached(f"percluster_hmc_N{N_CLUSTERS}", percluster_hmc_samples)
-TEAL = cached(f"teal_recycled_N{N_CLUSTERS}", lambda: recycle(PC_HMC, rng_seed=2))
+PC_HMC = cached(f"percluster_hmc_S12k_N{N_CLUSTERS}", percluster_hmc_samples)
+TEAL = cached(f"teal_recycled_S12k_N{N_CLUSTERS}", lambda: recycle(PC_HMC, rng_seed=2))
 print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in TEAL.items()})"""))
 
 C.append(code("""# --- method 3 (purple): full hierarchical SBI -- profiles in, hyperparameters out
