@@ -5,6 +5,59 @@ Detailed per-session TODOs live in `CLAUDE.md` and `tex_source/REVIEW_TODOS.md`.
 
 ---
 
+## 2026-07-14 — Paper II: methods-alignment meeting + CL platform telecon (notes + my action items)
+
+Two meetings logged (both Paper-II track, independent of the Paper-I review).
+
+### Methods-alignment meeting (hierarchical M-c population inference)
+Aligning the parallel efforts on inferring the cluster mass-concentration population distribution.
+**Method <-> color mapping (used in all comparison plots):**
+- **green** = Hierarchical MCMC/HMC (per-cluster + hyperparams sampled jointly; fast iff differentiable -> halox)
+- **brown** = Hybrid: SBI (NPE) per-cluster posteriors + MCMC/HMC population step (with importance-sampling
+  corrections; per-cluster posteriors CACHED and reusable — GW-literature workflow: undo per-cluster prior to
+  recover likelihood, reweight for any population prior; mathematically equivalent to the joint likelihood)
+- **purple** = Full SBI hierarchical (population posterior learned end-to-end, no percentile summarization)
+- **orange** = original percentile-summary SBI (OOD-limited, as expected)
+
+**Consensus observations:** 1D M/c recovery fine for most methods; 2D M-c correlation hard within narrow
+richness-z bins (limited mass lever arm — matches our beta/lever-arm findings); green/purple/brown agree when
+inputs+priors are matched; orange degrades OOD. Per-cluster posterior files are small -> share via Drive/repo.
+NPE vs NLE distinction discussed: NLE gives an explicit likelihood combinable with arbitrary priors (prior
+changes without retraining); NPE bakes the prior in.
+
+**My action items:**
+1. Reproducible tutorial notebooks, identical inputs, by ~next week: (a) joint-likelihood HMC,
+   (b) cached per-cluster + importance sampling (incl. undo-prior/reweight demo), (c) full SBI hierarchical.
+2. Export + share per-cluster posterior files for a common subpopulation (also what Aiden needs to validate
+   his PyMC posterior-recycling against our hybrid).
+3. Repo consolidation with Aiden (merge PyMC/PyMC-HMC forks + tutorials into one repo).
+4. NEW experiment: NPE-vs-NLE validation (explicit-likelihood check on the implicit NPE likelihood).
+5. Cross-method diagnostics: overplot final population posteriors (green/brown/purple/orange) + timing table
+   (joint recompute vs cached importance sampling); verify same cluster subsets + priors across methods.
+6. Broaden training sims further: beyond the M-c mix, vary scatters + richness-mass relations (feeds the
+   "hierarchical modeling mitigates OOD sensitivity" claim).
+
+### CL platform telecon (2026-07-07)
+- **My segment (SBI/HMC):** reported halox-HMC speedup over emcee; SBI still fastest for repeated population
+  inference; hierarchical methods beat non-hierarchical summaries for M-c relation + population params (and
+  enable un-binned all-cluster analysis); hierarchical modeling increases OOD robustness.
+  Next: publish/release code (pending formal project approval); longer-term SBI/HMC as selectable inference
+  backends in CLMM/TxPipe.
+- **Aiden (posterior recycling / HBI in PyMC):** toy-model recycling recovers the true population and beats
+  naive pooling; realistic NFW lensing validation vs full joint HBI in progress -> our hybrid is the natural
+  cross-check.
+- **Context (others):** jackknife covariance overestimates variance for large areas (fine ~5,000 deg^2; test
+  ~500-750 deg^2 for DP2); TxPipe gamma_t/DeltaSigma integration + comparison notebook (Cabello/Camille);
+  DP2 key project needs catalog choices, covariance plan, mask/shear/photo-z coordination.
+- **Meetings:** key-project telecon 2026-07-14 (biweekly); DESC parallel sessions Tue-Thu; Friday CLKP telecon;
+  sprints announced in the joint channel.
+
+**Note:** the meeting's consensus finding (matched-input agreement of green/purple/brown + orange's OOD limits)
+IS Paper II's central result — the tutorial-notebook deliverable doubles as Paper II's comparison figure with
+collaboration-blessed inputs.
+
+---
+
 ## 2026-07-09 — Paper I internal review (C. Payerne / LSST-DESC): plan + tracker
 
 Received Constantin Payerne's LSST-DESC internal review of Paper I (`~/Downloads/
