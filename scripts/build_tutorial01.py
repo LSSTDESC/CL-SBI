@@ -155,20 +155,20 @@ PC = cached(f"percluster_samples_N{N_CLUSTERS}", percluster_samples)
 np.savez(os.path.join(DATA, f"percluster_posteriors_N{N_CLUSTERS}.npz"), samples=PC, true_mc=OBS["true_mc"])  # shared deliverable
 
 fig, ax = plt.subplots(figsize=(8, 6))
-kde_contours(ax, PC[0], "C1", fill=True)                      # cluster 0 posterior (68/95%)
-kde_contours(ax, PC[3], "C2", fill=True)                      # cluster 3 posterior
-kde_contours(ax, POP[:8000], "k", ls="--", lw=2)              # true population (68/95%)
-ax.scatter(*OBS["true_mc"][0], marker="*", s=350, color="C1", edgecolor="k", zorder=5)
-ax.scatter(*OBS["true_mc"][3], marker="*", s=350, color="C2", edgecolor="k", zorder=5)
+from matplotlib.colors import to_rgba
+for j in range(N_CLUSTERS):                                   # every cluster's 68% contour, ghosted
+    kde_contours(ax, PC[j], to_rgba("steelblue", 0.30), levels=(0.68,), lw=1.2)
+kde_contours(ax, POP[:8000], "k", ls="--", lw=2.5)            # true population (68/95%)
+ax.scatter(OBS["true_mc"][:, 0], OBS["true_mc"][:, 1], s=25, color="crimson", zorder=5)
 from matplotlib.lines import Line2D
-ax.legend(handles=[Line2D([], [], color="C1", lw=2, label="cluster-0 posterior (68/95%)"),
-                   Line2D([], [], color="C2", lw=2, label="cluster-3 posterior (68/95%)"),
-                   Line2D([], [], color="k", ls="--", lw=2, label="true population (68/95%)"),
-                   Line2D([], [], marker="*", ls="", ms=15, mfc="gray", mec="k", label="true (M, c) of each cluster")],
+ax.legend(handles=[Line2D([], [], color="steelblue", alpha=0.5, lw=1.5,
+                          label=f"each cluster's posterior (68%), all {N_CLUSTERS}"),
+                   Line2D([], [], color="k", ls="--", lw=2.5, label="true population (68/95%)"),
+                   Line2D([], [], marker="o", ls="", color="crimson", label="true (M, c) of each cluster")],
           fontsize=10, loc="upper right")
 ax.set_xlabel(r"$\\log_{10} M$", fontsize=13); ax.set_ylabel("concentration", fontsize=13)
-ax.set_title("Each single-cluster posterior is wide, degenerate, and much broader than\\n"
-             "the population itself -- combining clusters is what constrains the population", fontsize=11)
+ax.set_title("Every single-cluster posterior (blue) is wide, degenerate, and much broader than\\n"
+             "the population itself (black) -- combining them is what constrains the population", fontsize=11)
 plt.show()"""))
 
 C.append(md("""## 3. The population question
@@ -197,7 +197,7 @@ def plate(ax, x, y, w, h, label):
     ax.text(x + w - 0.08, y + 0.08, label, ha="right", va="bottom", fontsize=9, color="0.35")
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 4.2))
-for ax, title, color in zip(axes, ["GREEN: Hierarchical HMC (joint)", "BROWN: Hybrid SBI-HMC (two-stage)",
+for ax, title, color in zip(axes, ["GREEN: Hierarchical HMC (joint)", "BROWN + TEAL: two-stage (recycled)",
                                    "PURPLE: Hierarchical SBI (amortized)"], ["green", "saddlebrown", "purple"]):
     ax.set_xlim(0, 3); ax.set_ylim(-0.9, 4.3); ax.axis("off")
     ax.set_title(title, fontsize=11, color=color, fontweight="bold")
@@ -219,7 +219,7 @@ arrow(ax, 2.3, 3.5, 2.3, 2.1)
 ax.annotate("", xy=(2.0, 2.1), xytext=(1.15, 2.1),
             arrowprops=dict(arrowstyle="-|>", color="0.4", lw=1.2, ls="--", shrinkA=14, shrinkB=14))
 ax.text(1.55, 2.35, "cached\\nsamples", ha="center", fontsize=7.5, color="0.35")
-ax.text(1.5, -0.6, "stage 1 ONCE (flat prior, cached);\\nstage 2 reweights samples under $\\\\theta$", ha="center", fontsize=8.5)
+ax.text(1.5, -0.6, "stage 1 ONCE, cached -- engine: SBI (brown) or NUTS (teal);\\nstage 2 reweights samples under $\\\\theta$", ha="center", fontsize=8.5)
 
 # purple: x_j -> neural net -> theta (inference direction)
 ax = axes[2]
@@ -241,7 +241,7 @@ $p(\\theta \\mid x_{1..N})$ is computed:
   (exact, but the cost grows with $N$ and every new population model re-pays the full cost).
 - 🟤 **Brown** splits the graph: per-cluster posteriors are computed **once** under a flat prior
   and cached; any population model is then fit by *reweighting* the cached samples
-  (importance sampling). Same math, different factorization — the per-cluster work is never repeated.
+  (importance sampling). Same math, different factorization — the per-cluster work is never repeated. Teal is the same graph with NUTS as the per-cluster engine instead of SBI.
 - 🟣 **Purple** replaces sampling entirely: a neural posterior estimator is trained on simulations
   of the whole graph and *inverts* it — profiles in, $\\theta$ posterior out, in milliseconds.
   The cost moves to training time; the prior is baked into the training simulations."""))
