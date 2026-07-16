@@ -111,17 +111,17 @@ print(f"TRUE population:  mu_M={TRUE['mu_M']:.3f}  sig_M={TRUE['sig_M']:.3f}  mu
 
 fig, ax = plt.subplots(figsize=(7, 4.2))
 for i in range(N_CLUSTERS):
-    ax.plot(RBINS, 10 ** OBS["log_profiles"][i], alpha=0.8, label=f"cluster {i}")
+    ax.plot(RBINS, 10 ** OBS["log_profiles"][i], alpha=0.8)
 ax.set_xscale("log"); ax.set_yscale("log")
 ax.set_xlabel("radius [kpc/h]"); ax.set_ylabel(r"$\\Delta\\Sigma$ [$M_\\odot h/kpc^2$]")
-ax.set_title("The data: 5 noisy $\\\\Delta\\\\Sigma$ profiles"); ax.legend(fontsize=8); plt.show()"""))
+ax.set_title(f"The data: {N_CLUSTERS} noisy profiles"); plt.show()"""))
 
 C.append(md("""## 2. The per-cluster problem
 
 One noisy profile constrains $(\\log_{10}M, c)$ only weakly, with a strong mass–concentration
 degeneracy. We train a small **amortized SBI posterior** (NPE, flat prior over a wide box) once —
 it then evaluates the posterior for *any* cluster in milliseconds. (This same network is reused by
-the 🟤 hybrid method below.)"""))
+the Hybrid SBI-HMC method below.)"""))
 
 C.append(code("""import torch
 from sbi.inference import SNPE
@@ -197,8 +197,8 @@ def plate(ax, x, y, w, h, label):
     ax.text(x + w - 0.08, y + 0.08, label, ha="right", va="bottom", fontsize=9, color="0.35")
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 4.2))
-for ax, title, color in zip(axes, ["GREEN: Hierarchical HMC (joint)", "BROWN + PINK: two-stage (recycled)",
-                                   "PURPLE: Hierarchical SBI (amortized)"], ["green", "saddlebrown", "purple"]):
+for ax, title, color in zip(axes, ["Hierarchical HMC (joint)", "Two-stage (recycled)",
+                                   "Hierarchical SBI (amortized)"], ["#009E73", "#0072B2", "#D55E00"]):
     ax.set_xlim(0, 3); ax.set_ylim(-0.9, 4.3); ax.axis("off")
     ax.set_title(title, fontsize=11, color=color, fontweight="bold")
 
@@ -219,7 +219,7 @@ arrow(ax, 2.3, 3.5, 2.3, 2.1)
 ax.annotate("", xy=(2.0, 2.1), xytext=(1.15, 2.1),
             arrowprops=dict(arrowstyle="-|>", color="0.4", lw=1.2, ls="--", shrinkA=14, shrinkB=14))
 ax.text(1.55, 2.35, "cached\\nsamples", ha="center", fontsize=7.5, color="0.35")
-ax.text(1.5, -0.6, "stage 1 ONCE, cached -- engine: SBI (brown) or NUTS (pink);\\nstage 2 reweights samples under $\\\\theta$", ha="center", fontsize=8.5)
+ax.text(1.5, -0.6, "stage 1 ONCE, cached -- engine: SBI (Hybrid) or NUTS (validation);\\nstage 2 reweights samples under $\\\\theta$", ha="center", fontsize=8.5)
 
 # purple: x_j -> neural net -> theta (inference direction)
 ax = axes[2]
@@ -237,12 +237,12 @@ All three assume the identical graph: hyperparameters $\\theta$ generate per-clu
 which generate the observed profiles $x_j$. They differ *only* in how the posterior
 $p(\\theta \\mid x_{1..N})$ is computed:
 
-- 🟢 **Green** samples the joint posterior over $\\theta$ *and* every latent $(M_j, c_j)$ at once
+- **Hierarchical HMC** samples the joint posterior over $\\theta$ *and* every latent $(M_j, c_j)$ at once
   (exact, but the cost grows with $N$ and every new population model re-pays the full cost).
-- 🟤 **Brown** splits the graph: per-cluster posteriors are computed **once** under a flat prior
+- **The two-stage variants (Hybrid SBI-HMC; HMC+recycling)** split the graph: per-cluster posteriors are computed **once** under a flat prior
   and cached; any population model is then fit by *reweighting* the cached samples
   (importance sampling). Same math, different factorization — the per-cluster work is never repeated. Pink is the same graph with NUTS as the per-cluster engine instead of SBI.
-- 🟣 **Purple** replaces sampling entirely: a neural posterior estimator is trained on simulations
+- **Hierarchical SBI** replaces sampling entirely: a neural posterior estimator is trained on simulations
   of the whole graph and *inverts* it — profiles in, $\\theta$ posterior out, in milliseconds.
   The cost moves to training time; the prior is baked into the training simulations."""))
 
@@ -310,7 +310,7 @@ print({k: f"{v.mean():.3f}+/-{v.std():.3f}" for k, v in BROWN.items()})"""))
 C.append(code("""# --- method 2b (teal): per-cluster HMC + recycling -----------------------------
 # Same recycling step as brown, but the per-cluster posteriors come from MCMC (NUTS with a
 # flat prior) instead of SBI. Comparing teal vs green isolates "does recycling work?";
-# comparing brown vs pink isolates "does SBI per-cluster inference work?".
+# comparing Hybrid vs HMC+recycling isolates "does SBI per-cluster inference work?".
 def percluster_hmc_model(prof):
     logM = numpyro.sample("logM", dist.Uniform(BOX_LO[0], BOX_HI[0]))
     c    = numpyro.sample("c",    dist.Uniform(BOX_LO[1], BOX_HI[1]))
@@ -386,7 +386,7 @@ def predictive_population(s, k=20000):
 
 fig, ax = plt.subplots(figsize=(8, 6))
 for name, smp, color in METHODS:
-    kde_contours(ax, predictive_population(smp), color, fill=False, lw=2.0)
+    kde_contours(ax, predictive_population(smp), color, levels=(0.68,), fill=False, lw=2.0)
 kde_contours(ax, POP[:8000], "k", ls="--", lw=2.2)
 from matplotlib.lines import Line2D
 ax.legend(handles=[Line2D([], [], color=c, lw=2, label=n) for n, _, c in METHODS]
@@ -394,7 +394,7 @@ ax.legend(handles=[Line2D([], [], color=c, lw=2, label=n) for n, _, c in METHODS
           fontsize=9, loc="upper right")
 ax.set_xlabel(r"$\\log_{10} M$", fontsize=13); ax.set_ylabel("concentration", fontsize=13)
 ax.set_xlim(13.6, 15.2); ax.set_ylim(2.5, 7.2)
-ax.set_title(f"The population each method infers (posterior predictive, 68/95%)\\n"
+ax.set_title(f"The population each method infers (posterior predictive, 68%)\\n"
              f"vs the true population -- from only {N_CLUSTERS} clusters", fontsize=11)
 plt.show()
 
@@ -403,13 +403,13 @@ fig, axes = plt.subplots(1, 2, figsize=(11, 4.6))
 for ax, (kx, ky, lx, ly) in zip(axes, [("mu_M", "sig_M", r"$\\mu_{\\log M}$", r"$\\sigma_{\\log M}$"),
                                         ("mu_c", "sig_c", r"$\\mu_c$", r"$\\sigma_c$")]):
     for name, smp, color in METHODS:
-        kde_contours(ax, np.column_stack([smp[kx], smp[ky]]), color, fill=False, lw=2.0)
+        kde_contours(ax, np.column_stack([smp[kx], smp[ky]]), color, levels=(0.68,), fill=False, lw=2.0)
     ax.scatter(TRUE[kx], TRUE[ky], marker="*", s=350, color="k", zorder=6, label="truth")
     ax.set_xlabel(lx, fontsize=12); ax.set_ylabel(ly, fontsize=12)
 from matplotlib.lines import Line2D
 axes[0].legend(handles=[Line2D([], [], color=c, lw=2, label=n) for n, _, c in METHODS]
                + [Line2D([], [], marker="*", ls="", ms=14, mfc="k", mec="k", label="truth")], fontsize=9)
-fig.suptitle("2D population posteriors (68/95%): mean vs spread", y=1.02)
+fig.suptitle("2D population posteriors (68%): mean vs spread", y=1.02)
 plt.tight_layout(); plt.show()
 
 fig, axes = plt.subplots(2, 2, figsize=(10, 7))
