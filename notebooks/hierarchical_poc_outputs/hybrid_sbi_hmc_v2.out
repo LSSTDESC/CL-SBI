@@ -1,0 +1,63 @@
+## simulating 150000 single-cluster training pairs ...
+## training per-cluster q(M,c | profile, noise) ...
+ Training neural network. Epochs trained: 1 Training neural network. Epochs trained: 2 Training neural network. Epochs trained: 3 Training neural network. Epochs trained: 4 Training neural network. Epochs trained: 5 Training neural network. Epochs trained: 6 Training neural network. Epochs trained: 7 Training neural network. Epochs trained: 8 Training neural network. Epochs trained: 9 Training neural network. Epochs trained: 10 Training neural network. Epochs trained: 11 Training neural network. Epochs trained: 12 Training neural network. Epochs trained: 13 Training neural network. Epochs trained: 14 Training neural network. Epochs trained: 15 Training neural network. Epochs trained: 16 Training neural network. Epochs trained: 17 Training neural network. Epochs trained: 18 Training neural network. Epochs trained: 19 Training neural network. Epochs trained: 20 Training neural network. Epochs trained: 21 Training neural network. Epochs trained: 22 Training neural network. Epochs trained: 23 Training neural network. Epochs trained: 24 Training neural network. Epochs trained: 25 Training neural network. Epochs trained: 26 Training neural network. Epochs trained: 27 Training neural network. Epochs trained: 28 Training neural network. Epochs trained: 29 Training neural network. Epochs trained: 30 Training neural network. Epochs trained: 31 Training neural network. Epochs trained: 32 Training neural network. Epochs trained: 33 Training neural network. Epochs trained: 34 Training neural network. Epochs trained: 35 Training neural network. Epochs trained: 36 Training neural network. Epochs trained: 37 Training neural network. Epochs trained: 38 Training neural network. Epochs trained: 39 Training neural network. Epochs trained: 40 Training neural network. Epochs trained: 41 Training neural network. Epochs trained: 42 Training neural network. Epochs trained: 43 Training neural network. Epochs trained: 44 Training neural network. Epochs trained: 45 Training neural network. Epochs trained: 46 Training neural network. Epochs trained: 47 Training neural network. Epochs trained: 48 Training neural network. Epochs trained: 49 Training neural network. Epochs trained: 50 Training neural network. Epochs trained: 51 Training neural network. Epochs trained: 52 Training neural network. Epochs trained: 53 Training neural network. Epochs trained: 54 Training neural network. Epochs trained: 55 Training neural network. Epochs trained: 56 Training neural network. Epochs trained: 57 Training neural network. Epochs trained: 58 Neural network successfully converged after 58 epochs.
+## GATE: baseline mu_M = 14.370 (must be in (14.2, 14.55); true ~14.376)
+
+  obs_z1_lambda5 (noise=0.307, rhat=1.002, 35s)
+    mu_M   =  14.369 +/- 0.009  (true  14.376)
+    sig_M  =   0.129 +/- 0.009  (true   0.118)
+    c0     =   4.788 +/- 0.058  (true   4.663)
+    beta   =  -1.357 +/- 0.423  (true  -0.813)
+    sig_c  =   0.320 +/- 0.068  (true   0.149)
+
+  obs_z1_lambda5_high_mc_scatter (noise=0.311, rhat=1.000, 32s)
+    mu_M   =  14.371 +/- 0.010  (true  14.376)
+    sig_M  =   0.125 +/- 0.009  (true   0.118)
+    c0     =   4.803 +/- 0.074  (true   4.703)
+    beta   =  -1.605 +/- 0.532  (true  -0.776)
+    sig_c  =   0.796 +/- 0.064  (true   0.713)
+
+  obs_z1_lambda5_high_rm_scatter (noise=0.450, rhat=1.001, 46s)
+    mu_M   =  13.204 +/- 0.028  (true  13.213)
+    sig_M  =   0.536 +/- 0.021  (true   0.535)
+    c0     =   5.998 +/- 0.078  (true   6.038)
+    beta   =  -1.120 +/- 0.135  (true  -1.333)
+    sig_c  =   0.150 +/- 0.063  (true   0.192)
+
+  obs_z1_lambda5_high_noise (noise=0.703, rhat=1.000, 38s)
+    mu_M   =  14.367 +/- 0.015  (true  14.376)
+    sig_M  =   0.179 +/- 0.016  (true   0.118)
+    c0     =   5.044 +/- 0.111  (true   4.663)
+    beta   =  -2.046 +/- 0.555  (true  -0.813)
+    sig_c  =   0.518 +/- 0.135  (true   0.149)
+
+  obs_z1_lambda5_ludlow (noise=0.307, rhat=1.001, 42s)
+    mu_M   =  14.367 +/- 0.009  (true  14.376)
+    sig_M  =   0.127 +/- 0.008  (true   0.118)
+    c0     =   5.433 +/- 0.066  (true   5.304)
+    beta   =  -1.460 +/- 0.490  (true  -1.364)
+    sig_c  =   0.347 +/- 0.072  (true   0.148)
+
+  obs_z1_lambda5_prada (noise=0.308, rhat=1.002, 41s)
+    mu_M   =  14.370 +/- 0.009  (true  14.376)
+    sig_M  =   0.130 +/- 0.008  (true   0.118)
+    c0     =   6.306 +/- 0.068  (true   6.147)
+    beta   =  -1.239 +/- 0.466  (true  -0.232)
+    sig_c  =   0.284 +/- 0.083  (true   0.134)
+
+  obs_z1_lambda5_low_richness_contam (noise=0.310, rhat=1.000, 36s)
+    mu_M   =  14.353 +/- 0.010  (true  14.353)
+    sig_M  =   0.146 +/- 0.009  (true   0.133)
+    c0     =   4.731 +/- 0.053  (true   4.680)
+    beta   =  -1.455 +/- 0.379  (true  -0.873)
+    sig_c  =   0.304 +/- 0.076  (true   0.144)
+
+  obs_z1_lambda5_high_richness_contam (noise=0.314, rhat=1.000, 35s)
+    mu_M   =  14.265 +/- 0.011  (true  14.255)
+    sig_M  =   0.162 +/- 0.009  (true   0.162)
+    c0     =   4.707 +/- 0.059  (true   4.770)
+    beta   =  -0.595 +/- 0.381  (true  -0.856)
+    sig_c  =   0.429 +/- 0.076  (true   0.161)
+
+=== total wall 11.8 min ===
+saved -> /Users/akumgill/Documents/GitHub/CL-SBI/notebooks/hierarchical_poc_outputs/hybrid_sbi_hmc_allexp.pkl

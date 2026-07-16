@@ -1,0 +1,85 @@
+=== A-full (Option 2: single Gaussian, 6 exps) | N_C=376, N_TRAIN=40000 ===
+hyperprior box: {'mu_M': (13.0, 14.7), 'sig_M': (0.08, 0.65), 'c0': (3.8, 6.8), 'beta': (-1.8, 0.1), 'sig_c': (0.08, 0.8)}
+noise_dex ~ U(0.1,0.8) (fed to embedding)
+  simulated 2000/40000 (49 ms/stack, ETA 31 min)
+  simulated 4000/40000 (49 ms/stack, ETA 29 min)
+  simulated 6000/40000 (50 ms/stack, ETA 28 min)
+  simulated 8000/40000 (51 ms/stack, ETA 27 min)
+  simulated 10000/40000 (52 ms/stack, ETA 26 min)
+  simulated 12000/40000 (54 ms/stack, ETA 25 min)
+  simulated 14000/40000 (56 ms/stack, ETA 24 min)
+  simulated 16000/40000 (57 ms/stack, ETA 23 min)
+  simulated 18000/40000 (61 ms/stack, ETA 22 min)
+  simulated 20000/40000 (64 ms/stack, ETA 21 min)
+  simulated 22000/40000 (64 ms/stack, ETA 19 min)
+  simulated 24000/40000 (64 ms/stack, ETA 17 min)
+  simulated 26000/40000 (64 ms/stack, ETA 15 min)
+  simulated 28000/40000 (64 ms/stack, ETA 13 min)
+  simulated 30000/40000 (64 ms/stack, ETA 11 min)
+  simulated 32000/40000 (64 ms/stack, ETA 8 min)
+  simulated 34000/40000 (64 ms/stack, ETA 6 min)
+  simulated 36000/40000 (66 ms/stack, ETA 4 min)
+  simulated 38000/40000 (65 ms/stack, ETA 2 min)
+  simulated 40000/40000 (64 ms/stack, ETA 0 min)
+## training SNPE + moment-pool embedding ...
+ Training neural network. Epochs trained: 1 Training neural network. Epochs trained: 2 Training neural network. Epochs trained: 3 Training neural network. Epochs trained: 4 Training neural network. Epochs trained: 5 Training neural network. Epochs trained: 6 Training neural network. Epochs trained: 7 Training neural network. Epochs trained: 8 Training neural network. Epochs trained: 9 Training neural network. Epochs trained: 10 Training neural network. Epochs trained: 11 Training neural network. Epochs trained: 12 Training neural network. Epochs trained: 13 Training neural network. Epochs trained: 14 Training neural network. Epochs trained: 15 Training neural network. Epochs trained: 16 Training neural network. Epochs trained: 17 Training neural network. Epochs trained: 18 Training neural network. Epochs trained: 19 Training neural network. Epochs trained: 20 Training neural network. Epochs trained: 21 Training neural network. Epochs trained: 22 Training neural network. Epochs trained: 23 Training neural network. Epochs trained: 24 Training neural network. Epochs trained: 25 Training neural network. Epochs trained: 26 Training neural network. Epochs trained: 27 Training neural network. Epochs trained: 28 Training neural network. Epochs trained: 29 Training neural network. Epochs trained: 30 Training neural network. Epochs trained: 31 Training neural network. Epochs trained: 32 Training neural network. Epochs trained: 33 Training neural network. Epochs trained: 34 Training neural network. Epochs trained: 35 Training neural network. Epochs trained: 36 Training neural network. Epochs trained: 37 Training neural network. Epochs trained: 38 Training neural network. Epochs trained: 39 Training neural network. Epochs trained: 40 Training neural network. Epochs trained: 41 Training neural network. Epochs trained: 42 Training neural network. Epochs trained: 43 Training neural network. Epochs trained: 44 Training neural network. Epochs trained: 45 Training neural network. Epochs trained: 46 Training neural network. Epochs trained: 47 Training neural network. Epochs trained: 48 Training neural network. Epochs trained: 49 Training neural network. Epochs trained: 50 Training neural network. Epochs trained: 51 Training neural network. Epochs trained: 52 Training neural network. Epochs trained: 53 Training neural network. Epochs trained: 54 Training neural network. Epochs trained: 55 Training neural network. Epochs trained: 56 Training neural network. Epochs trained: 57 Training neural network. Epochs trained: 58 Training neural network. Epochs trained: 59 Training neural network. Epochs trained: 60 Training neural network. Epochs trained: 61 Training neural network. Epochs trained: 62 Training neural network. Epochs trained: 63 Training neural network. Epochs trained: 64 Training neural network. Epochs trained: 65 Training neural network. Epochs trained: 66 Training neural network. Epochs trained: 67 Training neural network. Epochs trained: 68 Training neural network. Epochs trained: 69 Training neural network. Epochs trained: 70 Training neural network. Epochs trained: 71 Training neural network. Epochs trained: 72 Training neural network. Epochs trained: 73 Training neural network. Epochs trained: 74 Training neural network. Epochs trained: 75 Training neural network. Epochs trained: 76 Training neural network. Epochs trained: 77 Training neural network. Epochs trained: 78 Training neural network. Epochs trained: 79 Training neural network. Epochs trained: 80 Training neural network. Epochs trained: 81 Training neural network. Epochs trained: 82 Training neural network. Epochs trained: 83 Training neural network. Epochs trained: 84 Training neural network. Epochs trained: 85 Training neural network. Epochs trained: 86 Training neural network. Epochs trained: 87 Training neural network. Epochs trained: 88 Training neural network. Epochs trained: 89 Training neural network. Epochs trained: 90 Training neural network. Epochs trained: 91 Training neural network. Epochs trained: 92 Training neural network. Epochs trained: 93 Training neural network. Epochs trained: 94 Training neural network. Epochs trained: 95 Training neural network. Epochs trained: 96 Training neural network. Epochs trained: 97 Training neural network. Epochs trained: 98 Training neural network. Epochs trained: 99 Training neural network. Epochs trained: 100 Training neural network. Epochs trained: 101 Training neural network. Epochs trained: 102 Training neural network. Epochs trained: 103 Training neural network. Epochs trained: 104 Training neural network. Epochs trained: 105 Training neural network. Epochs trained: 106 Training neural network. Epochs trained: 107 Training neural network. Epochs trained: 108 Training neural network. Epochs trained: 109 Training neural network. Epochs trained: 110 Training neural network. Epochs trained: 111 Training neural network. Epochs trained: 112 Training neural network. Epochs trained: 113 Training neural network. Epochs trained: 114 Training neural network. Epochs trained: 115 Training neural network. Epochs trained: 116 Training neural network. Epochs trained: 117 Training neural network. Epochs trained: 118 Training neural network. Epochs trained: 119 Training neural network. Epochs trained: 120 Training neural network. Epochs trained: 121 Training neural network. Epochs trained: 122 Neural network successfully converged after 122 epochs.## trained in 5515s
+## SBC over 500 held-out datasets (full envelope) ...
+  sbc 100/500 (165 ms/ea)
+  sbc 200/500 (161 ms/ea)
+  sbc 300/500 (172 ms/ea)
+  sbc 400/500 (174 ms/ea)
+  sbc 500/500 (189 ms/ea)
+
+## SBC KS-from-uniform (full envelope; <0.1 pass; N_SBC=500 -> alpha=0.01 crit ~0.073):
+  mu_M   KS=0.119  [CHECK]
+  sig_M  KS=0.039  [PASS]
+  c0     KS=0.046  [PASS]
+  beta   KS=0.106  [CHECK]
+  sig_c  KS=0.052  [PASS]
+
+## applying A-full to the 6 real observation stacks ...
+
+  obs_z1_lambda5  (noise=0.307)
+    mu_M   =  14.369 +/- 0.009   (true  14.376)
+    sig_M  =   0.118 +/- 0.009   (true   0.118)
+    c0     =   4.819 +/- 0.058   (true   4.663)
+    beta   =  -1.276 +/- 0.310   (true  -0.813)
+    sig_c  =   0.210 +/- 0.073   (true   0.149)
+
+  obs_z1_lambda5_high_mc_scatter  (noise=0.311)
+    mu_M   =  14.371 +/- 0.010   (true  14.376)
+    sig_M  =   0.116 +/- 0.009   (true   0.118)
+    c0     =   4.848 +/- 0.065   (true   4.703)
+    beta   =  -1.065 +/- 0.410   (true  -0.776)
+    sig_c  =   0.728 +/- 0.047   (true   0.713)
+
+  obs_z1_lambda5_high_rm_scatter  (noise=0.450)
+    mu_M   =  13.208 +/- 0.025   (true  13.213)
+    sig_M  =   0.518 +/- 0.021   (true   0.535)
+    c0     =   6.186 +/- 0.095   (true   6.038)
+    beta   =  -1.364 +/- 0.148   (true  -1.333)
+    sig_c  =   0.190 +/- 0.066   (true   0.192)
+
+  obs_z1_lambda5_high_noise  (noise=0.703)
+    mu_M   =  14.354 +/- 0.015   (true  14.376)
+    sig_M  =   0.127 +/- 0.018   (true   0.118)
+    c0     =   5.047 +/- 0.125   (true   4.663)
+    beta   =  -1.192 +/- 0.374   (true  -0.813)
+    sig_c  =   0.366 +/- 0.152   (true   0.149)
+
+  obs_z1_lambda5_ludlow  (noise=0.307)
+    mu_M   =  14.371 +/- 0.009   (true  14.376)
+    sig_M  =   0.115 +/- 0.009   (true   0.118)
+    c0     =   5.455 +/- 0.063   (true   5.304)
+    beta   =  -1.356 +/- 0.283   (true  -1.364)
+    sig_c  =   0.212 +/- 0.078   (true   0.148)
+
+  obs_z1_lambda5_prada  (noise=0.308)
+    mu_M   =  14.374 +/- 0.010   (true  14.376)
+    sig_M  =   0.118 +/- 0.008   (true   0.118)
+    c0     =   6.307 +/- 0.065   (true   6.147)
+    beta   =  -0.965 +/- 0.389   (true  -0.232)
+    sig_c  =   0.264 +/- 0.102   (true   0.134)
+
+=== total wall 136.9 min ===
+saved -> /Users/akumgill/Documents/GitHub/CL-SBI/notebooks/hierarchical_poc_outputs/afull_neural_hbi.pkl
