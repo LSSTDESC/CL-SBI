@@ -71,3 +71,14 @@ CLAUDE.md
 # Sphinx documentation
 docs/_build/
 notebooks/tutorial_01_population_inference/cache/
+
+# LaTeX build artifacts (Paper II / hbi_paper)
+tex_source_hbi/*.aux
+tex_source_hbi/*.bbl
+tex_source_hbi/*.blg
+tex_source_hbi/*.out
+tex_source_hbi/*.log
+tex_source_hbi/*.synctex.gz
+tex_source_hbi/*.fls
+tex_source_hbi/*.fdb_latexmk
+tex_source_hbi/texput.log

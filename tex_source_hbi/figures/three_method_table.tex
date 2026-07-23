@@ -1,0 +1,36 @@
+\begin{table*}
+\centering
+\caption{Recovered population \emph{spread} ($\sigma_{\log_{10}M}$, $\sigma_c$) and \emph{center} ($\mu_{\log_{10}M}$, $\mu_c$) across experiments, for the three inference approaches, compared to the true population. For the spread, \textbf{bold} marks recovery within 20\% of truth and $^{\dagger}$ marks a value off by more than a factor of two (strongly over- or under-confident); for the center, \textbf{bold} marks recovery within $0.03$ (mass) or $0.2$ (concentration) of truth. MCMC joint-likelihood (FTJ) reports its posterior \emph{width} as the implied spread, which collapses far below the truth because it estimates a central value, not a population; SBI FTJ and hierarchical HMC report the inferred population. All HMC fits converged ($\hat r<1.01$).}
+\label{tab:three_method}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l rrrr rrrr}
+\hline
+\multicolumn{9}{l}{\textit{Population spread}} \\
+ & \multicolumn{4}{c}{$\sigma_{\log_{10}M}$} & \multicolumn{4}{c}{$\sigma_c$} \\
+Experiment & TRUE & MCMC & SBI & HMC & TRUE & MCMC & SBI & HMC \\
+\hline
+baseline & 0.118 & 0.006$^{\dagger}$ & \textbf{0.115} & \textbf{0.117} & 0.178 & 0.048$^{\dagger}$ & \textbf{0.189} & \textbf{0.166} \\
+baseline high mc scatter & 0.118 & 0.006$^{\dagger}$ & \textbf{0.111} & \textbf{0.116} & 0.719 & 0.048$^{\dagger}$ & 0.187$^{\dagger}$ & \textbf{0.794} \\
+baseline high noise & 0.118 & 0.013$^{\dagger}$ & \textbf{0.119} & \textbf{0.127} & 0.178 & 0.080$^{\dagger}$ & \textbf{0.191} & 0.276 \\
+baseline high richness contam & 0.162 & 0.006$^{\dagger}$ & \textbf{0.140} & \textbf{0.154} & 0.212 & 0.048$^{\dagger}$ & \textbf{0.206} & \textbf{0.217} \\
+baseline high rm scatter & 0.535 & 0.000$^{\dagger}$ & 0.208$^{\dagger}$ & \textbf{0.517} & 0.739 & 0.049$^{\dagger}$ & 0.301$^{\dagger}$ & 0.103$^{\dagger}$ \\
+baseline low richness contam & 0.133 & 0.006$^{\dagger}$ & \textbf{0.133} & \textbf{0.136} & 0.186 & 0.047$^{\dagger}$ & \textbf{0.189} & \textbf{0.182} \\
+baseline ludlow & 0.118 & 0.006$^{\dagger}$ & \textbf{0.118} & \textbf{0.117} & 0.219 & 0.049$^{\dagger}$ & 0.173 & 0.175 \\
+baseline prada & 0.118 & 0.006$^{\dagger}$ & 0.142 & \textbf{0.118} & 0.137 & 0.052$^{\dagger}$ & \textbf{0.152} & 0.207 \\
+\hline
+\multicolumn{9}{l}{\textit{Population center}} \\
+ & \multicolumn{4}{c}{$\mu_{\log_{10}M}$} & \multicolumn{4}{c}{$\mu_c$} \\
+Experiment & TRUE & MCMC & SBI & HMC & TRUE & MCMC & SBI & HMC \\
+\hline
+baseline & 14.376 & \textbf{14.36} & \textbf{14.37} & \textbf{14.36} & 4.66 & \textbf{4.779} & \textbf{4.667} & \textbf{4.818} \\
+baseline high mc scatter & 14.376 & \textbf{14.36} & \textbf{14.37} & \textbf{14.36} & 4.70 & \textbf{4.776} & \textbf{4.668} & \textbf{4.866} \\
+baseline high noise & 14.376 & \textbf{14.36} & \textbf{14.35} & \textbf{14.35} & 4.66 & \textbf{4.814} & \textbf{4.676} & 5.056 \\
+baseline high richness contam & 14.255 & \textbf{14.26} & \textbf{14.28} & \textbf{14.26} & 4.77 & \textbf{4.727} & \textbf{4.762} & \textbf{4.732} \\
+baseline high rm scatter & 13.213 & 13.69 & 13.17 & \textbf{13.21} & 6.04 & 3.910 & \textbf{5.937} & \textbf{6.203} \\
+baseline low richness contam & 14.353 & \textbf{14.35} & \textbf{14.38} & \textbf{14.35} & 4.68 & \textbf{4.755} & \textbf{4.656} & \textbf{4.787} \\
+baseline ludlow & 14.376 & \textbf{14.37} & 14.41 & \textbf{14.36} & 5.30 & \textbf{5.271} & 4.658 & \textbf{5.473} \\
+baseline prada & 14.376 & \textbf{14.39} & 14.49 & \textbf{14.36} & 6.15 & 5.862 & 4.639 & \textbf{6.336} \\
+\hline
+\end{tabular}
+}
+\end{table*}
