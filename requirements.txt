@@ -13,6 +13,11 @@ sbi>=0.22.0
 # MCMC sampling
 emcee>=3.1.0
 
+# Differentiable HMC / hierarchical inference (Paper II)
+jax>=0.4.0
+numpyro>=0.13.0
+halox>=1.2.0  # differentiable NFW lensing forward model (JAX)
+
 # Cosmology
 colossus>=1.3.0
 
