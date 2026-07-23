@@ -63,6 +63,7 @@ lit/*.pdf
 lit/*.zip
 *.npy
 *.pickle
+*.pkl
 *.png
 *.pdf
 scripts/bash2.sh
