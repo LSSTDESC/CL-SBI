@@ -13,6 +13,23 @@ import multiprocessing
 from runtime_log import append_runtime_log
 
 
+def run_stacked_only(args, out_path, infer_config, drawn_nfw_profiles, sigmas, log_stage):
+    """Two-stage + naive stacked MCMC only, appended to an existing inference dir."""
+    with multiprocessing.Pool() as pool:
+        t0 = time.perf_counter()
+        (population_samples, stacked_samplers, population_params) = mcmc.fit_then_join_stacked(
+            drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
+        )
+        log_stage("mcmc_fit_then_join_stacked", time.perf_counter() - t0)
+    with open(os.path.join(out_path, "mcmc_ftj_population_samples.pickle"), "wb") as handle:
+        pickle.dump(population_samples, handle, protocol=4)
+    with open(os.path.join(out_path, "mcmc_ftj_population_params.pickle"), "wb") as handle:
+        pickle.dump(population_params, handle, protocol=4)
+    with open(os.path.join(out_path, "mcmc_ftj_individual_samplers.pickle"), "wb") as handle:
+        pickle.dump(stacked_samplers, handle, protocol=4)
+    print("stacked-only outputs written")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sim_id")
@@ -20,6 +37,10 @@ def main():
     parser.add_argument("--obs_id")
     parser.add_argument("--num_sims")
     parser.add_argument("--num_obs")
+    # Observable: "surface_density" (default) or "delta_sigma". Must match the observable
+    # used to generate sims/observations and train the posterior. Reads suffixed inputs,
+    # writes suffixed inference outputs, and sets the MCMC forward-model observable.
+    parser.add_argument("--observable", default="surface_density")
 
     # Add regenerate flag if we want to overwrite any existing posterior.
     # If false or not set, skip posterior generation if they already exist from an earlier run.
@@ -27,18 +48,22 @@ def main():
     # Flag to run the slow two-stage MCMC FTJ (individual fits + population inference)
     # Disabled by default since it runs 376 individual MCMCs
     parser.add_argument("--run_mcmc_stacked", action="store_true")
+    # Run ONLY the two-stage/naive stacked MCMC into an EXISTING inference dir
+    # (skips SBI and the standard JTF/FTJ MCMC; requires prior outputs present).
+    parser.add_argument("--stacked_only", action="store_true")
     args = parser.parse_args()
 
     script_start = time.perf_counter()
 
     script_dir = os.path.dirname(__file__)
+    obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
     # Go to/create output directory
-    out_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}"
+    out_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
     out_path = os.path.join(script_dir, out_rel_path)
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     # Checking if output already exists from an earlier script run
-    if os.path.isfile(os.path.join(out_path, "true_param_median.npy")):
+    if os.path.isfile(os.path.join(out_path, "true_param_median.npy")) and not args.stacked_only:
         # Rerunning inference (continuing script)
         if args.regenerate:
             print("Overwriting existing inference outputs because of --regenerate flag")
@@ -61,7 +86,7 @@ def main():
             quit()
 
     # Load posterior
-    posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}"
+    posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
     posterior_path = os.path.join(script_dir, posterior_rel_path)
     posterior_filename = os.path.join(posterior_path, "posterior.pickle")
     with open(posterior_filename, "rb") as handle:
@@ -77,9 +102,12 @@ def main():
     infer_config_filename = os.path.join(infer_config_path, f"{args.infer_id}.json")
     with open(infer_config_filename, "r") as f:
         infer_config = json.load(f)
+    # Tell the MCMC forward model which observable to compute (Sigma vs DeltaSigma),
+    # so the likelihood forward-models the same quantity as the observations.
+    infer_config["priors"]["observable"] = args.observable
 
     # Load observations
-    obs_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}"
+    obs_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}{obs_suffix}"
     obs_path = os.path.join(script_dir, obs_rel_path)
     drawn_mc_pairs_filename = os.path.join(obs_path, "drawn_mc_pairs.npy")
     drawn_nfw_profiles_filename = os.path.join(obs_path, "drawn_nfw_profiles.npy")
@@ -102,6 +130,8 @@ def main():
         )
 
     # Run SBI inference
+    if args.stacked_only:
+        return run_stacked_only(args, out_path, infer_config, drawn_nfw_profiles, sigmas, log_stage)
     t0_total_sbi = time.perf_counter()
     t0 = time.perf_counter()
     (

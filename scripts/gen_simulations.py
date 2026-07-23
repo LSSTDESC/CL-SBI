@@ -22,6 +22,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--sim_id")
 parser.add_argument("--num_sims")
 parser.add_argument("--num_obs")
+# Observable to simulate: "surface_density" (Sigma, default) or "delta_sigma" (excess
+# surface density DeltaSigma, the tangential-shear observable). Non-default observables
+# write to a suffixed output dir so Sigma outputs are preserved for A/B comparison.
+parser.add_argument("--observable", default="surface_density")
 
 # Add regenerate flag if we want to overwrite any existing simulations.
 # If false or not set, skip simulation generation if they already exist from an earlier run.
@@ -48,7 +52,8 @@ sim_config_rel_path = "../configs/simulations/"
 sim_config_path = os.path.join(script_dir, sim_config_rel_path)
 sim_config_filename = os.path.join(sim_config_path, f"{args.sim_id}.json")
 
-out_rel_path = f"../outputs/simulations/{args.sim_id}.{args.num_sims}.{args.num_obs}"
+obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+out_rel_path = f"../outputs/simulations/{args.sim_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 out_path = os.path.join(script_dir, out_rel_path)
 
 # Checking if simulations already exist from an earlier script run
@@ -121,7 +126,7 @@ for min_lambda, max_lambda in lambda_bins:
     # Simulate NFW profiles for each of the mc_pairs
     non_noisy_simulated_nfw_profiles = np.array(
         [
-            wlprofile.simulate_nfw(log10mass, concentration, rbins, z)
+            wlprofile.simulate_nfw(log10mass, concentration, rbins, z, kind=args.observable)
             for log10mass, concentration, z in np.column_stack(
                 (sample_mc_pairs, z_sample)
             )

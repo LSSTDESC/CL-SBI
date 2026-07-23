@@ -19,6 +19,9 @@ from runtime_log import append_runtime_log
 parser = argparse.ArgumentParser()
 parser.add_argument("--obs_id")
 parser.add_argument("--num_obs")
+# Observable: "surface_density" (default) or "delta_sigma" (excess surface density).
+# Non-default observables write to a suffixed output dir (preserves Sigma outputs).
+parser.add_argument("--observable", default="surface_density")
 
 # Add regenerate flag if we want to overwrite any existing observations.
 # If false or not set, skip observation generation if they already exist from an earlier run.
@@ -45,7 +48,8 @@ config_rel_path = "../configs/observations/"
 config_path = os.path.join(script_dir, config_rel_path)
 config_filename = os.path.join(config_path, f"{args.obs_id}.json")
 
-out_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}"
+obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+out_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}{obs_suffix}"
 out_path = os.path.join(script_dir, out_rel_path)
 
 # Checking if observations already exist from an earlier script run
@@ -87,7 +91,7 @@ z_sample = np.random.uniform(
 )
 noiseless_drawn_nfw_profiles = np.array(
     [
-        wlprofile.simulate_nfw(log10mass, concentration, rbins, z)
+        wlprofile.simulate_nfw(log10mass, concentration, rbins, z, kind=args.observable)
         for log10mass, concentration, z in np.column_stack((drawn_mc_pairs, z_sample))
     ]
 )

@@ -129,6 +129,7 @@ def loglike(params, priors, model):
             log10mass,
             concentration,
             z=z,
+            kind=priors.get("observable", "surface_density"),
         )
     )
 

@@ -18,6 +18,9 @@ parser.add_argument("--infer_id")
 parser.add_argument("--obs_id")
 parser.add_argument("--num_sims")
 parser.add_argument("--num_obs")
+# Observable: "surface_density" (default) or "delta_sigma". Non-default reads/writes
+# .delta_sigma-suffixed dirs so the Sigma figures are preserved.
+parser.add_argument("--observable", default="surface_density")
 
 # Add regenerate flag if we want to overwrite any existing plots.
 # If false or not set, skip plot generation if they already exist from an earlier run.
@@ -41,12 +44,31 @@ def log_runtime(status="success", details=""):
     )
 
 script_dir = os.path.dirname(__file__)
+obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
 
-# Load observations
-obs_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}"
-obs_path = os.path.join(script_dir, obs_rel_path)
-drawn_mc_pairs_filename = os.path.join(obs_path, "drawn_mc_pairs.npy")
-drawn_mc_pairs = np.load(drawn_mc_pairs_filename)
+# Truth reference = the TRUE population distribution (large seeded sample from the obs
+# config), not the finite N_c observed draw. The posteriors claim to recover the intrinsic
+# population dispersion, so the reference contour/crosshairs should be that population;
+# the single N_c draw carries ~1/sqrt(N_c) finite-sample noise (Payerne P2-d). The data
+# vector itself (and hence the posteriors) remains a single realization, as in a real survey.
+from weaklensclustersbi.simulations import population as _population
+obs_config_filename_truth = os.path.join(script_dir, f"../configs/observations/{args.obs_id}.json")
+with open(obs_config_filename_truth, "r") as f:
+    _obs_config = json.load(f)
+np.random.seed(4242)  # fixed seed: reproducible reference population
+drawn_mc_pairs = np.asarray(_population.gen_mc_pairs_in_richness_bin(
+    _obs_config["min_richness"],
+    _obs_config["max_richness"],
+    rm_relation=_obs_config["rm_relation"],
+    mc_relation=_obs_config["mc_relation"],
+    num_samples=40000,  # large sample: smooth 95/99.7% truth contours (tails from 5k are jagged)
+    mc_scatter=_obs_config["mc_scatter"],
+    rm_scatter=_obs_config["rm_scatter"],
+    min_z=_obs_config["min_z"],
+    max_z=_obs_config["max_z"],
+    richness_contam_frac=_obs_config.get("richness_contam_frac", 0.0),
+    lambda_min_contam=_obs_config.get("min_richness_contam", None),
+))
 
 # Load infer config
 infer_config_rel_path = "../configs/inference/"
@@ -56,7 +78,7 @@ with open(infer_config_filename, "r") as f:
     infer_config = json.load(f)
 
 # Open the infer_dir specified in the command line
-infer_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}"
+infer_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 infer_path = os.path.join(script_dir, infer_rel_path)
 
 with open(os.path.join(infer_path, "mcmc_chains.pickle"), "rb") as handle:
@@ -64,11 +86,13 @@ with open(os.path.join(infer_path, "mcmc_chains.pickle"), "rb") as handle:
 with open(os.path.join(infer_path, "sbi_chains.pickle"), "rb") as handle:
     sbi_chains = pickle.load(handle)
 
-true_param_median = np.load(os.path.join(infer_path, "true_param_median.npy"))
-true_param_25 = np.load(os.path.join(infer_path, "true_param_25th_percentile.npy"))
-true_param_75 = np.load(os.path.join(infer_path, "true_param_75th_percentile.npy"))
+# Crosshair / percentile reference lines from the same population sample as the contour
+# (previously loaded from the inference dir = the single N_c draw's median/percentiles).
+true_param_median = (np.median(drawn_mc_pairs[:, 0]), np.median(drawn_mc_pairs[:, 1]))
+true_param_25 = (np.percentile(drawn_mc_pairs[:, 0], 25), np.percentile(drawn_mc_pairs[:, 1], 25))
+true_param_75 = (np.percentile(drawn_mc_pairs[:, 0], 75), np.percentile(drawn_mc_pairs[:, 1], 75))
 
-out_rel_path = f"../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}"
+out_rel_path = f"../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 out_path = os.path.join(script_dir, out_rel_path)
 if not os.path.exists(out_path):
     os.makedirs(out_path)

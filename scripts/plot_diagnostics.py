@@ -18,6 +18,9 @@ parser.add_argument("--infer_id")
 parser.add_argument("--obs_id")
 parser.add_argument("--num_sims")
 parser.add_argument("--num_obs")
+# Observable: "surface_density" (default) or "delta_sigma". Non-default reads .delta_sigma
+# inputs, writes .delta_sigma plot dirs, and labels axes with DeltaSigma.
+parser.add_argument("--observable", default="surface_density")
 
 # Add regenerate flag if we want to overwrite any existing plots.
 # If false or not set, skip plot generation if they already exist from an earlier run.
@@ -43,10 +46,11 @@ def log_runtime(status="success", details=""):
 
 # Open the infer_dir specified in the command line
 script_dir = os.path.dirname(__file__)
-infer_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}"
+obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+infer_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 infer_path = os.path.join(script_dir, infer_rel_path)
 
-out_rel_path = f"../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}/diagnostics"
+out_rel_path = f"../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}/diagnostics"
 out_path = os.path.join(script_dir, out_rel_path)
 if not os.path.exists(out_path):
     os.makedirs(out_path)
@@ -93,7 +97,7 @@ true_param_median = np.load(os.path.join(infer_path, "true_param_median.npy"))
 plotutils.plot_walkers(mcmc_jtf_sampler, out_path, "mcmc_jtf_")
 
 # Load observations
-obs_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}"
+obs_rel_path = f"../outputs/observations/{args.obs_id}.{args.num_obs}{obs_suffix}"
 obs_path = os.path.join(script_dir, obs_rel_path)
 
 obs_config_rel_path = "../configs/observations/"
@@ -115,7 +119,7 @@ noiseless_drawn_nfw_profiles_filename = os.path.join(
 noiseless_drawn_nfw_profiles = np.load(noiseless_drawn_nfw_profiles_filename)
 
 # Load posterior
-posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}"
+posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 posterior_path = os.path.join(script_dir, posterior_rel_path)
 posterior_filename = os.path.join(posterior_path, "posterior.pickle")
 with open(posterior_filename, "rb") as handle:
@@ -137,6 +141,7 @@ plotutils.plot_nfw_profiles(
     z,
     is_noisy=True,
     true_param_median=true_param_median,
+    observable=args.observable,
 )
 
 plotutils.plot_nfw_profiles(
@@ -149,6 +154,7 @@ plotutils.plot_nfw_profiles(
     z,
     is_noisy=False,
     true_param_median=true_param_median,
+    observable=args.observable,
 )
 
 # Plotting drawn AND inferred profiles in plots directory
@@ -181,6 +187,7 @@ plotutils.plot_mcmc_nfw_profiles(
     mcmc_jtf_sampler=mcmc_jtf_sampler,
     mcmc_ftj_samplers=mcmc_ftj_samplers,
     true_param_median=true_param_median,
+    observable=args.observable,
 )
 
 plotutils.plot_sbi_nfw_profiles(
@@ -197,6 +204,7 @@ plotutils.plot_sbi_nfw_profiles(
     sbi_ftj_logprob=sbi_ftj_logprob,
     sbi_jtf_logprob=sbi_jtf_logprob,
     true_param_median=true_param_median,
+    observable=args.observable,
 )
 
 plotutils.plot_frac_diff(
@@ -216,6 +224,7 @@ plotutils.plot_frac_diff(
     true_param_median=true_param_median,
     sbi_ftj_logprob=sbi_ftj_logprob,
     sbi_jtf_logprob=sbi_jtf_logprob,
+    observable=args.observable,
 )
 
 log_runtime()

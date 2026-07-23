@@ -18,6 +18,9 @@ parser.add_argument("--infer_id")
 parser.add_argument("--sim_id")
 parser.add_argument("--num_sims")
 parser.add_argument("--num_obs")
+# Observable: "surface_density" (default) or "delta_sigma". Must match the observable
+# used for gen_simulations; reads suffixed sims and writes suffixed posteriors.
+parser.add_argument("--observable", default="surface_density")
 
 # Add regenerate flag if we want to overwrite any existing posterior.
 # If false or not set, skip posterior generation if they already exist from an earlier run.
@@ -41,7 +44,8 @@ def log_runtime(status="success", details=""):
 
 
 script_dir = os.path.dirname(__file__)
-out_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}"
+obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+out_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 out_path = os.path.join(script_dir, out_rel_path)
 if not os.path.exists(out_path):
     os.makedirs(out_path)
@@ -66,7 +70,7 @@ with open(infer_config_filename, "r") as f:
     infer_config = json.load(f)
 
 # Open simulations output
-sim_rel_path = f"../outputs/simulations/{args.sim_id}.{args.num_sims}.{args.num_obs}"
+sim_rel_path = f"../outputs/simulations/{args.sim_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 sim_path = os.path.join(script_dir, sim_rel_path)
 sample_mc_pairs_filename = os.path.join(sim_path, "sample_mc_pairs.npy")
 # sample_jtf_mc_pairs_filename = os.path.join(sim_path, "sample_jtf_mc_pairs.npy")
