@@ -19,8 +19,14 @@ from weaklensclustersbi.simulations import population
 from runtime_log import append_runtime_log
 
 CONF_LEVELS = np.linspace(0, 1, 20)
-TRUTH_SAMPLE_SIZE = 1000  # Reduced from 5000 for speed
-POSTERIOR_SAMPLE_SIZE = 1000  # Reduced from 5000 for speed
+TRUTH_SAMPLE_SIZE = 1000  # truth pool for coverage curves (JTF truth = n_samples*num_obs, keep modest)
+POSTERIOR_SAMPLE_SIZE = 5000  # large pool so KS bootstrap subsamples (size N_c) are diverse
+# KS p-values are strongly sample-size dependent: with N >> N_c the test rejects any
+# non-identical distributions (p->0), and with small N it is noisy near the 0.05 threshold.
+# We therefore evaluate the KS test on N_c-sized subsamples (the actual number of observed
+# clusters), the only apples-to-apples comparison, and report the median over several draws
+# for stability. The robust, sample-size-independent comparison is the coverage analysis.
+KS_N_REPEATS = 101
 
 # Cache for truth samples (keyed by obs_config hash)
 _TRUTH_CACHE: dict = {}
@@ -131,20 +137,44 @@ def sample_truth_jtf(
 
 
 def compute_ks_pvalues(
-    samples: np.ndarray, truth_samples: np.ndarray
+    samples: np.ndarray, truth_samples: np.ndarray, ks_nc: int = None
 ) -> Dict[str, float]:
     """Compute 2-sample KS-test p-values for mass and concentration.
+
+    The KS p-value is strongly sample-size dependent, so we evaluate the test on subsamples
+    matching the number of truth points N_c (the actual observed-cluster count), the only
+    apples-to-apples comparison, and report the median p-value over KS_N_REPEATS random
+    posterior subsamples for stability. A high median p-value (>=0.05) indicates the posterior
+    marginal is not rejected as inconsistent with the truth; a low value suggests bias or
+    miscalibration. The robust, sample-size-independent comparison is the coverage analysis.
 
     A high p-value (>0.05) indicates the posterior is consistent with the truth distribution.
     A low p-value suggests the posterior is biased or miscalibrated.
     """
-    ks_mass = stats.ks_2samp(samples[:, 0], truth_samples[:, 0])
-    ks_conc = stats.ks_2samp(samples[:, 1], truth_samples[:, 1])
+    # Pin the comparison to N_c (the actual observed-cluster count) even when the truth
+    # pool is a large population sample: both sides are subsampled at N_c per repeat, so
+    # the test asks "could an N_c-cluster sample from the posterior be distinguished from
+    # an N_c-cluster sample of the population?" -- the apples-to-apples data volume.
+    # (Without this, a 5000-point truth pool gives KS enough power to reject percent-level
+    # deviations that are irrelevant at the survey's actual sample size.)
+    n = ks_nc if ks_nc else min(len(truth_samples), len(samples))
+    rng = np.random.default_rng(0)
+    stat_m, pval_m, stat_c, pval_c = [], [], [], []
+    for _ in range(KS_N_REPEATS):
+        # bootstrap fresh N_c-sized subsamples (with replacement) of BOTH pools each repeat,
+        # so the median is stable and averages over truth-sampling noise as well
+        sub = samples[rng.choice(len(samples), size=n, replace=True)]
+        tru = truth_samples[rng.choice(len(truth_samples), size=n, replace=True)]
+        km = stats.ks_2samp(sub[:, 0], tru[:, 0])
+        kc = stats.ks_2samp(sub[:, 1], tru[:, 1])
+        stat_m.append(km.statistic); pval_m.append(km.pvalue)
+        stat_c.append(kc.statistic); pval_c.append(kc.pvalue)
     return {
-        "mass_ks_stat": float(ks_mass.statistic),
-        "mass_ks_pvalue": float(ks_mass.pvalue),
-        "conc_ks_stat": float(ks_conc.statistic),
-        "conc_ks_pvalue": float(ks_conc.pvalue),
+        "mass_ks_stat": float(np.median(stat_m)),
+        "mass_ks_pvalue": float(np.median(pval_m)),
+        "conc_ks_stat": float(np.median(stat_c)),
+        "conc_ks_pvalue": float(np.median(pval_c)),
+        "ks_n": int(n),
     }
 
 
@@ -175,7 +205,8 @@ def compute_coverage(
 
 
 def aggregate_coverage(
-    run_path: str, truth_map: Dict[str, np.ndarray], ftj_only: bool = False
+    run_path: str, truth_map: Dict[str, np.ndarray], ftj_only: bool = False,
+    include_alt: bool = False, ks_nc: int = None
 ) -> Tuple[Dict[Tuple[str, str], Dict[float, float]], Dict[Tuple[str, str], Dict[str, float]]]:
     """Compute coverage and KS-test metrics for all methods.
 
@@ -205,33 +236,33 @@ def aggregate_coverage(
         chains[("mcmc", "jtf")] = draw_posterior_samples(mcmc_jtf, POSTERIOR_SAMPLE_SIZE)
         chains[("sbi", "jtf")] = draw_posterior_samples(sbi_jtf, POSTERIOR_SAMPLE_SIZE)
 
-    # Load two-stage FTJ population samples if available
-    population_file = os.path.join(run_path, "mcmc_ftj_population_samples.pickle")
-    if os.path.exists(population_file):
-        with open(population_file, "rb") as handle:
-            mcmc_ftj_population = pickle.load(handle)
-        chains[("mcmc", "ftj_twostage")] = draw_posterior_samples(
-            mcmc_ftj_population, POSTERIOR_SAMPLE_SIZE
-        )
-
-    # Load naive stacking samples if available (from individual samplers)
-    individual_samplers_file = os.path.join(run_path, "mcmc_ftj_individual_samplers.pickle")
-    if os.path.exists(individual_samplers_file):
-        with open(individual_samplers_file, "rb") as handle:
-            individual_samplers = pickle.load(handle)
-        # Concatenate flatchain from each individual sampler (only M, c columns)
-        naive_chains = [s.flatchain[:, :2] for s in individual_samplers]
-        mcmc_ftj_naive = np.concatenate(naive_chains, axis=0)
-        chains[("mcmc", "ftj_naive")] = draw_posterior_samples(
-            mcmc_ftj_naive, POSTERIOR_SAMPLE_SIZE
-        )
+    # Alternative-method (two-stage, naive-stacking) rows feed only the appendix comparison
+    # figure, not the main KS table / calibration figure, and the naive path loads 376 emcee
+    # samplers (slow). Skip them unless explicitly requested via include_alt.
+    if include_alt:
+        population_file = os.path.join(run_path, "mcmc_ftj_population_samples.pickle")
+        if os.path.exists(population_file):
+            with open(population_file, "rb") as handle:
+                mcmc_ftj_population = pickle.load(handle)
+            chains[("mcmc", "ftj_twostage")] = draw_posterior_samples(
+                mcmc_ftj_population, POSTERIOR_SAMPLE_SIZE
+            )
+        individual_samplers_file = os.path.join(run_path, "mcmc_ftj_individual_samplers.pickle")
+        if os.path.exists(individual_samplers_file):
+            with open(individual_samplers_file, "rb") as handle:
+                individual_samplers = pickle.load(handle)
+            naive_chains = [s.flatchain[:, :2] for s in individual_samplers]
+            mcmc_ftj_naive = np.concatenate(naive_chains, axis=0)
+            chains[("mcmc", "ftj_naive")] = draw_posterior_samples(
+                mcmc_ftj_naive, POSTERIOR_SAMPLE_SIZE
+            )
 
     for key, samples in chains.items():
         branch = key[1]
         # Map ftj_twostage and ftj_naive to ftj truth for comparison
         truth_key = "ftj" if branch in ("ftj_twostage", "ftj_naive") else branch
         aggregates[key] = compute_coverage(samples, truth_map[truth_key])
-        ks_results[key] = compute_ks_pvalues(samples, truth_map[truth_key])
+        ks_results[key] = compute_ks_pvalues(samples, truth_map[truth_key], ks_nc=ks_nc)
     return aggregates, ks_results
 
 
@@ -272,9 +303,14 @@ def main():
     parser.add_argument("--obs_id", required=True)
     parser.add_argument("--num_sims", required=True)
     parser.add_argument("--num_obs", required=True)
+    # Observable: "surface_density" (default) or "delta_sigma". Non-default reads/writes
+    # .delta_sigma-suffixed dirs so the Sigma calibration outputs are preserved.
+    parser.add_argument("--observable", default="surface_density")
     parser.add_argument("--regenerate", action="store_true")
     parser.add_argument("--ftj-only", action="store_true",
                         help="Skip JTF calibration (much faster)")
+    parser.add_argument("--include-alt", action="store_true",
+                        help="Include slow two-stage/naive-stacking rows (appendix only)")
     args = parser.parse_args()
 
     script_start = time.perf_counter()
@@ -293,13 +329,14 @@ def main():
         )
 
     script_dir = os.path.dirname(__file__)
+    obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
     run_path = os.path.join(
         script_dir,
-        f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}",
+        f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}",
     )
     out_dir = os.path.join(
         script_dir,
-        f"../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}/calibration",
+        f"../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}/calibration",
     )
 
     obs_config_path = os.path.join(
@@ -308,14 +345,12 @@ def main():
     with open(obs_config_path, "r") as f:
         obs_config = json.load(f)
 
-    # Load actual observations as FTJ truth (not freshly generated samples)
-    # This avoids sampling variance issues when comparing posteriors
-    obs_path = os.path.join(
-        script_dir,
-        f"../outputs/observations/{args.obs_id}.{args.num_obs}",
-    )
-    actual_obs = np.load(os.path.join(obs_path, "drawn_mc_pairs.npy"))
-    truth_map = {"ftj": actual_obs}
+    # FTJ truth = the TRUE population distribution (large sample from the obs config),
+    # not the finite N_c observed draw. The posterior claims to recover the intrinsic
+    # population dispersion, so the calibration target should be that population --
+    # comparing to the single N_c-cluster draw bakes ~1/sqrt(N_c) finite-sample noise
+    # into the "truth" and makes KS pass/fail realization-dependent (Payerne P2-d).
+    truth_map = {"ftj": sample_truth_ftj(obs_config, n_samples=5000)}
 
     if not args.ftj_only:
         print("Generating JTF truth samples (slow)...")
@@ -330,7 +365,9 @@ def main():
     plt.style.use(os.path.join(script_dir, f"../plot/mplstyle.txt"))
 
     try:
-        aggregates, ks_results = aggregate_coverage(run_path, truth_map, ftj_only=args.ftj_only)
+        aggregates, ks_results = aggregate_coverage(run_path, truth_map, ftj_only=args.ftj_only,
+                                                     include_alt=args.include_alt,
+                                                     ks_nc=int(args.num_obs))
         # Include ftj, ftj_twostage, and ftj_naive in FTJ comparison
         ftj_agg = {k: v for k, v in aggregates.items() if k[1] in ("ftj", "ftj_twostage", "ftj_naive")}
         plot_calibration(ftj_agg, out_dir, "ftj")
