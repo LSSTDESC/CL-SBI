@@ -1,0 +1,31 @@
+{
+  "description": "Fiducial HBI population model (Paper II): shared M-c relation with redshift evolution, mass-function x richness-selection mass prior. Consumed by the run_hbi_* pipeline scripts and hbi.model_kwargs_from_config / population_hbi.selection_kwargs_from_config.",
+  "observable": "surface_density",
+  "mass_mode": "massfn",
+  "relation": {
+    "logM_ref": 14.3,
+    "z_ref": 0.35,
+    "evolve_z": true
+  },
+  "massfn_selection": {
+    "mf_model": "tinker08",
+    "mf_mdef": "200m",
+    "rm_relation": "mcclintock18",
+    "rm_scatter": 0.1,
+    "mass_grid": [13.3, 15.4, 1200],
+    "width": 0.15
+  },
+  "priors": {
+    "c0": ["Normal", 4.6, 1.0],
+    "beta": ["Normal", 0.0, 1.5],
+    "gamma": ["Normal", 0.0, 3.0],
+    "sig_c": ["HalfNormal", 0.5],
+    "sig_extra": ["HalfNormal", 0.15]
+  },
+  "nuts": {
+    "num_warmup": 600,
+    "num_samples": 800,
+    "num_chains": 2,
+    "target_accept_prob": 0.9
+  }
+}

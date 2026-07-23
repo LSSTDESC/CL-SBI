@@ -1,0 +1,24 @@
+{
+  "description": "Single-cell HBI population model (recover-the-spread demo; hierarchical_mcmc_poc.py). Free per-cell (mu_M, sig_M), no redshift evolution.",
+  "observable": "surface_density",
+  "mass_mode": "gaussian",
+  "relation": {
+    "logM_ref": 14.3,
+    "z_ref": 0.35,
+    "evolve_z": false
+  },
+  "priors": {
+    "c0": ["Normal", 4.6, 1.0],
+    "beta": ["Normal", 0.0, 2.0],
+    "sig_c": ["HalfNormal", 0.5],
+    "sig_extra": ["HalfNormal", 0.1],
+    "mu_M": ["Normal", 14.4, 0.3],
+    "sig_M": ["HalfNormal", 0.3]
+  },
+  "nuts": {
+    "num_warmup": 600,
+    "num_samples": 800,
+    "num_chains": 2,
+    "target_accept_prob": 0.9
+  }
+}

@@ -150,6 +150,18 @@ def load_cells(specs, *, mass_mode="massfn", kind="surface_density", width=0.15,
     return cells
 
 
+def selection_kwargs_from_config(cfg):
+    """Map a population config to load_cells kwargs (mass mode, observable, MF x selection)."""
+    out = {"mass_mode": cfg.get("mass_mode", "massfn"), "kind": cfg.get("observable", "surface_density")}
+    ms = cfg.get("massfn_selection", {})
+    for k in ("mf_model", "mf_mdef", "rm_relation", "rm_scatter", "width"):
+        if k in ms:
+            out[k] = ms[k]
+    if "mass_grid" in ms:
+        out["mass_grid"] = tuple(ms["mass_grid"])
+    return out
+
+
 def fit_true_relation(cells, *, logM_ref, z_ref, evolve_z=True):
     """Least-squares (c0, beta, gamma) of the pooled true (M,c) across cells.
 

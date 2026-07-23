@@ -32,6 +32,8 @@ mass prior; the cell-grouped model here covers the single-cell and 12-cell cases
 """
 from __future__ import annotations
 
+import json
+
 import numpyro
 import numpyro.distributions as dist
 import jax.numpy as jnp
@@ -162,6 +164,29 @@ def hier_model(
 
 # Hyperparameters reported/compared across methods (per-cluster latents excluded).
 POP_PARAMS = ("c0", "beta", "gamma", "sig_c", "sig_extra")
+
+
+def read_config(path):
+    """Load a configs/population/*.json population-model config."""
+    with open(path) as f:
+        return json.load(f)
+
+
+def model_kwargs_from_config(cfg):
+    """Map a population config to hier_model/run_nuts model kwargs."""
+    rel = cfg.get("relation", {})
+    return dict(
+        priors=cfg.get("priors"),
+        mass_mode=cfg.get("mass_mode", "massfn"),
+        evolve_z=rel.get("evolve_z", True),
+        logM_ref=rel.get("logM_ref", LOGM_REF),
+        z_ref=rel.get("z_ref", Z_REF),
+    )
+
+
+def nuts_kwargs_from_config(cfg):
+    """NUTS sampler kwargs from the config's ``nuts`` block (empty -> run_nuts defaults)."""
+    return dict(cfg.get("nuts", {}))
 
 
 def run_nuts(
