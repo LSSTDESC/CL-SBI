@@ -5,6 +5,53 @@ Detailed per-session TODOs live in `CLAUDE.md` and `tex_source/REVIEW_TODOS.md`.
 
 ---
 
+## 2026-07-23 — Paper II plan: fully-unbinned HBI in the main pipeline (HMC vs SBI vs hybrid)
+
+Decision to move full-dataset (un-binned) hierarchical inference out of the `notebooks/hier_*.py`
+POCs and into the **main pipeline**, so all methods run on one dataset / forward model / population
+model (matched inputs = the precondition for the "methods agree" result). All work on `paper2-hbi`.
+
+**Methods compared (drop orange from Paper II):**
+- **green** = joint HMC (all per-cluster latents + hyperparams sampled together; differentiable fwd model).
+- **brown** = hybrid: amortized SBI per-cluster `q(M,c|profile,noise,z)` + HMC population step (reweighting).
+- **purple** = fully-amortized neural HBI (population posterior end-to-end). The long pole — added last.
+
+**Binning:** headline is **fully unbinned** — each cluster carries continuous (λ_i, z_i); mass prior from
+the continuous mass-function × λ–M relation. The **12-cell grid** (4 richness [λ≥20] × 3 redshift,
+McClintock18 counts) is kept only as a **sanity cross-check** of the unbinned result, not a headline.
+
+**Population model:** one shared M–C relation `c = c0 + β·(logM−logM_ref) + γ·(z−z_ref) + N(0,σ_c)`.
+
+**λ–M robustness (pushback that shaped the design):** un-binned makes the λ–M relation load-bearing
+(every cluster's mass prior uses it). Treat λ–M slope + scatter as hyperparameters with a prior (the
+"mix"). Training the SBI nets over that mix is the SBI-native way to marginalize over λ–M. Two distinct
+experiments: (a) **agreement** — all methods carry the *same* λ–M prior → green≈brown≈purple; (b)
+**robustness** — generate observations from an off-prior λ–M and show the marginalizing methods stay
+unbiased in (c0,β,γ) while a fixed/point-estimate λ–M biases them. (Extends the existing `mc_relation_mix`
+broadening from the M–C relation to the λ–M relation + scatters.)
+
+**Architecture (new):**
+- pkg: `weaklensclustersbi/simulations/population_hbi.py` (generative hierarchy), `weaklensclustersbi/
+  inference/hbi.py` (numpyro model, unbinned + 12-cell modes) — lifted/parameterized from
+  `hierarchical_mcmc_poc.py` + `hier_fulldataset_hmc.py` (which hardcode z=0.275 and paths).
+- config: `configs/population/*.json` (priors on c0,β,γ,σ_c; λ–M slope/scatter prior; MF model; mass def;
+  cosmology; survey selection) — single source of truth for all methods.
+- scripts: `gen_hbi_dataset.py` (`--cells` for 12-cell), `run_hbi_hmc.py`, `run_hbi_hybrid.py`,
+  later `run_hbi_sbi.py`, `plot_hbi_comparison.py`. Outputs under `outputs/hbi/{pop_id}/{method}/`.
+
+**Staged plan (each = its own commit(s)):**
+- **Stage 0 — foundation:** package + parameterize the HBI model; population config schema.
+  *Acceptance:* reproduces the existing POC single-cell + 12-cell numbers (faithful lift).
+- **Stage 1:** unbinned simulator (`gen_hbi_dataset.py`) + λ–M-mix training sims.
+- **Stage 2:** hybrid (brown) → first population posterior.
+- **Stage 3:** joint HMC (green) → validate green≈brown on matched inputs.
+- **Stage 4:** 12-cell cross-check mode + overlay/timing comparison figure.
+- **Stage 5 (later):** purple (amortized neural HBI) + the λ–M robustness experiment.
+
+Keep the `notebooks/hier_*.py` POCs until Stage 0 reproduces their results, then retire.
+
+---
+
 ## 2026-07-14 — Paper II: methods-alignment meeting + CL platform telecon (notes + my action items)
 
 Two meetings logged (both Paper-II track, independent of the Paper-I review).
