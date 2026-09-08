@@ -1178,3 +1178,208 @@ timestamp,stage,sim_id,infer_id,obs_id,num_sims,num_obs,details,seconds,status
 2026-07-14T04:14:36,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,89.470628,success
 2026-07-14T04:53:48,mcmc_fit_then_join_stacked,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,2343.208736,success
 2026-07-14T04:55:12,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,80.532222,success
+2026-08-06T10:32:07,gen_simulations,sim_z1,,,100,376,,36.331678,success
+2026-08-06T10:32:29,train_inferrer,sim_z1,infer_z1,,100,376,,3.940108,success
+2026-08-06T10:36:52,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5,100,376,stack=both,1.064821,success
+2026-08-06T10:36:52,sbi_total,sim_z1,infer_z1,obs_z1_lambda5,100,376,,1.065827,success
+2026-08-06T10:40:30,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5,100,376,,218.775686,success
+2026-08-06T10:46:58,gen_simulations,sim_z1_hypermix,,,4,50,,0.003360,success
+2026-08-06T15:52:24,gen_simulations,sim_z1_high_rm_scatter,,,10000,376,,7009.124076,success
+2026-08-06T15:53:26,gen_simulations,sim_z1_high_noise,,,10000,376,,7070.692846,success
+2026-08-06T15:53:46,gen_simulations,sim_z1,,,10000,376,,7090.620812,success
+2026-08-06T15:53:52,gen_simulations,sim_z1_high_mc_scatter,,,10000,376,,7097.216654,success
+2026-08-06T15:54:47,gen_simulations,sim_z1_high_rm_scatter,,,10000,376,existing simulations,0.000026,skipped
+2026-08-06T15:54:47,gen_simulations,sim_z1_high_mc_scatter,,,10000,376,existing simulations,0.000025,skipped
+2026-08-06T15:54:47,gen_simulations,sim_z1_high_noise,,,10000,376,existing simulations,0.000025,skipped
+2026-08-06T15:54:47,gen_simulations,sim_z1,,,10000,376,existing simulations,0.000025,skipped
+2026-08-06T16:00:30,train_inferrer,sim_z1,infer_z1,,10000,376,,334.674917,success
+2026-08-06T16:06:20,train_inferrer,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,,10000,376,,340.303002,success
+2026-08-06T16:10:12,train_inferrer,sim_z1_high_noise,infer_z1,,10000,376,,222.064722,success
+2026-08-06T16:15:10,train_inferrer,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,,10000,376,,288.485011,success
+2026-08-06T16:21:09,train_inferrer,sim_z1_high_rm_scatter,infer_z1,,10000,376,,347.912076,success
+2026-08-06T16:21:24,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5,10000,376,stack=both,1.691843,success
+2026-08-06T16:21:24,sbi_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,1.693707,success
+2026-08-06T16:27:12,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,347.707661,success
+2026-08-06T16:27:12,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5,10000,376,reused from median twin,0.000000,reused
+2026-08-06T16:27:12,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,348.084796,success
+2026-08-06T16:27:12,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,349.983722,success
+2026-08-06T16:27:24,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,stack=both,1.015775,success
+2026-08-06T16:27:24,sbi_total,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,1.016396,success
+2026-08-06T16:31:11,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,226.499299,success
+2026-08-06T16:31:11,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,reused from median twin,0.000000,reused
+2026-08-06T16:31:11,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,226.915875,success
+2026-08-06T16:31:11,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,227.989106,success
+2026-08-06T16:31:22,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,stack=both,0.715216,success
+2026-08-06T16:31:22,sbi_total,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,0.715572,success
+2026-08-06T16:37:34,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,371.758402,success
+2026-08-06T16:37:34,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,reused from median twin,0.000000,reused
+2026-08-06T16:37:34,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,372.078671,success
+2026-08-06T16:37:34,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,372.855578,success
+2026-08-06T16:37:47,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,stack=both,1.215572,success
+2026-08-06T16:37:47,sbi_total,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,,1.217279,success
+2026-08-06T16:43:26,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,,338.917419,success
+2026-08-06T16:43:26,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,reused from median twin,0.000000,reused
+2026-08-06T16:43:26,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,,339.264213,success
+2026-08-06T16:43:26,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,,340.548186,success
+2026-08-06T16:43:37,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,stack=both,0.725718,success
+2026-08-06T16:43:37,sbi_total,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,0.726223,success
+2026-08-06T16:48:38,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,301.253576,success
+2026-08-06T16:48:38,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,reused from median twin,0.000000,reused
+2026-08-06T16:48:38,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,301.596984,success
+2026-08-06T16:48:38,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,302.376361,success
+2026-08-06T16:48:48,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,stack=both,0.673892,success
+2026-08-06T16:48:48,sbi_total,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,,0.674303,success
+2026-08-06T16:53:29,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,,280.544823,success
+2026-08-06T16:53:29,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,reused from median twin,0.000000,reused
+2026-08-06T16:53:29,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,,280.853872,success
+2026-08-06T16:53:29,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,,281.578659,success
+2026-08-06T16:53:39,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,stack=both,0.690430,success
+2026-08-06T16:53:39,sbi_total,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,,0.690990,success
+2026-08-06T16:59:53,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,,374.599092,success
+2026-08-06T16:59:53,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,reused from median twin,0.000000,reused
+2026-08-06T16:59:54,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,,374.889183,success
+2026-08-06T16:59:54,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,,375.646499,success
+2026-08-06T17:00:04,sbi_apply_observations,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,stack=both,0.793839,success
+2026-08-06T17:00:04,sbi_total,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,,0.794357,success
+2026-08-06T17:03:01,mcmc_join_then_fit,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,,176.953886,success
+2026-08-06T17:03:01,mcmc_fit_then_join,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:03:01,mcmc_total,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,,177.293622,success
+2026-08-06T17:03:01,run_inference_total,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,,178.139657,success
+2026-08-06T17:03:11,sbi_apply_observations,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,stack=both,0.731305,success
+2026-08-06T17:03:11,sbi_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,0.731686,success
+2026-08-06T17:06:44,mcmc_join_then_fit,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,212.930205,success
+2026-08-06T17:06:44,mcmc_fit_then_join,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:06:44,mcmc_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,213.274664,success
+2026-08-06T17:06:44,run_inference_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,214.058255,success
+2026-08-06T17:06:56,sbi_apply_observations,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,stack=both,0.939572,success
+2026-08-06T17:06:56,sbi_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,,0.940313,success
+2026-08-06T17:09:20,mcmc_join_then_fit,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,,144.281609,success
+2026-08-06T17:09:20,mcmc_fit_then_join,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:09:20,mcmc_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,,144.594106,success
+2026-08-06T17:09:20,run_inference_total,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,,145.573218,success
+2026-08-06T17:09:30,sbi_apply_observations,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,stack=both,0.614679,success
+2026-08-06T17:09:30,sbi_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,0.614980,success
+2026-08-06T17:15:42,mcmc_join_then_fit,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,371.961631,success
+2026-08-06T17:15:42,mcmc_fit_then_join,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:15:42,mcmc_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,372.200342,success
+2026-08-06T17:15:42,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,373.013901,success
+2026-08-06T17:15:54,sbi_apply_observations,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,stack=both,0.884851,success
+2026-08-06T17:15:54,sbi_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,0.885503,success
+2026-08-06T17:20:22,mcmc_join_then_fit,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,268.626056,success
+2026-08-06T17:20:22,mcmc_fit_then_join,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:20:23,mcmc_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,268.971581,success
+2026-08-06T17:20:23,run_inference_total,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,269.936919,success
+2026-08-06T17:20:32,sbi_apply_observations,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,stack=both,0.675436,success
+2026-08-06T17:20:32,sbi_total,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,,0.675860,success
+2026-08-06T17:25:52,mcmc_join_then_fit,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,,319.721471,success
+2026-08-06T17:25:52,mcmc_fit_then_join,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:25:52,mcmc_total,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,,320.046809,success
+2026-08-06T17:25:52,run_inference_total,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,,320.770080,success
+2026-08-06T17:26:02,sbi_apply_observations,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,stack=both,0.756835,success
+2026-08-06T17:26:02,sbi_total,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,,0.757454,success
+2026-08-06T17:30:31,mcmc_join_then_fit,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,,268.182755,success
+2026-08-06T17:30:31,mcmc_fit_then_join,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:30:31,mcmc_total,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,,268.546048,success
+2026-08-06T17:30:31,run_inference_total,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,,269.348951,success
+2026-08-06T17:30:42,sbi_apply_observations,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,stack=both,0.811796,success
+2026-08-06T17:30:42,sbi_total,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,0.812203,success
+2026-08-06T17:35:39,mcmc_join_then_fit,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,296.601848,success
+2026-08-06T17:35:39,mcmc_fit_then_join,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:35:39,mcmc_total,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,296.964676,success
+2026-08-06T17:35:39,run_inference_total,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,297.836102,success
+2026-08-06T17:35:50,sbi_apply_observations,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,stack=both,0.804005,success
+2026-08-06T17:35:50,sbi_total,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,,0.804468,success
+2026-08-06T17:41:43,mcmc_join_then_fit,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,,353.022993,success
+2026-08-06T17:41:43,mcmc_fit_then_join,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,reused from median twin,0.000000,reused
+2026-08-06T17:41:43,mcmc_total,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,,353.417201,success
+2026-08-06T17:41:43,run_inference_total,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,,354.286656,success
+2026-08-07T09:42:04,plot_chains,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,60.035397,success
+2026-08-07T09:42:16,plot_diagnostics,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,10.723683,success
+2026-08-07T09:42:25,plot_calibration,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5_high_mc_scatter,10000,376,,5.267989,success
+2026-08-07T09:43:25,plot_chains,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,,58.323174,success
+2026-08-07T09:43:37,plot_diagnostics,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,,10.272477,success
+2026-08-07T09:43:45,plot_calibration,sim_z1_high_mc_scatter,infer_z1_high_mc_scatter,obs_z1_lambda5,10000,376,,5.110068,success
+2026-08-07T09:45:12,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,84.707562,success
+2026-08-07T09:45:26,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,11.623147,success
+2026-08-07T09:45:34,plot_calibration,sim_z1_high_noise,infer_z1,obs_z1_lambda5_high_noise,10000,376,,5.174885,success
+2026-08-07T09:46:35,plot_chains,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,59.156476,success
+2026-08-07T09:46:52,plot_diagnostics,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,13.959497,success
+2026-08-07T09:47:03,plot_calibration,sim_z1_high_noise,infer_z1,obs_z1_lambda5,10000,376,,7.463487,success
+2026-08-07T09:48:19,plot_chains,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,,73.064448,success
+2026-08-07T09:48:36,plot_diagnostics,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,,14.441928,success
+2026-08-07T09:48:46,plot_calibration,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5_high_rm_scatter,10000,376,,6.481012,success
+2026-08-07T09:49:58,plot_chains,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,,70.013705,success
+2026-08-07T09:50:13,plot_diagnostics,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,,12.739484,success
+2026-08-07T09:50:23,plot_calibration,sim_z1_high_rm_scatter,infer_z1_high_rm_scatter,obs_z1_lambda5,10000,376,,6.227495,success
+2026-08-07T09:51:33,plot_chains,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,68.486205,success
+2026-08-07T09:51:50,plot_diagnostics,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,13.995567,success
+2026-08-07T09:52:01,plot_calibration,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,7.272842,success
+2026-08-07T09:53:20,plot_chains,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,,76.776742,success
+2026-08-07T09:53:37,plot_diagnostics,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,,14.128990,success
+2026-08-07T09:53:47,plot_calibration,sim_z1_high_rm_scatter,infer_z1,obs_z1_lambda5,10000,376,,6.578307,success
+2026-08-07T09:55:04,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,74.892756,success
+2026-08-07T09:55:20,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,13.331868,success
+2026-08-07T09:55:30,plot_calibration,sim_z1,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,6.651401,success
+2026-08-07T09:56:51,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,78.523013,success
+2026-08-07T09:57:09,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,15.198747,success
+2026-08-07T09:57:19,plot_calibration,sim_z1,infer_z1,obs_z1_lambda5_high_noise,10000,376,,6.852327,success
+2026-08-07T09:58:36,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,,73.839192,success
+2026-08-07T09:58:53,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,,14.555491,success
+2026-08-07T09:59:03,plot_calibration,sim_z1,infer_z1,obs_z1_lambda5_high_richness_contam,10000,376,,6.553765,success
+2026-08-07T10:00:44,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,99.140233,success
+2026-08-07T10:01:15,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,24.600285,success
+2026-08-07T10:01:27,plot_calibration,sim_z1,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,7.975001,success
+2026-08-07T10:03:47,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,,137.018580,success
+2026-08-07T10:04:06,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,,16.552882,success
+2026-08-07T10:04:16,plot_calibration,sim_z1,infer_z1,obs_z1_lambda5_low_richness_contam,10000,376,,6.898732,success
+2026-08-07T10:06:50,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,,151.089853,success
+2026-08-07T10:07:09,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,,16.023181,success
+2026-08-07T10:07:31,plot_calibration,sim_z1,infer_z1,obs_z1_lambda5_ludlow,10000,376,,18.943960,success
+2026-08-07T10:09:06,plot_chains,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,,88.401560,success
+2026-08-07T10:09:25,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,,15.777177,success
+2026-08-07T10:09:35,plot_calibration,sim_z1,infer_z1,obs_z1_lambda5_prada,10000,376,,6.252863,success
+2026-08-07T10:11:28,plot_chains,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,110.721753,success
+2026-08-07T10:11:53,plot_diagnostics,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,21.968011,success
+2026-08-07T10:12:08,plot_calibration,sim_z1,infer_z1,obs_z1_lambda5,10000,376,,9.707186,success
+2026-08-07T11:19:26,gen_simulations,sim_z1_hypermix,,,10000,376,,5894.108359,success
+2026-08-07T11:23:49,train_inferrer,sim_z1_hypermix,infer_z1,,10000,376,,251.107344,success
+2026-08-07T11:23:59,sbi_apply_observations,sim_z1_hypermix,infer_z1,obs_z1_lambda5,10000,376,stack=both,1.070800,success
+2026-08-07T11:23:59,sbi_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5,10000,376,,1.071901,success
+2026-08-07T11:28:32,mcmc_join_then_fit,sim_z1_hypermix,infer_z1,obs_z1_lambda5,10000,376,,272.917833,success
+2026-08-07T11:28:32,mcmc_fit_then_join,sim_z1_hypermix,infer_z1,obs_z1_lambda5,10000,376,reused from median twin,0.000000,reused
+2026-08-07T11:28:32,mcmc_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5,10000,376,,273.220804,success
+2026-08-07T11:28:33,run_inference_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5,10000,376,,274.487114,success
+2026-08-07T11:28:45,sbi_apply_observations,sim_z1_hypermix,infer_z1,obs_z1_lambda5_prada,10000,376,stack=both,0.783686,success
+2026-08-07T11:28:45,sbi_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_prada,10000,376,,0.784046,success
+2026-08-07T11:32:01,mcmc_join_then_fit,sim_z1_hypermix,infer_z1,obs_z1_lambda5_prada,10000,376,,196.331724,success
+2026-08-07T11:32:01,mcmc_fit_then_join,sim_z1_hypermix,infer_z1,obs_z1_lambda5_prada,10000,376,reused from median twin,0.000000,reused
+2026-08-07T11:32:01,mcmc_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_prada,10000,376,,196.687495,success
+2026-08-07T11:32:01,run_inference_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_prada,10000,376,,197.533666,success
+2026-08-07T11:32:14,sbi_apply_observations,sim_z1_hypermix,infer_z1,obs_z1_lambda5_ludlow,10000,376,stack=both,0.919146,success
+2026-08-07T11:32:14,sbi_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_ludlow,10000,376,,0.919743,success
+2026-08-07T11:38:31,mcmc_join_then_fit,sim_z1_hypermix,infer_z1,obs_z1_lambda5_ludlow,10000,376,,376.616594,success
+2026-08-07T11:38:31,mcmc_fit_then_join,sim_z1_hypermix,infer_z1,obs_z1_lambda5_ludlow,10000,376,reused from median twin,0.000000,reused
+2026-08-07T11:38:31,mcmc_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_ludlow,10000,376,,376.906763,success
+2026-08-07T11:38:31,run_inference_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_ludlow,10000,376,,377.886127,success
+2026-08-07T11:38:42,sbi_apply_observations,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,stack=both,0.688295,success
+2026-08-07T11:38:42,sbi_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,0.688565,success
+2026-08-07T11:41:27,mcmc_join_then_fit,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,164.752444,success
+2026-08-07T11:41:27,mcmc_fit_then_join,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,reused from median twin,0.000000,reused
+2026-08-07T11:41:27,mcmc_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,165.053431,success
+2026-08-07T11:41:27,run_inference_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,165.783562,success
+2026-08-07T11:41:38,sbi_apply_observations,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,stack=both,1.086332,success
+2026-08-07T11:41:38,sbi_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,1.086651,success
+2026-08-07T11:45:17,mcmc_join_then_fit,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,218.946294,success
+2026-08-07T11:45:17,mcmc_fit_then_join,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,reused from median twin,0.000000,reused
+2026-08-07T11:45:17,mcmc_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,219.279652,success
+2026-08-07T11:45:17,run_inference_total,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,220.421611,success
+2026-08-07T13:08:50,plot_calibration,sim_z1_hypermix,infer_z1,obs_z1_lambda5,10000,376,,5.331413,success
+2026-08-07T13:08:56,plot_calibration,sim_z1_hypermix,infer_z1,obs_z1_lambda5_prada,10000,376,,4.579590,success
+2026-08-07T13:09:11,plot_calibration,sim_z1_hypermix,infer_z1,obs_z1_lambda5_ludlow,10000,376,,12.684415,success
+2026-08-07T13:09:19,plot_calibration,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_mc_scatter,10000,376,,5.673938,success
+2026-08-07T13:09:26,plot_calibration,sim_z1_hypermix,infer_z1,obs_z1_lambda5_high_rm_scatter,10000,376,,5.143349,success
+2026-08-18T13:05:00,train_inferrer,sim_z1,infer_z1,,10000,376,,451.880169,success
+2026-08-18T13:10:53,train_inferrer,sim_z1,infer_z1,,10000,376,,344.016040,success
+2026-08-18T13:16:14,train_inferrer,sim_z1,infer_z1,,10000,376,,309.530314,success
+2026-08-18T13:19:42,train_inferrer,sim_z1,infer_z1,,10000,376,,197.920982,success
+2026-08-18T13:24:20,train_inferrer,sim_z1,infer_z1,,10000,376,,269.604851,success
