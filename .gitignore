@@ -83,3 +83,6 @@ tex_source_hbi/*.synctex.gz
 tex_source_hbi/*.fls
 tex_source_hbi/*.fdb_latexmk
 tex_source_hbi/texput.log
+
+# Personal lab notebook / session handoff log (local only)
+LAB_NOTEBOOK.md
