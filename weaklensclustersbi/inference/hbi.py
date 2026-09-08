@@ -57,6 +57,9 @@ DEFAULT_PRIORS = {
     "sig_M": ("HalfNormal", 0.3),
     # massfn mass mode
     "dmu": ("Normal", 0.0, 0.15),
+    # unbinned z-dependent mass-population nuisance: dmu(z) = mu_a0 + mu_a1 * (z - z_ref)
+    "mu_a0": ("Normal", 0.0, 0.3),
+    "mu_a1": ("Normal", 0.0, 1.0),
 }
 
 _DISTS = {
@@ -171,6 +174,7 @@ def hier_model_unbinned(
     priors=None,
     *,
     evolve_z=True,
+    mass_z_nuisance=False,
     logM_ref=LOGM_REF,
     z_ref=Z_REF,
     observed=True,
@@ -199,16 +203,26 @@ def hier_model_unbinned(
     anchor = data["anchor"]
     width = data["width"]
 
+    # Optional free, smooth z-dependent shift of the mass population mean, dmu(z) = a0 + a1*(z-z_ref).
+    # Lets the mass-z structure be fit (rather than fixed by the lambda-M x MF prior) so it does not
+    # leak into gamma.  a1 enters concentration via beta*a1*(z-z_ref) (degenerate with gamma unless
+    # the profiles pin the masses) -- the recovery test checks whether that degeneracy is broken.
+    if mass_z_nuisance:
+        a0 = numpyro.sample("mu_a0", _make_dist(p["mu_a0"]))
+        a1 = numpyro.sample("mu_a1", _make_dist(p["mu_a1"]))
+        dmu_z = a0 + a1 * (z - z_ref)
+    else:
+        dmu_z = 0.0
+
     with numpyro.plate("clusters", int(data["n"])):
         zM = numpyro.sample("zM", dist.Normal(0.0, 1.0))
-        logM = anchor + width * zM
-        # per-cluster informative mass prior (MF x richness likelihood), interpolated per cluster
-        lp = jax.vmap(lambda x, fp: jnp.interp(x, grid, fp))(logM, lp_table)
-        # The non-centered reparam logM = anchor + width*zM already imposes an implicit
-        # N(anchor, width) prior on logM.  Subtract it so the EFFECTIVE mass prior is exactly
-        # lp_table (the lambda-M x MF prior), not lp_table x that Gaussian -- otherwise the
-        # mass prior is applied ~twice, over-shrinking masses and attenuating beta/gamma.
-        base = dist.Normal(anchor, width).log_prob(logM)
+        x = anchor + width * zM          # the lambda-M x MF distributed part
+        logM = x + dmu_z                 # shifted by the free z-nuisance (mass population mean)
+        # per-cluster informative mass prior (MF x richness likelihood) on the UNSHIFTED part x
+        lp = jax.vmap(lambda xi, fp: jnp.interp(xi, grid, fp))(x, lp_table)
+        # subtract the implicit N(anchor, width) from the non-centered reparam so the effective
+        # prior on x is exactly lp_table (no double-count -> no over-shrinkage / beta attenuation)
+        base = dist.Normal(anchor, width).log_prob(x)
         numpyro.factor("massprior", lp - base)
         zc = numpyro.sample("zc", dist.Normal(0.0, 1.0))
         c = c0 + beta * (logM - logM_ref) + gamma * (z - z_ref) + sig_c * zc
@@ -271,10 +285,11 @@ def run_nuts(cells, priors=None, *, mass_mode="massfn", evolve_z=True,
     return _run_nuts(_model, **nuts_kwargs)
 
 
-def run_nuts_unbinned(data, priors=None, *, evolve_z=True,
+def run_nuts_unbinned(data, priors=None, *, evolve_z=True, mass_z_nuisance=False,
                       logM_ref=LOGM_REF, z_ref=Z_REF, **nuts_kwargs):
     """NUTS on the fully-unbinned per-cluster model."""
     def _model():
         hier_model_unbinned(data, priors=priors, evolve_z=evolve_z,
+                            mass_z_nuisance=mass_z_nuisance,
                             logM_ref=logM_ref, z_ref=z_ref, observed=True)
     return _run_nuts(_model, **nuts_kwargs)
