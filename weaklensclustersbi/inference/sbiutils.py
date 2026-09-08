@@ -68,6 +68,8 @@ def _compute_mc_summary(mc_pairs: NDArray[np.floating]) -> NDArray[np.floating]:
 def create_join_fit_observation_nfw(
     mc_pairs: NDArray[np.floating],
     nfw_profiles: NDArray[np.floating],
+    stack_estimator: str = "median",
+    sigmas: NDArray[np.floating] | None = None,
 ) -> tuple[Tensor, Tensor]:
     """
     Create a join-then-fit observation for SBI.
@@ -88,8 +90,15 @@ def create_join_fit_observation_nfw(
         (theta, x) - percentile summaries and median profile as PyTorch tensors.
     """
     theta = _compute_mc_summary(mc_pairs)
-    median_nfw_profile = np.median(nfw_profiles, axis=0)
-    return create_observation_nfw(theta, median_nfw_profile)
+    if stack_estimator == "median" and sigmas is None:
+        stacked_profile = np.median(nfw_profiles, axis=0)
+    else:
+        from .stackutils import stack_log_profiles
+
+        if sigmas is None:
+            raise ValueError("stack_estimator != 'median' requires per-bin sigmas")
+        stacked_profile, _ = stack_log_profiles(nfw_profiles, sigmas, stack_estimator)
+    return create_observation_nfw(theta, stacked_profile)
 
 
 def create_fit_join_observation_nfw(

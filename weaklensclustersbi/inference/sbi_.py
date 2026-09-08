@@ -126,6 +126,8 @@ def apply_observations(
     drawn_mc_pairs: NDArray[np.floating],
     drawn_nfw_profiles: NDArray[np.floating],
     err_dex: float = 0.0,
+    stack_estimator: str = "median",
+    sigmas: NDArray[np.floating] | None = None,
 ) -> tuple[
     NDArray[np.floating],
     NDArray[np.floating],
@@ -162,9 +164,10 @@ def apply_observations(
         PERCENTILE_LEVELS,
     )
 
-    # Join-then-fit: take median of observations then fit
+    # Join-then-fit: stack the observations (median or bias-corrected mean) then fit
     theta_o_jf, x_o_jf = create_join_fit_observation_nfw(
-        drawn_mc_pairs, drawn_nfw_profiles
+        drawn_mc_pairs, drawn_nfw_profiles,
+        stack_estimator=stack_estimator, sigmas=sigmas,
     )
 
     samples_jf = posterior_jtf.sample((10000,), x=x_o_jf)

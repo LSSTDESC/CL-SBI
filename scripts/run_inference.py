@@ -11,6 +11,7 @@ import pickle
 import time
 import multiprocessing
 from runtime_log import append_runtime_log
+from weaklensclustersbi.inference import stackutils
 
 
 def run_stacked_only(args, out_path, infer_config, drawn_nfw_profiles, sigmas, log_stage):
@@ -41,6 +42,9 @@ def main():
     # used to generate sims/observations and train the posterior. Reads suffixed inputs,
     # writes suffixed inference outputs, and sets the MCMC forward-model observable.
     parser.add_argument("--observable", default="surface_density")
+    # JTF stack estimator: "median" (default) or "corrected_mean". Must match the estimator
+    # used for gen_simulations/train_inferrer; reads/writes further-suffixed dirs.
+    parser.add_argument("--stack_estimator", default="median")
 
     # Add regenerate flag if we want to overwrite any existing posterior.
     # If false or not set, skip posterior generation if they already exist from an earlier run.
@@ -57,8 +61,11 @@ def main():
 
     script_dir = os.path.dirname(__file__)
     obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+    # observations are individual profiles (estimator-independent); posteriors/inference
+    # outputs depend on the JTF stack estimator and get the extra suffix
+    full_suffix = obs_suffix + stackutils.stack_suffix(args.stack_estimator)
     # Go to/create output directory
-    out_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
+    out_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{full_suffix}"
     out_path = os.path.join(script_dir, out_rel_path)
     if not os.path.exists(out_path):
         os.makedirs(out_path)
@@ -86,7 +93,7 @@ def main():
             quit()
 
     # Load posterior
-    posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
+    posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{full_suffix}"
     posterior_path = os.path.join(script_dir, posterior_rel_path)
     posterior_filename = os.path.join(posterior_path, "posterior.pickle")
     with open(posterior_filename, "rb") as handle:
@@ -142,7 +149,8 @@ def main():
         sbi_jtf_logprob,
         sbi_ftj_logprob,
     ) = sbi_.apply_observations(
-        posterior, posterior_jtf, drawn_mc_pairs, drawn_nfw_profiles
+        posterior, posterior_jtf, drawn_mc_pairs, drawn_nfw_profiles,
+        stack_estimator=args.stack_estimator, sigmas=sigmas,
     )
     log_stage("sbi_apply_observations", time.perf_counter() - t0, details="stack=both")
     log_stage("sbi_total", time.perf_counter() - t0_total_sbi)
@@ -171,9 +179,9 @@ def main():
     t0_total_mcmc = time.perf_counter()
     with multiprocessing.Pool() as pool:
         t0 = time.perf_counter()
-        jtf_sigmas = np.sqrt(np.pi / 2) * sigmas / np.sqrt(int(args.num_obs))
         mcmc_jtf_chain, mcmc_jtf_sampler = mcmc.join_then_fit(
-            drawn_nfw_profiles, jtf_sigmas, infer_config["priors"], pool=pool
+            drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool,
+            stack_estimator=args.stack_estimator,
         )
         log_stage("mcmc_join_then_fit", time.perf_counter() - t0)
 

@@ -540,31 +540,37 @@ def join_then_fit(
     sigmas: NDArray[np.floating],
     priors: PriorConfig,
     pool: Pool | None = None,
+    stack_estimator: str = "median",
 ) -> tuple[NDArray[np.floating], emcee.EnsembleSampler]:
     """
-    Join profiles by taking median then fit with MCMC.
+    Join profiles into a single stacked data vector, then fit with MCMC.
 
-    For a given set of profiles, we first find the median profile (join)
-    to reduce noise and then run MCMC on that (fit).
+    The stack (and the corresponding stacked per-bin uncertainty) is computed by
+    stackutils.stack_log_profiles: the per-bin median (default) or the bias-corrected
+    linear mean ("corrected_mean").
 
     Parameters
     ----------
     profiles : NDArray[np.floating]
-        Array of observed profiles with shape (N, n_radial_bins).
+        Array of observed log10 profiles with shape (N, n_radial_bins).
     sigmas : NDArray[np.floating]
-        Uncertainties for each radial bin.
+        PER-CLUSTER per-bin uncertainties (dex); the stacked uncertainty is derived here.
     priors : PriorConfig
         Prior configuration dictionary.
     pool : multiprocessing.Pool, optional
         Pool for parallel execution.
+    stack_estimator : str
+        "median" or "corrected_mean".
 
     Returns
     -------
     tuple[NDArray[np.floating], emcee.EnsembleSampler]
         Flat chain and the sampler.
     """
-    avg_profile = np.median(profiles, axis=0)
-    avg_profile = np.concatenate((avg_profile, sigmas))
+    from .stackutils import stack_log_profiles
+
+    avg_profile, stacked_sigmas = stack_log_profiles(profiles, sigmas, stack_estimator)
+    avg_profile = np.concatenate((avg_profile, stacked_sigmas))
     sampler = run_mcmc(avg_profile, priors, pool=pool)
     flat_chain = sampler.flatchain
     return flat_chain, sampler

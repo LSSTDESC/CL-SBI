@@ -7,6 +7,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from weaklensclustersbi.simulations import population, wlprofile
+from weaklensclustersbi.inference import stackutils
 import numpy as np
 import json
 import os
@@ -26,6 +27,10 @@ parser.add_argument("--num_obs")
 # surface density DeltaSigma, the tangential-shear observable). Non-default observables
 # write to a suffixed output dir so Sigma outputs are preserved for A/B comparison.
 parser.add_argument("--observable", default="surface_density")
+# JTF stack estimator: "median" (default) or "corrected_mean" (bias-corrected linear mean,
+# the realizable stacked-lensing estimator; IR2 response). Non-default writes to a further
+# suffixed output dir so median-stack outputs are preserved for A/B comparison.
+parser.add_argument("--stack_estimator", default="median")
 
 # Add regenerate flag if we want to overwrite any existing simulations.
 # If false or not set, skip simulation generation if they already exist from an earlier run.
@@ -53,6 +58,7 @@ sim_config_path = os.path.join(script_dir, sim_config_rel_path)
 sim_config_filename = os.path.join(sim_config_path, f"{args.sim_id}.json")
 
 obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+obs_suffix += stackutils.stack_suffix(args.stack_estimator)
 out_rel_path = f"../outputs/simulations/{args.sim_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 out_path = os.path.join(script_dir, out_rel_path)
 
@@ -180,11 +186,11 @@ for min_lambda, max_lambda in lambda_bins:
             non_noisy_simulated_nfw_profiles[i * num_obs : (i + 1) * num_obs]
         )
         all_jtf_simulated_nfw_profiles.append(
-            np.median(
+            stackutils.stack_log_profiles(
                 single_simulated_nfw,
-                axis=0,
-            )
-            # simulated_nfw_profiles_range[i]  # * num_obs : (i + 1) * num_obs]
+                np.full(single_simulated_nfw.shape[1], sim_config["profile_noise_dex"]),
+                estimator=args.stack_estimator,
+            )[0]
         )
 
         percentiles = np.percentile(single_mc_pairs, PERCENTILE_LEVELS, axis=0)

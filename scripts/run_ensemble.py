@@ -95,8 +95,9 @@ def main():
             rec["sbi_jtf"] = sbi_summary(jtf_c); rec["sbi_ftj"] = sbi_summary(ftj_c)
         if need_mcmc:
             with multiprocessing.Pool() as pool:
-                jtf_sig = np.sqrt(np.pi / 2) * log_sig / np.sqrt(no)
-                mj = mcmc.join_then_fit(prof, jtf_sig, infer["priors"], pool=pool)[0]
+                # join_then_fit now takes PER-CLUSTER sigmas and derives the stacked
+                # uncertainty internally (median default reproduces sqrt(pi/2)/sqrt(N))
+                mj = mcmc.join_then_fit(prof, log_sig, infer["priors"], pool=pool)[0]
                 mf = mcmc.fit_then_join(prof, log_sig, infer["priors"], pool=pool)[0]
             rec["mcmc_jtf"] = chain_summary(mj); rec["mcmc_ftj"] = chain_summary(mf)
         json.dump(rec, open(fp, "w"))

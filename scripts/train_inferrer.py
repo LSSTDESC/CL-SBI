@@ -3,6 +3,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from weaklensclustersbi.inference import stackutils
 from weaklensclustersbi.inference import sbi_
 import numpy as np
 import json
@@ -21,6 +22,8 @@ parser.add_argument("--num_obs")
 # Observable: "surface_density" (default) or "delta_sigma". Must match the observable
 # used for gen_simulations; reads suffixed sims and writes suffixed posteriors.
 parser.add_argument("--observable", default="surface_density")
+# JTF stack estimator: "median" (default) or "corrected_mean". Must match gen_simulations.
+parser.add_argument("--stack_estimator", default="median")
 
 # Add regenerate flag if we want to overwrite any existing posterior.
 # If false or not set, skip posterior generation if they already exist from an earlier run.
@@ -45,6 +48,7 @@ def log_runtime(status="success", details=""):
 
 script_dir = os.path.dirname(__file__)
 obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+obs_suffix += stackutils.stack_suffix(args.stack_estimator)
 out_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
 out_path = os.path.join(script_dir, out_rel_path)
 if not os.path.exists(out_path):
