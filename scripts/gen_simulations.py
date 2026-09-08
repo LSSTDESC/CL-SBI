@@ -113,21 +113,40 @@ for min_lambda, max_lambda in lambda_bins:
     # chunk) is assigned a randomly chosen relation from that list, so the
     # training set spans child18/ludlow16/prada12. Otherwise fall back to the
     # single fixed "mc_relation" (Paper-I behaviour).
+    # Hyperparameter marginalization: besides "mc_relation_mix", the config may give
+    # "rm_relation_mix" (list) and/or "mc_scatter_range"/"rm_scatter_range" ([lo, hi]).
+    # Each num_obs-sized stack draws its own relation(s)/scatter(s), so the trained
+    # posterior marginalizes over those hyperparameters (IR2 response: the
+    # prior-marginalized configuration any application would run).
     mc_relation_mix = sim_config.get("mc_relation_mix", None)
-    if mc_relation_mix:
+    rm_relation_mix = sim_config.get("rm_relation_mix", None)
+    mc_scatter_range = sim_config.get("mc_scatter_range", None)
+    rm_scatter_range = sim_config.get("rm_scatter_range", None)
+    if mc_relation_mix or rm_relation_mix or mc_scatter_range or rm_scatter_range:
         sample_mc_pairs = []
         n_stacks_in_bin = sims_per_bin // num_obs
         for _stack in range(n_stacks_in_bin):
-            chosen_mc_relation = np.random.choice(mc_relation_mix)
+            chosen_mc_relation = (
+                np.random.choice(mc_relation_mix) if mc_relation_mix else sim_config["mc_relation"]
+            )
+            chosen_rm_relation = (
+                np.random.choice(rm_relation_mix) if rm_relation_mix else sim_config["rm_relation"]
+            )
+            chosen_mc_scatter = (
+                np.random.uniform(*mc_scatter_range) if mc_scatter_range else sim_config["mc_scatter"]
+            )
+            chosen_rm_scatter = (
+                np.random.uniform(*rm_scatter_range) if rm_scatter_range else sim_config["rm_scatter"]
+            )
             sample_mc_pairs.extend(
                 population.gen_mc_pairs_in_richness_bin(
                     min_lambda,
                     max_lambda,
-                    rm_relation=sim_config["rm_relation"],
+                    rm_relation=chosen_rm_relation,
                     mc_relation=chosen_mc_relation,
                     num_samples=num_obs,
-                    mc_scatter=sim_config["mc_scatter"],
-                    rm_scatter=sim_config["rm_scatter"],
+                    mc_scatter=chosen_mc_scatter,
+                    rm_scatter=chosen_rm_scatter,
                     min_z=sim_config["min_z"],
                     max_z=sim_config["max_z"],
                 )
