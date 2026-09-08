@@ -85,7 +85,7 @@ def main():
         fp = os.path.join(rdir, f"r{r:03d}.json")
         rec = json.load(open(fp)) if os.path.isfile(fp) else {}
         need_sbi = (r < args.n_realizations) and ("sbi_ftj" not in rec)
-        need_mcmc = (r < n_mcmc) and (rec.get("mcmc_ftj") is None)
+        need_mcmc = (r < n_mcmc) and (rec.get("mcmc_jtf") is None or rec.get("mcmc_ftj") is None)
         if not (need_sbi or need_mcmc):
             continue
         np.random.seed(args.seed + r)
@@ -102,8 +102,12 @@ def main():
                 # uncertainty internally (median default reproduces sqrt(pi/2)/sqrt(N))
                 mj = mcmc.join_then_fit(prof, log_sig, infer["priors"], pool=pool,
                                         stack_estimator=args.stack_estimator)[0]
-                mf = mcmc.fit_then_join(prof, log_sig, infer["priors"], pool=pool)[0]
-            rec["mcmc_jtf"] = chain_summary(mj); rec["mcmc_ftj"] = chain_summary(mf)
+                # FTJ is estimator-independent; keep a pre-seeded record (same seed -> same
+                # realization) instead of recomputing 376 fits
+                if rec.get("mcmc_ftj") is None:
+                    mf = mcmc.fit_then_join(prof, log_sig, infer["priors"], pool=pool)[0]
+                    rec["mcmc_ftj"] = chain_summary(mf)
+            rec["mcmc_jtf"] = chain_summary(mj)
         json.dump(rec, open(fp, "w"))
         print(f"  r{r:03d} {'S' if need_sbi else ' '}{'M' if need_mcmc else ' '} ({time.perf_counter()-t0:.0f}s)", flush=True)
 
