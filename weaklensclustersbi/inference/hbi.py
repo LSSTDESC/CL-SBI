@@ -145,8 +145,11 @@ def hier_model(
             with numpyro.plate(f"cl_{k}", n):
                 zM = numpyro.sample(f"zM_{k}", dist.Normal(0.0, 1.0))
                 logM = cell["mode"] + dmu + width * zM
-                # informative mass-function x richness-selection prior
-                numpyro.factor(f"mf_{k}", jnp.interp(logM, cell["grid"], cell["lp"]))
+                # informative MF x selection prior; subtract the implicit N(mode+dmu, width)
+                # imposed by the non-centered reparam so it is not double-counted (see
+                # hier_model_unbinned) -- otherwise the mass prior over-shrinks and beta attenuates
+                base = dist.Normal(cell["mode"] + dmu, width).log_prob(logM)
+                numpyro.factor(f"mf_{k}", jnp.interp(logM, cell["grid"], cell["lp"]) - base)
                 zc = numpyro.sample(f"zc_{k}", dist.Normal(0.0, 1.0))
                 # relation centered on the shared reference (12-cell POC convention)
                 c = c0 + beta * (logM - logM_ref) + gamma * (z - z_ref) + sig_c * zc
@@ -201,7 +204,12 @@ def hier_model_unbinned(
         logM = anchor + width * zM
         # per-cluster informative mass prior (MF x richness likelihood), interpolated per cluster
         lp = jax.vmap(lambda x, fp: jnp.interp(x, grid, fp))(logM, lp_table)
-        numpyro.factor("massprior", lp)
+        # The non-centered reparam logM = anchor + width*zM already imposes an implicit
+        # N(anchor, width) prior on logM.  Subtract it so the EFFECTIVE mass prior is exactly
+        # lp_table (the lambda-M x MF prior), not lp_table x that Gaussian -- otherwise the
+        # mass prior is applied ~twice, over-shrinking masses and attenuating beta/gamma.
+        base = dist.Normal(anchor, width).log_prob(logM)
+        numpyro.factor("massprior", lp - base)
         zc = numpyro.sample("zc", dist.Normal(0.0, 1.0))
         c = c0 + beta * (logM - logM_ref) + gamma * (z - z_ref) + sig_c * zc
 
