@@ -50,6 +50,10 @@ def main():
     # outputs from the median twin dir when available (identical computation, different
     # emcee seed only). Disable to force a fresh FTJ run.
     parser.add_argument("--no_reuse_mcmc_ftj", action="store_true")
+    # Explicit source dir for FTJ reuse (overrides the auto median-twin lookup). FTJ depends
+    # only on the observations and priors, so any inference dir with the SAME obs_id and
+    # infer_id is a valid source regardless of sim_id (e.g. hypermix runs reuse sim_z1's).
+    parser.add_argument("--reuse_mcmc_ftj_from", default=None)
 
     # Add regenerate flag if we want to overwrite any existing posterior.
     # If false or not set, skip posterior generation if they already exist from an earlier run.
@@ -190,15 +194,21 @@ def main():
         )
         log_stage("mcmc_join_then_fit", time.perf_counter() - t0)
 
-        # FTJ is estimator-independent: reuse the median twin's outputs when available
+        # FTJ is estimator-independent: reuse an existing dir's outputs when available
+        # (explicit --reuse_mcmc_ftj_from first, else the auto median-twin lookup)
         ftj_twin = None
+        candidates = []
+        if args.reuse_mcmc_ftj_from and not args.no_reuse_mcmc_ftj:
+            candidates.append(args.reuse_mcmc_ftj_from)
         if args.stack_estimator != "median" and not args.no_reuse_mcmc_ftj:
             twin_rel = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
-            twin = os.path.join(script_dir, twin_rel)
+            candidates.append(os.path.join(script_dir, twin_rel))
+        for twin in candidates:
             if os.path.isfile(os.path.join(twin, "mcmc_ftj_samplers.pickle")) and os.path.isfile(
                 os.path.join(twin, "mcmc_chains.pickle")
             ):
                 ftj_twin = twin
+                break
         if ftj_twin is not None:
             with open(os.path.join(ftj_twin, "mcmc_chains.pickle"), "rb") as handle:
                 mcmc_ftj_chains = pickle.load(handle)[1]
