@@ -68,6 +68,9 @@ plt.plot(rbins, median_mc, color="k", linestyle="--", linewidth=3, label="NFW of
 plt.plot(rbins, mean_mc, color="tab:red", linestyle="--", label="NFW of mean m-c pair")
 plt.plot(rbins, np.median(nfws, axis=0), color="k", label="median NFW profile")
 plt.plot(rbins, np.mean(nfws, axis=0), color="tab:red", label="mean NFW profile")
+corr = np.exp((noise_dex * np.log(10.0)) ** 2 / 2.0)
+plt.plot(rbins, np.mean(nfws, axis=0) / corr, color="tab:green", linewidth=2,
+         label="bias-corrected mean (adopted stack)")
 plt.legend()
 plt.xlim(min(rbins), max(rbins))
 plt.ylim(min(min(np.median(nfws, 0)), min(np.mean(nfws, 0)), min(mean_mc)),
@@ -80,6 +83,8 @@ plt.xlabel("radius [kpc/h]", fontsize="xx-large")
 plt.ylabel("Fractional Diff with Median NFW", fontsize="x-large")
 plt.axhline(0, color="gray", linestyle="dotted", alpha=0.5)
 plt.plot(rbins, (np.mean(nfws, 0) / np.median(nfws, 0)) - 1, color="tab:red", label="Mean NFW Profile")
+plt.plot(rbins, (np.mean(nfws, 0) / corr / np.median(nfws, 0)) - 1, color="tab:green",
+         label="Bias-corrected mean (adopted stack)")
 plt.plot(rbins, (median_mc / np.median(nfws, 0)) - 1, color="k", linestyle="--", linewidth=3,
          label="NFW profile of median MC pair")
 plt.plot(rbins, (mean_mc / np.median(nfws, 0)) - 1, color="tab:red", linestyle="-.",
