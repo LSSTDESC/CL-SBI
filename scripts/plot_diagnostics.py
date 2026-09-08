@@ -21,6 +21,7 @@ parser.add_argument("--num_obs")
 # Observable: "surface_density" (default) or "delta_sigma". Non-default reads .delta_sigma
 # inputs, writes .delta_sigma plot dirs, and labels axes with DeltaSigma.
 parser.add_argument("--observable", default="surface_density")
+parser.add_argument("--stack_estimator", default="median")
 
 # Add regenerate flag if we want to overwrite any existing plots.
 # If false or not set, skip plot generation if they already exist from an earlier run.
@@ -47,10 +48,11 @@ def log_runtime(status="success", details=""):
 # Open the infer_dir specified in the command line
 script_dir = os.path.dirname(__file__)
 obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
-infer_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
+full_suffix = obs_suffix + ("" if args.stack_estimator == "median" else f".{args.stack_estimator}")
+infer_rel_path = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{full_suffix}"
 infer_path = os.path.join(script_dir, infer_rel_path)
 
-out_rel_path = f"../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}/diagnostics"
+out_rel_path = f"../outputs/plots/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{full_suffix}/diagnostics"
 out_path = os.path.join(script_dir, out_rel_path)
 if not os.path.exists(out_path):
     os.makedirs(out_path)
@@ -119,7 +121,7 @@ noiseless_drawn_nfw_profiles_filename = os.path.join(
 noiseless_drawn_nfw_profiles = np.load(noiseless_drawn_nfw_profiles_filename)
 
 # Load posterior
-posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
+posterior_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{full_suffix}"
 posterior_path = os.path.join(script_dir, posterior_rel_path)
 posterior_filename = os.path.join(posterior_path, "posterior.pickle")
 with open(posterior_filename, "rb") as handle:

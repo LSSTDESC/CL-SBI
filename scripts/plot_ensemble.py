@@ -13,9 +13,11 @@ import matplotlib.pyplot as plt
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--observable", default="delta_sigma")
+ap.add_argument("--stack_estimator", default="median")
 args = ap.parse_args()
 sd = os.path.dirname(__file__)
 suf = "" if args.observable == "surface_density" else f".{args.observable}"
+suf += "" if args.stack_estimator == "median" else f".{args.stack_estimator}"
 ens_dir = os.path.join(sd, "../outputs/ensembles")
 
 rows = []

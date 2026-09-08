@@ -17,9 +17,11 @@ from weaklensclustersbi.simulations import population
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--observable", default="delta_sigma")
+ap.add_argument("--stack_estimator", default="median")
 args = ap.parse_args()
 SD = os.path.dirname(__file__)
 SUF = "" if args.observable == "surface_density" else f".{args.observable}"
+SUF += "" if args.stack_estimator == "median" else f".{args.stack_estimator}"
 plt.style.use(os.path.join(SD, "..", "plot", "mplstyle.txt"))
 NUM_SIMS, NUM_OBS = 10000, 376
 

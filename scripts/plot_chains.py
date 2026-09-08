@@ -21,6 +21,7 @@ parser.add_argument("--num_obs")
 # Observable: "surface_density" (default) or "delta_sigma". Non-default reads/writes
 # .delta_sigma-suffixed dirs so the Sigma figures are preserved.
 parser.add_argument("--observable", default="surface_density")
+parser.add_argument("--stack_estimator", default="median")
 
 # Add regenerate flag if we want to overwrite any existing plots.
 # If false or not set, skip plot generation if they already exist from an earlier run.
@@ -45,6 +46,7 @@ def log_runtime(status="success", details=""):
 
 script_dir = os.path.dirname(__file__)
 obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+obs_suffix += "" if args.stack_estimator == "median" else f".{args.stack_estimator}"
 
 # Truth reference = the TRUE population distribution (large seeded sample from the obs
 # config), not the finite N_c observed draw. The posteriors claim to recover the intrinsic

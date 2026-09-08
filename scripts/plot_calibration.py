@@ -306,6 +306,7 @@ def main():
     # Observable: "surface_density" (default) or "delta_sigma". Non-default reads/writes
     # .delta_sigma-suffixed dirs so the Sigma calibration outputs are preserved.
     parser.add_argument("--observable", default="surface_density")
+    parser.add_argument("--stack_estimator", default="median")
     parser.add_argument("--regenerate", action="store_true")
     parser.add_argument("--ftj-only", action="store_true",
                         help="Skip JTF calibration (much faster)")
@@ -330,6 +331,7 @@ def main():
 
     script_dir = os.path.dirname(__file__)
     obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
+    obs_suffix += "" if args.stack_estimator == "median" else f".{args.stack_estimator}"
     run_path = os.path.join(
         script_dir,
         f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}",

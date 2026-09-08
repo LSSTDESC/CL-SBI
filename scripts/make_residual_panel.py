@@ -18,15 +18,17 @@ from plot.plotutils import build_gaussian_summary_from_chain
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--observable", default="delta_sigma")
+ap.add_argument("--stack_estimator", default="median")
 ap.add_argument("--sim_id", default="sim_z1")
 ap.add_argument("--infer_id", default="infer_z1")
 ap.add_argument("--obs_id", default="obs_z1_lambda5")
 args = ap.parse_args()
 SD = os.path.dirname(__file__)
 SUF = "" if args.observable == "surface_density" else f".{args.observable}"
+FSUF = SUF + ("" if args.stack_estimator == "median" else f".{args.stack_estimator}")
 plt.style.use(os.path.join(SD, "..", "plot", "mplstyle.txt"))
 
-key = f"{args.sim_id}.{args.infer_id}.{args.obs_id}.10000.376{SUF}"
+key = f"{args.sim_id}.{args.infer_id}.{args.obs_id}.10000.376{FSUF}"
 infer = os.path.join(SD, f"../outputs/inference/{key}")
 obsd = os.path.join(SD, f"../outputs/observations/{args.obs_id}.376{SUF}")
 cfg = json.load(open(os.path.join(SD, f"../configs/observations/{args.obs_id}.json")))

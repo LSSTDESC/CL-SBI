@@ -58,19 +58,21 @@ def main():
     ap.add_argument("--run_mcmc", action="store_true")
     ap.add_argument("--n_mcmc", type=int, default=0)
     ap.add_argument("--seed", type=int, default=1000)
+    ap.add_argument("--stack_estimator", default="median")
     args = ap.parse_args()
 
     sd = os.path.dirname(__file__)
     suf = "" if args.observable == "surface_density" else f".{args.observable}"
+    fsuf = suf + ("" if args.stack_estimator == "median" else f".{args.stack_estimator}")
     cfg = json.load(open(os.path.join(sd, f"../configs/observations/{args.obs_id}.json")))
     infer = json.load(open(os.path.join(sd, f"../configs/inference/{args.infer_id}.json")))
     infer["priors"]["observable"] = args.observable
     rbins = 10 ** np.arange(0, cfg["num_radial_bins"] / 10, 0.1)
-    pdir = os.path.join(sd, f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{suf}")
+    pdir = os.path.join(sd, f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{fsuf}")
     posterior = pickle.load(open(os.path.join(pdir, "posterior.pickle"), "rb"))
     posterior_jtf = pickle.load(open(os.path.join(pdir, "posterior_jtf.pickle"), "rb"))
 
-    key = f"{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{suf}"
+    key = f"{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{fsuf}"
     base = os.path.join(sd, f"../outputs/ensembles/{key}")
     rdir = os.path.join(base, "realizations")
     os.makedirs(rdir, exist_ok=True)
@@ -89,7 +91,8 @@ def main():
         np.random.seed(args.seed + r)
         pairs, prof, log_sig = draw_observation(cfg, no, rbins, args.observable)
         if need_sbi:
-            jtf_c, ftj_c = sbi_.apply_observations(posterior, posterior_jtf, pairs, prof)[:2]
+            jtf_c, ftj_c = sbi_.apply_observations(posterior, posterior_jtf, pairs, prof,
+                    stack_estimator=args.stack_estimator, sigmas=log_sig)[:2]
             rec["truth"] = [float(np.median(pairs[:, 0])), float(np.std(pairs[:, 0])),
                             float(np.median(pairs[:, 1])), float(np.std(pairs[:, 1]))]
             rec["sbi_jtf"] = sbi_summary(jtf_c); rec["sbi_ftj"] = sbi_summary(ftj_c)
@@ -97,7 +100,8 @@ def main():
             with multiprocessing.Pool() as pool:
                 # join_then_fit now takes PER-CLUSTER sigmas and derives the stacked
                 # uncertainty internally (median default reproduces sqrt(pi/2)/sqrt(N))
-                mj = mcmc.join_then_fit(prof, log_sig, infer["priors"], pool=pool)[0]
+                mj = mcmc.join_then_fit(prof, log_sig, infer["priors"], pool=pool,
+                                        stack_estimator=args.stack_estimator)[0]
                 mf = mcmc.fit_then_join(prof, log_sig, infer["priors"], pool=pool)[0]
             rec["mcmc_jtf"] = chain_summary(mj); rec["mcmc_ftj"] = chain_summary(mf)
         json.dump(rec, open(fp, "w"))
