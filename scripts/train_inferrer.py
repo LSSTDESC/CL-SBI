@@ -24,6 +24,10 @@ parser.add_argument("--num_obs")
 parser.add_argument("--observable", default="surface_density")
 # JTF stack estimator: "median" (default) or "corrected_mean". Must match gen_simulations.
 parser.add_argument("--stack_estimator", default="median")
+# Optional torch/numpy training seed. If set, seeds the network initialization/training RNG
+# and writes the posteriors to a .seed{N}-suffixed dir (for seed-ensemble studies; the
+# training DATA is unchanged -- only the network init and batch order vary).
+parser.add_argument("--train_seed", type=int, default=None)
 
 # Add regenerate flag if we want to overwrite any existing posterior.
 # If false or not set, skip posterior generation if they already exist from an earlier run.
@@ -49,7 +53,12 @@ def log_runtime(status="success", details=""):
 script_dir = os.path.dirname(__file__)
 obs_suffix = "" if args.observable == "surface_density" else f".{args.observable}"
 obs_suffix += stackutils.stack_suffix(args.stack_estimator)
-out_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
+seed_suffix = f".seed{args.train_seed}" if args.train_seed is not None else ""
+if args.train_seed is not None:
+    import torch
+    torch.manual_seed(args.train_seed)
+    np.random.seed(args.train_seed)
+out_rel_path = f"../outputs/posteriors/{args.sim_id}.{args.infer_id}.{args.num_sims}.{args.num_obs}{obs_suffix}{seed_suffix}"
 out_path = os.path.join(script_dir, out_rel_path)
 if not os.path.exists(out_path):
     os.makedirs(out_path)
