@@ -45,6 +45,11 @@ def main():
     # JTF stack estimator: "median" (default) or "corrected_mean". Must match the estimator
     # used for gen_simulations/train_inferrer; reads/writes further-suffixed dirs.
     parser.add_argument("--stack_estimator", default="median")
+    # MCMC fit-then-join depends only on the individual observed profiles and priors --
+    # NOT on the JTF stack estimator -- so for a non-median estimator we reuse the FTJ
+    # outputs from the median twin dir when available (identical computation, different
+    # emcee seed only). Disable to force a fresh FTJ run.
+    parser.add_argument("--no_reuse_mcmc_ftj", action="store_true")
 
     # Add regenerate flag if we want to overwrite any existing posterior.
     # If false or not set, skip posterior generation if they already exist from an earlier run.
@@ -185,11 +190,28 @@ def main():
         )
         log_stage("mcmc_join_then_fit", time.perf_counter() - t0)
 
-        t0 = time.perf_counter()
-        mcmc_ftj_chains, mcmc_ftj_samplers = mcmc.fit_then_join(
-            drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
-        )
-        log_stage("mcmc_fit_then_join", time.perf_counter() - t0)
+        # FTJ is estimator-independent: reuse the median twin's outputs when available
+        ftj_twin = None
+        if args.stack_estimator != "median" and not args.no_reuse_mcmc_ftj:
+            twin_rel = f"../outputs/inference/{args.sim_id}.{args.infer_id}.{args.obs_id}.{args.num_sims}.{args.num_obs}{obs_suffix}"
+            twin = os.path.join(script_dir, twin_rel)
+            if os.path.isfile(os.path.join(twin, "mcmc_ftj_samplers.pickle")) and os.path.isfile(
+                os.path.join(twin, "mcmc_chains.pickle")
+            ):
+                ftj_twin = twin
+        if ftj_twin is not None:
+            with open(os.path.join(ftj_twin, "mcmc_chains.pickle"), "rb") as handle:
+                mcmc_ftj_chains = pickle.load(handle)[1]
+            with open(os.path.join(ftj_twin, "mcmc_ftj_samplers.pickle"), "rb") as handle:
+                mcmc_ftj_samplers = pickle.load(handle)
+            print(f"reusing estimator-independent MCMC FTJ from {ftj_twin}")
+            log_stage("mcmc_fit_then_join", 0.0, details="reused from median twin", status="reused")
+        else:
+            t0 = time.perf_counter()
+            mcmc_ftj_chains, mcmc_ftj_samplers = mcmc.fit_then_join(
+                drawn_nfw_profiles, sigmas, infer_config["priors"], pool=pool
+            )
+            log_stage("mcmc_fit_then_join", time.perf_counter() - t0)
 
         # Two-stage MCMC FTJ: individual fits + population inference (slow - 376 MCMCs)
         # Only run if --run_mcmc_stacked flag is set
@@ -215,6 +237,20 @@ def main():
     # Output MCMC fit-then-join samplers (for diagnostics)
     with open(os.path.join(out_path, "mcmc_ftj_samplers.pickle"), "wb") as handle:
         pickle.dump(mcmc_ftj_samplers, handle, protocol=4)
+
+    # The two-stage/naive-stacked FTJ outputs are likewise estimator-independent; carry
+    # them over from the twin so downstream figures work without a --run_mcmc_stacked rerun.
+    if ftj_twin is not None:
+        import shutil
+
+        for fn in (
+            "mcmc_ftj_population_samples.pickle",
+            "mcmc_ftj_population_params.pickle",
+            "mcmc_ftj_individual_samplers.pickle",
+        ):
+            src = os.path.join(ftj_twin, fn)
+            if os.path.exists(src):
+                shutil.copy2(src, os.path.join(out_path, fn))
 
     # Output MCMC fit-then-join stacked results (only if --run_mcmc_stacked was set)
     if args.run_mcmc_stacked and mcmc_ftj_population_samples is not None:
