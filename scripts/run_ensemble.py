@@ -13,7 +13,7 @@ SBI-only (fast):   python3 run_ensemble.py ... --n_realizations 50
 Add MCMC (slow):   python3 run_ensemble.py ... --n_realizations 50 --run_mcmc --n_mcmc 12
 Extend MCMC later: python3 run_ensemble.py ... --n_realizations 50 --run_mcmc --n_mcmc 50
 """
-import sys, os, json, pickle, argparse, warnings, time
+import sys, os, json, pickle, argparse, warnings, time, signal
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "plot"))
 warnings.filterwarnings("ignore")
@@ -59,6 +59,10 @@ def main():
     ap.add_argument("--n_mcmc", type=int, default=0)
     ap.add_argument("--seed", type=int, default=1000)
     ap.add_argument("--stack_estimator", default="median")
+    # Per-realization wall-clock cap: extreme OOD realizations can stall sbi's rejection
+    # sampling (posterior leakage -> ~0 acceptance). On timeout the realization is recorded
+    # as skipped (None) and excluded from the aggregate.
+    ap.add_argument("--realization_timeout", type=int, default=600)
     args = ap.parse_args()
 
     sd = os.path.dirname(__file__)
@@ -91,11 +95,20 @@ def main():
         np.random.seed(args.seed + r)
         pairs, prof, log_sig = draw_observation(cfg, no, rbins, args.observable)
         if need_sbi:
-            jtf_c, ftj_c = sbi_.apply_observations(posterior, posterior_jtf, pairs, prof,
-                    stack_estimator=args.stack_estimator, sigmas=log_sig)[:2]
-            rec["truth"] = [float(np.median(pairs[:, 0])), float(np.std(pairs[:, 0])),
-                            float(np.median(pairs[:, 1])), float(np.std(pairs[:, 1]))]
-            rec["sbi_jtf"] = sbi_summary(jtf_c); rec["sbi_ftj"] = sbi_summary(ftj_c)
+            def _timeout(signum, frame): raise TimeoutError
+            signal.signal(signal.SIGALRM, _timeout)
+            signal.alarm(args.realization_timeout)
+            try:
+                jtf_c, ftj_c = sbi_.apply_observations(posterior, posterior_jtf, pairs, prof,
+                        stack_estimator=args.stack_estimator, sigmas=log_sig)[:2]
+                rec["truth"] = [float(np.median(pairs[:, 0])), float(np.std(pairs[:, 0])),
+                                float(np.median(pairs[:, 1])), float(np.std(pairs[:, 1]))]
+                rec["sbi_jtf"] = sbi_summary(jtf_c); rec["sbi_ftj"] = sbi_summary(ftj_c)
+            except TimeoutError:
+                rec["truth"] = rec.get("truth"); rec["sbi_jtf"] = None; rec["sbi_ftj"] = None
+                print(f"  r{r:03d} SBI TIMEOUT ({args.realization_timeout}s) -- skipped", flush=True)
+            finally:
+                signal.alarm(0)
         if need_mcmc:
             with multiprocessing.Pool() as pool:
                 # join_then_fit now takes PER-CLUSTER sigmas and derives the stacked

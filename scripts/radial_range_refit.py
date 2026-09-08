@@ -122,11 +122,20 @@ json.dump(summary, open(f"{OUT}/summary.json", "w"), indent=2)
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt, seaborn as sns
 fig, axes = plt.subplots(1, 2, figsize=(10, 4.4), sharex=True, sharey=True)
+sys.path.insert(0, os.path.join(SD, "..", "plot"))
+from plotutils import build_gaussian_summary_from_chain
+def pop_gauss_samples(chain, n=8000, seed=0):
+    # the SBI FTJ *population estimate*: sample the reconstructed 2D Gaussian
+    # (NOT columns 3/10, whose spread is only the median-summary estimation scatter)
+    g = build_gaussian_summary_from_chain(np.asarray(chain))
+    mM, mc = g["mass"]["mu"], g["concentration"]["mu"]
+    sM, sc, rho = g["mass"]["sigma"], g["concentration"]["sigma"], g["correlation"]["rho"]
+    cov = [[sM**2, rho*sM*sc], [rho*sM*sc, sc**2]]
+    return np.random.default_rng(seed).multivariate_normal([mM, mc], cov, size=n)
 for ax, (name, fu, ou) in zip(axes, [
         ("MCMC fit-then-join", np.asarray(full[1]), mcmc_ftj),
         ("SBI fit-then-join (population estimate)",
-         np.column_stack([np.asarray(full_sbi[1])[:, 3], np.asarray(full_sbi[1])[:, 10]]),
-         np.column_stack([sbi_ftj_c[:, 3], sbi_ftj_c[:, 10]]))]):
+         pop_gauss_samples(full_sbi[1]), pop_gauss_samples(sbi_ftj_c))]):
     sns.kdeplot(x=pairs[:, 0], y=pairs[:, 1], color="k", levels=[0.05, 0.3173], ax=ax, linestyles=["-", "--"])
     sns.kdeplot(x=fu[:, 0], y=fu[:, 1], color="C0", levels=[0.05, 0.3173], ax=ax)
     sns.kdeplot(x=ou[:, 0], y=ou[:, 1], color="C3", levels=[0.05, 0.3173], ax=ax)
