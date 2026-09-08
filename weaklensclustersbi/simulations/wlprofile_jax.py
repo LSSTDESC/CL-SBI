@@ -109,3 +109,17 @@ def make_forward(rbins=RBINS_KPC, z=Z, delta_vir=DELTA_VIR, kind="surface_densit
         return nfw_log_profile(logM, c, rbins=rbins, z=z, delta_vir=delta_vir, kind=kind)
 
     return jax.vmap(_one, in_axes=(0, 0))
+
+
+def make_forward_percluster(rbins=RBINS_KPC, kind="surface_density"):
+    """Return a forward vmapped over per-cluster (logM, c, z, delta_vir).
+
+    For the fully-unbinned model, each cluster carries its OWN redshift.  z and delta_vir
+    are data (not sampled), so delta_vir is precomputed via delta_vir_of_z and passed as an
+    array; only (logM, c) are traced parameters.  Returns
+    ``(logM[N], c[N], z[N], delta_vir[N]) -> log10 profile[N, nbins]``.
+    """
+    def _one(logM, c, z, delta_vir):
+        return nfw_log_profile(logM, c, rbins=rbins, z=z, delta_vir=delta_vir, kind=kind)
+
+    return jax.vmap(_one, in_axes=(0, 0, 0, 0))

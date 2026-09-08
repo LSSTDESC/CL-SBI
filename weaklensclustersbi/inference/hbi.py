@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 
+import jax
 import numpyro
 import numpyro.distributions as dist
 import jax.numpy as jnp
@@ -162,6 +163,57 @@ def hier_model(
         )
 
 
+def hier_model_unbinned(
+    data,
+    priors=None,
+    *,
+    evolve_z=True,
+    logM_ref=LOGM_REF,
+    z_ref=Z_REF,
+    observed=True,
+):
+    """Fully-unbinned model: every cluster carries its own (lambda_i, z_i).
+
+    Same shared M-c relation as ``hier_model``, but with NO cells: one plate over all
+    clusters, a per-cluster informative mass prior P(logM | lambda_i, z_i) supplied as a
+    (N, G) log-table (from population_hbi.build_unbinned_massprior), and a per-cluster
+    forward (each cluster forward-modeled at its own redshift).
+
+    ``data`` keys: n, prof (N,nbins), sig (nbins,), z (N,), delta_vir (N,), grid (G,),
+    lp_table (N,G), anchor (N,), width (N,), fwd (make_forward_percluster).
+    """
+    p = _resolve_priors(priors)
+
+    c0 = numpyro.sample("c0", _make_dist(p["c0"]))
+    beta = numpyro.sample("beta", _make_dist(p["beta"]))
+    gamma = numpyro.sample("gamma", _make_dist(p["gamma"])) if evolve_z else 0.0
+    sig_c = numpyro.sample("sig_c", _make_dist(p["sig_c"]))
+    sig_extra = numpyro.sample("sig_extra", _make_dist(p["sig_extra"]))
+
+    z = data["z"]
+    grid = data["grid"]
+    lp_table = data["lp_table"]
+    anchor = data["anchor"]
+    width = data["width"]
+
+    with numpyro.plate("clusters", int(data["n"])):
+        zM = numpyro.sample("zM", dist.Normal(0.0, 1.0))
+        logM = anchor + width * zM
+        # per-cluster informative mass prior (MF x richness likelihood), interpolated per cluster
+        lp = jax.vmap(lambda x, fp: jnp.interp(x, grid, fp))(logM, lp_table)
+        numpyro.factor("massprior", lp)
+        zc = numpyro.sample("zc", dist.Normal(0.0, 1.0))
+        c = c0 + beta * (logM - logM_ref) + gamma * (z - z_ref) + sig_c * zc
+
+    model_prof = data["fwd"](logM, c, z, data["delta_vir"])
+    sig_tot = jnp.sqrt(data["sig"][None, :] ** 2 + sig_extra ** 2)
+    numpyro.sample(
+        "obs",
+        dist.Normal(model_prof, sig_tot),
+        obs=(data["prof"] if observed else None),
+    )
+
+
 # Hyperparameters reported/compared across methods (per-cluster latents excluded).
 POP_PARAMS = ("c0", "beta", "gamma", "sig_c", "sig_extra")
 
@@ -189,50 +241,32 @@ def nuts_kwargs_from_config(cfg):
     return dict(cfg.get("nuts", {}))
 
 
-def run_nuts(
-    cells,
-    priors=None,
-    *,
-    mass_mode="massfn",
-    evolve_z=True,
-    logM_ref=LOGM_REF,
-    z_ref=Z_REF,
-    num_warmup=600,
-    num_samples=800,
-    num_chains=2,
-    target_accept_prob=0.9,
-    seed=0,
-):
-    """Sample the hierarchical model with NUTS; return (samples, grouped_samples).
-
-    ``grouped_samples`` is by-chain (for r-hat via numpyro.diagnostics.summary).
-    """
-    import jax
+def _run_nuts(model_thunk, *, num_warmup=600, num_samples=800, num_chains=2,
+              target_accept_prob=0.9, seed=0):
+    """Run NUTS on a zero-arg model closure; return (samples, grouped_samples)."""
     from numpyro.infer import MCMC, NUTS
 
-    def _model():
-        hier_model(
-            cells,
-            priors=priors,
-            mass_mode=mass_mode,
-            evolve_z=evolve_z,
-            logM_ref=logM_ref,
-            z_ref=z_ref,
-            observed=True,
-        )
-
-    kernel = NUTS(
-        _model,
-        target_accept_prob=target_accept_prob,
-        init_strategy=numpyro.infer.init_to_median,
-    )
-    mcmc = MCMC(
-        kernel,
-        num_warmup=num_warmup,
-        num_samples=num_samples,
-        num_chains=num_chains,
-        chain_method="sequential",
-        progress_bar=True,
-    )
+    kernel = NUTS(model_thunk, target_accept_prob=target_accept_prob,
+                  init_strategy=numpyro.infer.init_to_median)
+    mcmc = MCMC(kernel, num_warmup=num_warmup, num_samples=num_samples,
+                num_chains=num_chains, chain_method="sequential", progress_bar=True)
     mcmc.run(jax.random.PRNGKey(seed))
     return mcmc.get_samples(), mcmc.get_samples(group_by_chain=True)
+
+
+def run_nuts(cells, priors=None, *, mass_mode="massfn", evolve_z=True,
+             logM_ref=LOGM_REF, z_ref=Z_REF, **nuts_kwargs):
+    """NUTS on the cell-grouped model (single-cell / 12-cell)."""
+    def _model():
+        hier_model(cells, priors=priors, mass_mode=mass_mode, evolve_z=evolve_z,
+                   logM_ref=logM_ref, z_ref=z_ref, observed=True)
+    return _run_nuts(_model, **nuts_kwargs)
+
+
+def run_nuts_unbinned(data, priors=None, *, evolve_z=True,
+                      logM_ref=LOGM_REF, z_ref=Z_REF, **nuts_kwargs):
+    """NUTS on the fully-unbinned per-cluster model."""
+    def _model():
+        hier_model_unbinned(data, priors=priors, evolve_z=evolve_z,
+                            logM_ref=logM_ref, z_ref=z_ref, observed=True)
+    return _run_nuts(_model, **nuts_kwargs)

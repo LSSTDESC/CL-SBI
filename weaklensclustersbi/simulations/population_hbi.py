@@ -150,6 +150,115 @@ def load_cells(specs, *, mass_mode="massfn", kind="surface_density", width=0.15,
     return cells
 
 
+def build_unbinned_massprior(
+    richness,
+    z,
+    *,
+    rm_relation=DEFAULT_RM_RELATION,
+    rm_scatter=DEFAULT_RM_SCATTER,
+    mf_model=DEFAULT_MF_MODEL,
+    mf_mdef=DEFAULT_MF_MDEF,
+    mass_grid=DEFAULT_MASS_GRID,
+    n_z_grid=40,
+    width_floor=0.03,
+):
+    """Per-cluster mass prior tables for the fully-unbinned model.
+
+    For each cluster i with (lambda_i, z_i):
+        log P(logM | lambda_i, z_i) = log[(dn/dlnM)(logM, z_i)]
+                                      - 0.5 * ((ln lambda_i - ln lambda_mean(logM, z_i)) / sig_lnlam)^2
+    i.e. the mass function shape times the richness likelihood (the continuous, per-cluster
+    analogue of the cell MF x selection window).  The z-dependence of the mass function and
+    the R-M relation is tabulated on a z-grid and linearly interpolated to each z_i.
+
+    Returns (grid[G], lp_table[N, G], anchor[N], width[N]).  ``anchor``/``width`` are the
+    per-cluster prior mean and std (width floored), used as the non-centered logM scale.
+    """
+    from colossus.cosmology import cosmology
+    from colossus.lss import mass_function
+    from scipy.interpolate import interp1d
+
+    cosmology.setCosmology("planck18")
+    richness = np.asarray(richness, dtype=float)
+    z = np.asarray(z, dtype=float)
+    lo, hi, ng = mass_grid
+    grid = np.linspace(lo, hi, ng)
+
+    F = float(populationutils.get_rm_slope(rm_relation))
+    sig_lnlam = rm_scatter * np.log(10.0) / F
+
+    zg = np.linspace(z.min(), z.max(), n_z_grid) if z.max() > z.min() else np.array([z[0]])
+    log_mf_g = np.empty((len(zg), ng))
+    ln_lam_g = np.empty((len(zg), ng))
+    for j, zz in enumerate(zg):
+        dndlnM = mass_function.massFunction(10 ** grid, zz, mdef=mf_mdef, model=mf_model, q_out="dndlnM")
+        log_mf_g[j] = np.log(np.clip(dndlnM * np.log(10.0), 1e-300, None))
+        ln_lam_g[j] = np.log(populationutils.get_richness(grid, z=zz, model=rm_relation))
+
+    if len(zg) > 1:
+        log_mf_i = interp1d(zg, log_mf_g, axis=0)(z)   # (N, G)
+        ln_lam_i = interp1d(zg, ln_lam_g, axis=0)(z)   # (N, G)
+    else:
+        log_mf_i = np.repeat(log_mf_g, len(z), axis=0)
+        ln_lam_i = np.repeat(ln_lam_g, len(z), axis=0)
+
+    lp = log_mf_i - 0.5 * ((np.log(richness)[:, None] - ln_lam_i) / sig_lnlam) ** 2
+    lp -= lp.max(axis=1, keepdims=True)  # per-cluster constant; numerical stability only
+
+    w = np.exp(lp)
+    w /= w.sum(axis=1, keepdims=True)
+    anchor = (w * grid).sum(axis=1)
+    var = (w * (grid - anchor[:, None]) ** 2).sum(axis=1)
+    width = np.maximum(np.sqrt(np.clip(var, 0.0, None)), width_floor)
+    return grid, lp, anchor, width
+
+
+def load_unbinned_dataset(dataset_dir, cfg):
+    """Load a gen_hbi_dataset.py output into an hbi.hier_model_unbinned ``data`` dict."""
+    import json
+
+    import jax.numpy as jnp
+
+    prof = np.load(os.path.join(dataset_dir, "profiles.npy"))
+    sig = np.load(os.path.join(dataset_dir, "sigmas.npy"))
+    lam = np.load(os.path.join(dataset_dir, "richness.npy"))
+    z = np.load(os.path.join(dataset_dir, "redshift.npy"))
+    rbins = np.load(os.path.join(dataset_dir, "rbins.npy"))
+
+    skw = selection_kwargs_from_config(cfg)
+    kind = skw.pop("kind", "surface_density")
+    skw.pop("mass_mode", None)
+    skw.pop("width", None)  # cell-model fixed width; unbinned prior derives per-cluster width
+    grid, lp, anchor, width = build_unbinned_massprior(lam, z, **skw)
+
+    # delta_vir(z_i) via z-grid interpolation (cheap, avoids N colossus calls)
+    zg = np.linspace(z.min(), z.max(), 40) if z.max() > z.min() else np.array([z[0]])
+    dvir_g = np.array([J.delta_vir_of_z(zz) for zz in zg])
+    delta_vir = np.interp(z, zg, dvir_g)
+
+    data = dict(
+        n=len(z),
+        prof=jnp.asarray(prof),
+        sig=jnp.asarray(sig),
+        z=jnp.asarray(z),
+        richness=jnp.asarray(lam),
+        delta_vir=jnp.asarray(delta_vir),
+        grid=jnp.asarray(grid),
+        lp_table=jnp.asarray(lp),
+        anchor=jnp.asarray(anchor),
+        width=jnp.asarray(width),
+        fwd=J.make_forward_percluster(rbins=jnp.asarray(rbins), kind=kind),
+    )
+    tmc = os.path.join(dataset_dir, "true_mc.npy")
+    if os.path.exists(tmc):
+        data["true_mc"] = np.load(tmc)
+    tj = os.path.join(dataset_dir, "truth.json")
+    if os.path.exists(tj):
+        with open(tj) as f:
+            data["truth"] = json.load(f)
+    return data
+
+
 def selection_kwargs_from_config(cfg):
     """Map a population config to load_cells kwargs (mass mode, observable, MF x selection)."""
     out = {"mass_mode": cfg.get("mass_mode", "massfn"), "kind": cfg.get("observable", "surface_density")}
